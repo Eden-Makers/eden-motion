@@ -20,6 +20,12 @@ Every scene type the engine ships, with props (as given to the storyboard model)
 | `montage` | { mode: "flash"\|"wall", items: ["gen:<prompt>" \| "assets/..."] (6-10), text?: "one big word at the end", keyword? } flash = 0.12-0.16 s hard-cut cold open; wall = pull back to a masonry wall of results and push into another tile. |
 | `orb-hero` | { text: "short line typed under the orb", keyword?: "...", icon?: "lucide name", sub?: "...", bloom?: true } glowing glass orb hero token; AI brands, the turn ("What if..."), reveal; bloom:true flashes the frame to white at the end. |
 | `logo-reveal` | { tagline?: "tagline", cta?: "CTA button text", url?: "domain.com", click?: true } end card. Uses brand logo/mark automatically. |
+| `grid-stage` | { cells: [{src?: "gen:<prompt>"\|"assets/...", kind?: "image"\|"video", text?, label?: "magenta tag", stat?: "50%", fill?: "halftone"\|"dither"\|"stripes"}] (2-6), layout?: "2x2"\|"hero-left"\|"hero-right"\|"strip", reflow?: "<other layout>", reflowAt?: "VO cue word", title? } Higgsfield hero layout: media and stats in grid cells that reflow mid-shot. |
+| `drum-list` | { prefix?: "Make it", items: ["cinematic","viral","on brand","yours"] (4-8, last one lands in accent), label?: "small caps kicker" } slot-roll word drum stepping ~0.18 s. |
+| `glitch-lockup` | { badge?: "NEW", pill?: "short pill text", name? } crash-zoom brand lockup with pixel/RGB glitch frames; Higgsfield-style reveal. |
+| `pixel-type` | { text: "2-6 words", keyword?, sub?, align?: "left"\|"center" } headline whose words arrive through a bitmap/pixel state then resolve; 1 char per frame energy. |
+| `endcard-caps` | { lines: ["SMALL CAPS LINE", "..."] (1-3), url?: "domain.com", flash?: "accent"\|"lime"\|"white"\|false } plain Higgsfield end card. |
+| `persp-card` | { src: "gen:<prompt>"\|"assets/...", kind?: "image"\|"video", caption?: "CAPS CAPTION BAR", rotY?: 24 } AI footage or screenshot on a tilted 3D card with a caption bar; "AI output as proof". |
 
 ## Transitions
 
@@ -35,6 +41,12 @@ Every scene type the engine ships, with props (as given to the storyboard model)
 | `iris` | circle wipe from a point (opts x,y px). After a click or from the orb. |
 | `wipe` | brand-gradient slat wipe. Section change, max once. |
 | `card-drop` | old scene becomes a card that drops away. Playful, max once. |
+| `flash-frame` | Higgsfield: hard cut with a 1-2 frame full-frame colour flash (opts color: accent\|lime\|white). Section changes. duration 0.2. |
+| `flash-cycle` | Higgsfield: 4-frame colour cycle then the next shot. Big section change, max twice. duration 0.3. |
+| `overexpose` | Higgsfield: old shot blows out to white, new one settles from overexposed. duration 0.4. |
+| `punch-in` | Higgsfield: 4x crash zoom into a point (opts x,y px, e.g. the clicked button) then hard cut. The drop moment. duration 0.4. |
+| `pixel-dissolve` | Higgsfield: next shot revealed through a grid of pixel blocks in accent/lime. duration 0.5. |
+| `grid-reflow` | Higgsfield: cells slide along grid lines into the next layout. duration 0.55. |
 
 ## Scene-level fields
-`tone`: light | dark | cream | black. `camera`: omit (auto drift, alternating push/pull), push, pull, static. `transition`: {type, duration 0.3-0.8}.
+`tone`: light | dark | cream | black | grid (Higgsfield paper grid). `camera`: omit (auto drift, alternating push/pull), push, pull, static. `transition`: {type, duration, ...opts}. Film-level: `background: "hf-grid"`, `palette: "higgsfield"` forces magenta #df167f + lime #d4ff19.
