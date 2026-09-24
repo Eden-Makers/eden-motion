@@ -11,7 +11,8 @@ const HELP = `eden-motion - company name in, finished motion-graphics brand film
 USAGE
   eden-motion new "<Company>" [--url https://...] [--duration 60] [--lang en] [--theme saas-light|saas-dark|glow|cinematic]
                   [--voice brian|george|sarah|alice|matilda|daniel|<id>] [--structure problem-solution|launch|manifesto]
-                  [--notes "client notes"] [--video (allow Seedance 2.0 AI clips)] [--dir <projects root>]
+                  [--notes "client notes"] [--video (allow Seedance 2.0 AI clips)] [--style burnwe|launch|higgsfield]
+                  [--dir <projects root>]
   eden-motion run <project> [--from <step>] [--to <step>] [--draft]   full pipeline (research -> qc)
   eden-motion <step> <project> [options]
 
@@ -131,6 +132,7 @@ async function main() {
       structure: args.structure || null,
       notes: args.notes || null,
       video: !!args.video,
+      style: args.style || null,
       created: new Date().toISOString(),
     };
     writeJSON(path.join(dir, "brief.json"), brief);

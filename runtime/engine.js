@@ -119,7 +119,9 @@
         words: words(sb, start, end),
         rng: EM.rng(s.id || i + 1),
       };
+      EM._sceneEnd = end; // helpers (hotType) default their deadline to the current shot
       def.build(ctx);
+      EM._sceneEnd = null;
       // The camera never stops (measured on Burnwe: 0.4-2%/s zoom, 15-60 px/s truck, linear,
       // direction alternating shot to shot). "push" = emphasis push at ~5%/s.
       if (s.camera !== "static" && !def.ownsCamera) {

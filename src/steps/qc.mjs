@@ -29,6 +29,8 @@ It must match premium SaaS explainer / launch film standards:
 - no empty frames, no broken layouts, no placeholder text, no visual glitches or flicker
 - sound: music bed under VO, SFX on transitions and clicks, balanced levels, music ends cleanly
 
+IMPORTANT context so you do not report false positives: headlines are revealed by a typewriter (characters appear one by one, the newest in the accent colour), so a partially typed line mid-animation is intentional, not clipping. Only report clipping if the fully typed, settled text is cut by the frame edge or its container. Cards and elements arrive with a deliberate blur-to-sharp focus pull. kinetic-type scenes in "single" mode intentionally show ONE giant word at a time swapped on each spoken word (Lovable style), so a single word on screen is not missing text.
+
 Storyboard for reference (scene type + time window): ${JSON.stringify(sb.scenes.map((s) => ({ t: `${s.start.toFixed(1)}-${(s.start + s.duration).toFixed(1)}`, type: s.type, vo: s.vo })))}
 
 Return ONLY JSON:

@@ -141,7 +141,16 @@
   // M1 hot-tail typewriter (Burnwe signature). Characters appear at VO word onsets; the newest
   // characters are born in the accent gradient and cool to the base colour over ~0.4 s.
   // wordTimes: absolute onset per word (optional). Returns end time.
-  fx.hotType = function (tl, el, text, t, { wordTimes, cps = 17, keyword, cool = 0.42 } = {}) {
+  fx.hotType = function (tl, el, text, t, { wordTimes, cps = 17, keyword, cool = 0.42, deadline } = {}) {
+    // With a deadline, speed typing up so the last character lands by then.
+    if (deadline == null && EM._sceneEnd != null) deadline = EM._sceneEnd - 0.55;
+    if (deadline != null) {
+      const chars = String(text).replace(/\s+/g, "").length;
+      const lastStart = wordTimes && wordTimes.length ? wordTimes[wordTimes.length - 1] : t;
+      const lastWordLen = String(text).trim().split(/\s+/).pop().length;
+      const need = Math.max(lastStart + lastWordLen / cps, t + chars / cps);
+      if (need > deadline) cps = Math.min(60, cps * (need - t) / Math.max(0.2, deadline - t));
+    }
     el.textContent = "";
     // GSAP cannot tween var(--x) strings: resolve real colours from the element's context.
     const HOT = fx.cssVar(el, "--accent") || "#6d5cff";
@@ -275,6 +284,16 @@
       else out[i] = fallback[i];
     }
     for (let i = 1; i < out.length; i++) out[i] = Math.max(out[i], out[i - 1] + 0.06);
+    // Everything must land inside the shot: compress into [first, end - 0.9 s] if needed so
+    // typed lines finish (with their tail) before the cut.
+    if (ctx.end != null && out.length) {
+      const deadline = Math.max(out[0] + 0.2, ctx.end - 0.9);
+      const last = out[out.length - 1];
+      if (last > deadline) {
+        const a = out[0], k = (deadline - a) / Math.max(0.001, last - a);
+        for (let i = 0; i < out.length; i++) out[i] = a + (out[i] - a) * k;
+      }
+    }
     return out;
   };
 

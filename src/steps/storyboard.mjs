@@ -8,6 +8,13 @@ import { SCENES, TRANSITIONS } from "../lib/catalog.mjs";
 import { REPO } from "../lib/env.mjs";
 import { log, warn, readJSON, writeJSON, deepNoDashes } from "../lib/util.mjs";
 
+// Visual grammars measured from the references (research/analysis/*.md).
+const STYLES = {
+  burnwe: "Burnwe SaaS explainer: clean light/dark worlds alternating every 5-13 s, hot-tail typed headlines, product UI as a stage prop with camera push and cursor, focus-pull arrivals, mostly cuts on VO phrase ends, orbit/flow/tasks diagrams, one accent colour.",
+  launch: "Google/Lovable launch film: big single-word kinetic type on beats, glowing prompt box as the hero prop, AI result imagery in glass frames and montages, tones black or cream with gradient blooms, blur-based transitions, energetic cold open.",
+  higgsfield: "Higgsfield promo: white grid canvas with hairlines and magenta crosshairs (tone 'grid', background 'hf-grid'), two accents with fixed jobs (magenta for names/buttons, lime for highlights), 1 char/frame typing, flash-frame and punch-in transitions on every section change, pixel/halftone reveals, AI footage shown as proof inside grid cells or tilted cards, fast 1-1.5 s shots, slot-roll word lists, crash-zoom logo lockup, plain caps end card. Prefer scenes grid-stage, drum-list, pixel-type, persp-card, glitch-lockup, endcard-caps when available, and transitions flash-frame, punch-in, pixel-dissolve, overexpose, grid-reflow.",
+};
+
 function availableScenes() {
   const dir = path.join(REPO, "runtime", "scenes");
   const src = fs.readdirSync(dir).filter((f) => f.endsWith(".js")).map((f) => fs.readFileSync(path.join(dir, f), "utf8")).join("\n");
@@ -52,6 +59,8 @@ ${catalog}
 TRANSITIONS:
 ${trans}
 
+STYLE: ${STYLES[brief.style || "burnwe"] || brief.style}
+
 DIRECTION RULES
 - Pick one scene type per shot from the catalog (you may change the suggestion if another fits better). Never the same type twice in a row.
 - Fill props with the brand's REAL words: feature names, UI labels, numbers only from BRAND.proof. On-screen text is shorter than the VO (2-6 words for headlines).
@@ -67,7 +76,7 @@ ${brief.video ? `- You MAY use up to 2 AI video clips in media-frame: props {kin
 - transitions: mostly "cut" (60%+). Use zoom-through into the reveal, push-left between features, at most 1 whip, at most 1 wipe. Transition duration 0.4-0.7.
 - camera: omit (auto drift) or "push" for emphasis shots.
 
-Return ONLY JSON: {"scenes":[{"i":0,"type":"...","tone":"dark|light|cream|black","transition":{"type":"cut|...","duration":0.5},"camera":null,"props":{...}}]}`,
+Return ONLY JSON: {"scenes":[{"i":0,"type":"...","tone":"dark|light|cream|black|grid","transition":{"type":"cut|...","duration":0.5},"camera":null,"props":{...}}]}`,
     { temperature: 0.6 }
   );
 
@@ -113,6 +122,7 @@ Return ONLY JSON: {"scenes":[{"i":0,"type":"...","tone":"dark|light|cream|black"
 
   const sb = deepNoDashes({
     theme,
+    ...(brief.style === "higgsfield" ? { background: "hf-grid" } : {}),
     duration: total,
     brand: {},
     vo: { file: vo.file, words: vo.words },

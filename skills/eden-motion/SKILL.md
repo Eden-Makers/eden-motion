@@ -1,6 +1,6 @@
 ---
 name: eden-motion
-description: Company name in, finished motion-graphics brand film out (Burnwe / Lovable / Google launch-film quality). Researches the brand from its website, writes the script, records an ElevenLabs voiceover with word timings, storyboards 15-20 shots from a library of premium scenes (hot-tail kinetic type, product UI with camera and cursor, prompt box, orbit, stat counters, card chaos, flow lines, glass media frames, logo resolve), generates images with Nano Banana Pro, mixes music + SFX on exact frames, renders with HyperFrames and true shutter motion blur, then self-reviews with Gemini and iterates. Use for "make a motion graphics video for <company>", "explainer video", "SaaS promo", "launch video", "brand film from a website", "motion design like Burnwe/Lovable/Google", "udělej motion graphic video", "explainer pro firmu".
+description: Company name in, finished motion-graphics brand film out (Burnwe / Lovable / Google launch-film quality). Researches the brand from its website, writes the script, records an ElevenLabs voiceover with word timings, storyboards 15-20 shots from a library of premium scenes (hot-tail kinetic type, product UI with camera and cursor, prompt box, orbit, stat counters, card chaos, flow lines, glass media frames, logo resolve), generates images with Nano Banana Pro and AI clips via Higgsfield (Seedance 2.0 / Kling 3 / Veo 3.1), offers burnwe / launch / higgsfield visual styles, mixes music + SFX on exact frames, renders with HyperFrames and true shutter motion blur, then self-reviews with Gemini and iterates. Use for "make a motion graphics video for <company>", "explainer video", "SaaS promo", "launch video", "brand film from a website", "motion design like Burnwe/Lovable/Google", "udělej motion graphic video", "explainer pro firmu".
 ---
 
 # eden-motion
@@ -68,7 +68,21 @@ Write `projects/<slug>/custom-scenes/<name>.js` following `runtime/SCENE_API.md`
 built-ins, auto-loaded by `build`). Use it in storyboard.json with `"type": "<name>"`. If it is reusable,
 promote it into `runtime/scenes/` and add it to `src/lib/catalog.mjs`.
 
-## 5. House rules
+## 5. Styles and AI footage
+- `--style burnwe` (default SaaS explainer), `--style launch` (Google/Lovable launch film), `--style higgsfield`
+  (white grid canvas, magenta + lime accents, flash frames, punch-ins, pixel reveals, AI footage as proof in
+  grid cells; see `research/analysis/higgsfield.md`). The style steers storyboard scene and transition choice.
+- `--video` allows up to 2 AI clips: storyboard props `{kind:"video", src:"genvideo:<still prompt> || <motion prompt>"}`.
+  The assets step makes the still with Nano Banana Pro, then image-to-video through the **Higgsfield CLI**
+  (`higgsfield generate create seedance_2_0 --start-image ...`, default when `higgsfield account status` works;
+  `brief.videoModel` can be kling3_0, veo3_1, seedance_2_5, minimax_h3 ...) or fal.ai as fallback. Cost is
+  printed before each job (~22 credits per 5 s 720p Seedance, ~77 per 7 s 1080p). Prompts direct camera,
+  beat, motion and light, use timecoded beats for multishot, and always say "no music".
+- Harness agents with the Higgsfield MCP can also browse effect presets (Bullet time, Earth zoom, Lidar
+  transition, World morphing, Overexposed, Break Typography, Slot Roll ...) and generate hero shots there,
+  then drop the mp4 into `assets/` and reference it from storyboard.json.
+
+## 6. House rules
 - Stills: Nano Banana Pro (Gemini 3 Pro Image) at 2K, always end prompts with "no text, no letters, no logos". Flux is banned. Log every prompt (done automatically in `prompts.log.jsonl`).
 - Video clips (optional, for `media-frame` kind video): Seedance 2.0 or Kling 3.0 via Higgsfield/fal/Magnific with the approved still as reference, render 3 s longer than the cut, "no music" in the prompt.
 - No em dashes or en dashes in any copy (the pipeline strips them; check anything you write).
@@ -79,4 +93,4 @@ promote it into `runtime/scenes/` and add it to `src/lib/catalog.mjs`.
 - `references/style-dna.md` - measured rules from the reference films (pacing, easing, type, sound).
 - `references/scene-catalog.md` - every scene type, props, when to use.
 - `references/pipeline.md` - file formats (brief, brand, script, vo, storyboard), rendering and motion blur internals, troubleshooting.
-- Repo research: `~/Dev/eden-motion/research/analysis/{burnwe,launch-films,tooling-and-workflows}.md` (full forensic breakdowns, 70 techniques with parameters).
+- Repo research: `~/Dev/eden-motion/research/analysis/{burnwe,launch-films,higgsfield,tooling-and-workflows}.md` (full forensic breakdowns, 90+ techniques with parameters, Higgsfield preset map).
