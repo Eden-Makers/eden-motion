@@ -159,7 +159,52 @@
     tl.set({}, {}, total); // pin length
 
     let master = tl;
-    if (SLOW !== 1) {
+    const MB = window.EM_MB; // adaptive motion blur: { hi, lo, pad, fps }
+    if (MB) {
+      // Variable-rate temporal supersampling: fast windows (transitions + scene-declared fast
+      // moves) are stretched by MB.hi, everything else by MB.lo. The render step reads the map
+      // from #em-timemap and averages sub-frames per segment.
+      const f = MB.fps || 30;
+      const snapD = (t) => Math.floor(t * f + 1e-6) / f, snapU = (t) => Math.ceil(t * f - 1e-6) / f;
+      const wins = [];
+      scenes.forEach((s, i) => {
+        if (i && s.transition && s.transition.type && s.transition.type !== "cut") {
+          const d = s.transition.duration || 0.6;
+          wins.push([s.start - d / 2 - MB.pad, s.start + d / 2 + MB.pad]);
+        }
+      });
+      (EM.fastWindows || []).forEach((w) => wins.push([w[0] - MB.pad, w[1] + MB.pad]));
+      wins.sort((a, b) => a[0] - b[0]);
+      const merged = [];
+      for (const [a0, b0] of wins) {
+        const a = Math.max(0, snapD(a0)), b = Math.min(snapU(total), snapU(b0));
+        if (b <= a) continue;
+        if (merged.length && a <= merged[merged.length - 1][1]) merged[merged.length - 1][1] = Math.max(merged[merged.length - 1][1], b);
+        else merged.push([a, b]);
+      }
+      const segs = [];
+      let cur = 0;
+      const end = snapU(total);
+      for (const [a, b] of merged) {
+        if (a > cur) segs.push({ t0: cur, t1: a, S: MB.lo });
+        segs.push({ t0: a, t1: b, S: MB.hi });
+        cur = b;
+      }
+      if (cur < end) segs.push({ t0: cur, t1: end, S: MB.lo });
+      master = gsap.timeline({ paused: true });
+      let u = 0;
+      segs.forEach((g) => {
+        const du = (g.t1 - g.t0) * g.S;
+        master.fromTo(tl, { time: g.t0 }, { time: g.t1, duration: du, ease: "none", immediateRender: false }, u);
+        u += du;
+      });
+      const mapEl = document.createElement("script");
+      mapEl.type = "application/json";
+      mapEl.id = "em-timemap";
+      mapEl.textContent = JSON.stringify({ fps: f, segs, captureDuration: u });
+      document.body.appendChild(mapEl);
+      window.EM_TIMEMAP = { fps: f, segs, captureDuration: u };
+    } else if (SLOW !== 1) {
       master = gsap.timeline({ paused: true });
       master.to(tl, { time: total, duration: total * SLOW, ease: "none" }, 0);
     }

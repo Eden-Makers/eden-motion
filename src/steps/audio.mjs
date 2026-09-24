@@ -94,10 +94,18 @@ export async function audio(projectDir, { musicPrompt, noMusic = false } = {}) {
   } else if (voIdx >= 0) {
     filters.push(`[vokey]anullsink`);
   }
+  // keyboard bed under typed prompts, trimmed to the typing duration
+  cues.filter((c) => c.type === "typing").slice(0, 8).forEach((c, i) => {
+    if (c.t < 0 || c.t > D) return;
+    const k = add(path.join(SFX, "typing.mp3"));
+    const dur = Math.min(c.dur || 1.5, 4);
+    filters.push(`[${k}:a]aformat=sample_rates=48000:channel_layouts=stereo,aloop=loop=3:size=2e6,atrim=0:${dur.toFixed(2)},afade=t=out:st=${Math.max(0, dur - 0.15).toFixed(2)}:d=0.15,volume=-22dB,adelay=${Math.round(c.t * 1000)}:all=1[ty${i}]`);
+    mixLabels.push(`[ty${i}]`);
+  });
   const W = [path.join(SFX, "whoosh.mp3"), path.join(SFX, "whoosh-short.mp3")];
-  whooshes.forEach((c, i) => place(W[i % 2], Math.max(0, c.t - 0.05), c.soft ? -20 : -15, `w${i}`));
-  clicks.forEach((c, i) => place(path.join(SFX, "click.mp3"), c.t, -12, `c${i}`));
-  pops.forEach((c, i) => place(path.join(SFX, "pop.mp3"), c.t, -24, `p${i}`));
+  whooshes.forEach((c, i) => place(W[i % 2], Math.max(0, c.t - 0.05), c.soft ? -14 : -9, `w${i}`));
+  clicks.forEach((c, i) => place(path.join(SFX, "click.mp3"), c.t, -6, `c${i}`));
+  pops.forEach((c, i) => place(path.join(SFX, "pop.mp3"), c.t, -17, `p${i}`));
   if (reveal) {
     place(path.join(SFX, "riser.mp3"), Math.max(0, reveal.start - 2.4), -20, "riser");
     place(path.join(SFX, "impact-bass-1.mp3"), reveal.start + 0.2, -14, "impact");

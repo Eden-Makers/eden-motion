@@ -50,11 +50,15 @@ export async function logoSheet(files, outPng) {
   return outPng;
 }
 
-// Load a built composition and read the SFX cues the engine exported into the DOM.
-export async function readCues(indexHtml) {
+// Load a built composition and read a JSON block the engine exported into the DOM
+// (#em-cues = SFX cues, #em-timemap = adaptive motion-blur segments).
+export async function readDomJson(indexHtml, id, fallback = null) {
   return withPage(async (page) => {
     await page.goto(pathToFileURL(indexHtml).href, { waitUntil: "load", timeout: 60000 });
     await page.waitForFunction(() => window.EM_READY === true, { timeout: 30000 });
-    return page.evaluate(() => JSON.parse(document.getElementById("em-cues")?.textContent || "[]"));
+    const txt = await page.evaluate((i) => document.getElementById(i)?.textContent || null, id);
+    return txt ? JSON.parse(txt) : fallback;
   });
 }
+
+export const readCues = (indexHtml) => readDomJson(indexHtml, "em-cues", []);

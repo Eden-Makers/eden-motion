@@ -21,8 +21,8 @@
 
   function push(dx, dy) {
     return ({ tl, prev, next, at, d }) => {
-      tl.fromTo(prev, { xPercent: 0, yPercent: 0 }, { xPercent: -100 * dx, yPercent: -100 * dy, duration: d, ease: "power4.inOut", immediateRender: false }, at);
-      tl.fromTo(next, { xPercent: 100 * dx, yPercent: 100 * dy, opacity: 1 }, { xPercent: 0, yPercent: 0, duration: d, ease: "power4.inOut" }, at);
+      tl.fromTo(prev, { xPercent: 0, yPercent: 0 }, { xPercent: -100 * dx, yPercent: -100 * dy, duration: d, ease: "power3.inOut", immediateRender: false }, at);
+      tl.fromTo(next, { xPercent: 100 * dx, yPercent: 100 * dy, opacity: 1 }, { xPercent: 0, yPercent: 0, duration: d, ease: "power3.inOut" }, at);
     };
   }
   T("push-left", push(1, 0));

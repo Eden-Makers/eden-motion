@@ -36,9 +36,11 @@ The creative intelligence lives in three places:
 
 ## True motion blur
 HyperFrames seeks a paused timeline frame by frame, so real motion blur is impossible in-browser.
-eden-motion builds the composition with `EM_SLOW = S` (every real second lasts S seconds), captures at
-60 fps, and ffmpeg averages S consecutive sub-frames per output frame (`tmix`, 180 deg shutter). Every
-moving pixel gets physically correct blur; default S=4, hero renders `--slow 8`.
+eden-motion stretches time instead: the engine builds a piecewise time map where fast windows
+(transitions, declared fast moves) last 16x longer and calm stretches 0.5x, HyperFrames captures that at
+60 fps, and ffmpeg averages 16 sub-frames per output frame inside the fast windows (`tmix`, 180 deg
+shutter). Physically correct smear exactly where things move fast, at a fraction of a uniform
+supersample's cost (~7 min for 56 s). `--uniform --slow N` stretches everything.
 
 ## Requirements
 Node 20+, ffmpeg, Chrome (or the puppeteer headless shell), `GEMINI_API_KEY`, `ELEVENLABS_API_KEY`.

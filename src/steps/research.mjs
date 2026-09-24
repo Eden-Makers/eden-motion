@@ -178,15 +178,32 @@ Use only information supported by the site or search facts. No em dashes or en d
     brand.mark = r.file;
     brand.markMono = r.mono;
   }
-  // product screenshots -> jpg 1920 wide
+  // product screenshots -> jpg 1920 wide. Each one is vetted by vision: websites love cookie
+  // banners, chat widgets and modals, and one of those in a hero UI shot kills the film.
   brand.screenshots = [];
-  for (const [i, f] of (brand.ui_screenshots || []).slice(0, 4).entries()) {
+  const candidates = [...new Set([...(brand.ui_screenshots || []), ...shots])].slice(0, 12);
+  for (const f of candidates) {
+    if (brand.screenshots.length >= 4) break;
     const src = path.join(shotsDir, f);
     if (!fs.existsSync(src)) continue;
-    const dst = path.join(assets, `ui-${i + 1}.jpg`);
+    const n = brand.screenshots.length + 1;
+    const dst = path.join(assets, `ui-${n}.jpg`);
     run("ffmpeg", ["-y", "-v", "error", "-i", src, "-vf", "scale=1920:-2", "-q:v", "3", dst], { allowFail: true });
-    if (fs.existsSync(dst)) brand.screenshots.push(`assets/ui-${i + 1}.jpg`);
+    if (!fs.existsSync(dst)) continue;
+    let verdict = { ok: false };
+    try {
+      verdict = await generateJSON(
+        `Screenshot of ${brand.name}'s website. Return ONLY JSON {"banner": true if ANY cookie/consent/privacy banner, newsletter popup, chat widget bubble covering content, or modal overlay is visible, "product_ui": true if it clearly shows the real product interface (app screens, dashboards, editor, data views) rather than only marketing copy, stock photos or logos, "quality": 1-5 how impressive it would look as a hero product shot}`,
+        { model: MODELS.fast, parts: [inlineImage(dst)], temperature: 0 }
+      );
+      verdict.ok = !verdict.banner && verdict.product_ui && (verdict.quality || 0) >= 3;
+    } catch (e) {
+      warn("screenshot vetting failed: " + e.message.slice(0, 120));
+    }
+    if (verdict.ok) brand.screenshots.push(`assets/ui-${n}.jpg`);
+    else fs.rmSync(dst, { force: true });
   }
+  if (!brand.screenshots.length) warn("no clean product screenshots: ui-window will use designed dashboards");
   // brand font files captured from the site (real typeface beats a Google lookalike)
   const fontFiles = [];
   for (const role of ["display", "body"]) {

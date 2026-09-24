@@ -61,7 +61,12 @@ export async function assets(projectDir, { concurrency = 3 } = {}) {
   const vids = [];
   walk(sb.scenes, (v) => (typeof v === "string" && v.startsWith("genvideo:") && vids.push(v), v));
   if (vids.length) {
-    const { imageToVideo } = await import("../lib/fal.mjs");
+    // Provider: Higgsfield CLI when authed (house default, Seedance 2.0), else fal.ai.
+    const brief = readJSON(path.join(projectDir, "brief.json"), {});
+    const { higgsfieldAvailable, hfImageToVideo } = await import("../lib/higgsfield.mjs");
+    const useHF = (brief.videoProvider || "higgsfield") === "higgsfield" && higgsfieldAvailable();
+    const imageToVideo = useHF ? (img, motion, out, o) => hfImageToVideo(img, motion, out, { model: brief.videoModel || "seedance_2_0", ...o }) : (await import("../lib/fal.mjs")).imageToVideo;
+    log(`video provider: ${useHF ? "Higgsfield CLI" : "fal.ai"}`);
     const vmap = {};
     for (const v of [...new Set(vids)]) {
       const [still, motion] = v.slice(9).split("||").map((s) => s.trim());
@@ -70,7 +75,7 @@ export async function assets(projectDir, { concurrency = 3 } = {}) {
       try {
         if (!fs.existsSync(mp4)) {
           if (!fs.existsSync(img)) await generateImage(`${still}. No text, no letters, no logos.`, img, { aspect: "16:9", size: "2K" });
-          log(`  video ${h}: Seedance 2.0 i2v`);
+          log(`  video ${h}: image-to-video`);
           const r = await imageToVideo(img, motion || "Slow cinematic push in, subtle natural motion, no cut.", raw, { seconds: 7 });
           run("ffmpeg", ["-y", "-v", "error", "-i", raw, "-vf", "scale=1920:-2,fps=30", "-an", "-c:v", "libx264", "-crf", "16", "-pix_fmt", "yuv420p", mp4]);
           fs.appendFileSync(logFile, JSON.stringify({ t: new Date().toISOString(), model: r.model, request_id: r.request_id, still, motion, file: path.relative(projectDir, mp4) }) + "\n");

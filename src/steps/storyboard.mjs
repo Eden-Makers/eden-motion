@@ -59,6 +59,9 @@ DIRECTION RULES
 - Shots shorter than 1.6 s: use kinetic-type single or headline only.
 - headline text: 2-7 words (the punchiest excerpt of the line). kinetic-type single: 1-5 words, one per spoken word. Longer statements go to a visual scene with a short caption instead.
 - Use real screenshots in ui-window when available; otherwise design a believable dashboard with brand-specific labels.
+- Imagery must feel designed, not stock: prefer abstract premium 3D renders (glass, soft materials, light, macro objects that embody the idea) and the brand's real screenshots. NO clichés: no stressed worker at a desk, no handshakes, no team high-fives, no generic office people, no robots. People only if the product is about people, and then editorial and specific.
+- montage items: use the brand's real screenshots first, then abstract renders.
+- card-cloud word: "?" or one calm word, never shouting capitals.
 - For images use "gen:<prompt>": a full Nano Banana Pro prompt, photographic or 3D, premium, brand colours ${JSON.stringify(brand.colors || {})}, and ALWAYS end with "no text, no letters, no logos". Max 5 generated images in the whole film.
 ${brief.video ? `- You MAY use up to 2 AI video clips in media-frame: props {kind:"video", src:"genvideo:<detailed still prompt> || <camera + motion direction, single shot>"}. Use them for the most cinematic human/world moments only.\n` : ""}- tone: keep the line's tone (dark/light); for theme glow you may use "cream", for cinematic use "black". The last shot must be logo-reveal.
 - transitions: mostly "cut" (60%+). Use zoom-through into the reveal, push-left between features, at most 1 whip, at most 1 wipe. Transition duration 0.4-0.7.

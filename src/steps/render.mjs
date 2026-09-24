@@ -1,46 +1,85 @@
-// render: HyperFrames capture -> (optional) true shutter motion blur -> mux audio.
+// render: HyperFrames capture -> true shutter motion blur -> mux audio.
 //
-// Motion blur: the composition is built with EM_SLOW=S, so every real second spans S seconds
-// of timeline. Capturing that at R fps gives N = R*S/F sub-frames per output frame at F fps.
-// ffmpeg tmix averages K = N*shutter/360 consecutive sub-frames centred on each output frame,
-// which is exactly what a film camera shutter does. Cost: S times the render.
+// Motion blur is real temporal supersampling. HyperFrames seeks a paused timeline, so the engine
+// stretches time: capture at R=60 fps of a timeline where a real second lasts S seconds gives
+// N=2S sub-frames per 30 fps output frame; ffmpeg tmix averages K=N*shutter/360 of them centred
+// on each output frame (a 180 deg film shutter).
+//
+// Adaptive (default final): the engine marks fast windows (transitions, scene-declared fast moves)
+// and stretches only those by `hi` (16 sub-frames -> smooth smear, no strobing); calm stretches
+// run at `lo`=0.5 (1 sub-frame, no cost). Faster AND smoother than a uniform stretch.
+// Uniform (`--uniform`, or when the film contains video clips): every second stretched by S.
 import fs from "node:fs";
 import path from "node:path";
 import { build } from "./build.mjs";
+import { readDomJson } from "../lib/browser.mjs";
 import { log, run, runLive, readJSON, probeDuration } from "../lib/util.mjs";
 
 const HF = ["-y", "hyperframes@0.8.72"];
+const R = 60;
 
-export async function render(projectDir, { quality = "final", fps = 30, shutter = 180, slow, workers, out } = {}) {
+function segmentGraph(map, fps, shutter) {
+  // One trim -> (tmix -> select) chain per segment, then concat.
+  let F = 0;
+  const parts = [];
+  const labels = [];
+  map.segs.forEach((g, k) => {
+    const frames30 = Math.round((g.t1 - g.t0) * fps);
+    const n = Math.max(1, Math.round((R * g.S) / fps));
+    const count = frames30 * n;
+    let chain = `[0:v]trim=start_frame=${F}:end_frame=${F + count},setpts=PTS-STARTPTS`;
+    if (n > 1) {
+      const K = Math.max(1, Math.round((n * shutter) / 360));
+      chain += `,tmix=frames=${K}:weights='${Array(K).fill(1).join(" ")}',select='eq(mod(n\\,${n})\\,${Math.floor(K / 2)})'`;
+    }
+    chain += `,setpts=N/${fps}/TB[s${k}]`;
+    parts.push(chain);
+    labels.push(`[s${k}]`);
+    F += count;
+  });
+  return `${parts.join(";")};${labels.join("")}concat=n=${labels.length}:v=1:a=0[out]`;
+}
+
+export async function render(projectDir, { quality = "final", fps = 30, shutter = 180, slow, workers, out, uniform, hi = 16 } = {}) {
   const sb = readJSON(path.join(projectDir, "storyboard.json"));
   const draft = quality === "draft";
+  const hasVideo = JSON.stringify(sb.scenes).includes('"kind":"video"');
+  const adaptive = !draft && !uniform && !slow && !hasVideo;
   const S = draft ? 1 : slow || 4;
-  const R = 60;
   const renders = path.join(projectDir, "renders");
   fs.mkdirSync(renders, { recursive: true });
 
-  const comp = await build(projectDir, { slow: S, out: draft ? "comp" : "comp-final" });
+  const comp = await build(projectDir, adaptive ? { slow: 1, mb: { hi, lo: 0.5, pad: 0.1, fps }, out: "comp-final" } : { slow: S, out: draft ? "comp" : "comp-final" });
+  let map = null;
+  if (adaptive) {
+    map = await readDomJson(path.join(comp, "index.html"), "em-timemap");
+    if (!map) throw new Error("engine did not export #em-timemap");
+    const html = path.join(comp, "index.html");
+    fs.writeFileSync(html, fs.readFileSync(html, "utf8").replace(/data-duration="[^"]*"/, `data-duration="${map.captureDuration.toFixed(4)}"`));
+    const fast = map.segs.filter((g) => g.S > 1).reduce((a, g) => a + g.t1 - g.t0, 0);
+    log(`adaptive motion blur: ${map.segs.length} segments, ${fast.toFixed(1)}s at ${2 * hi} sub-frames, capture ${map.captureDuration.toFixed(1)}s`);
+  }
+
   const raw = path.join(renders, draft ? "raw-draft.mp4" : "raw-slow.mp4");
   const args = ["render", "--fps", String(draft ? fps : R), "--quality", draft ? "draft" : "high", "-o", raw];
   if (workers) args.push("--workers", String(workers));
-  log(`hyperframes render (${draft ? "draft" : `slow x${S} @${R}fps for motion blur`})`);
+  log(`hyperframes render (${draft ? "draft" : adaptive ? "adaptive supersampling" : `uniform slow x${S}`})`);
   const t0 = Date.now();
   await runLive("npx", [...HF, ...args], { cwd: comp });
   log(`captured in ${((Date.now() - t0) / 1000).toFixed(0)}s`);
 
   let video = raw;
   if (!draft) {
-    const N = Math.round((R * S) / fps);
-    const K = Math.max(1, Math.round((N * shutter) / 360));
-    const phase = Math.floor(K / 2);
     video = path.join(renders, "video-mb.mp4");
-    log(`motion blur: ${N} sub-frames/frame, shutter ${shutter} deg -> average ${K}`);
-    const weights = Array(K).fill(1).join(" ");
-    run("ffmpeg", [
-      "-y", "-v", "error", "-i", raw,
-      "-vf", `tmix=frames=${K}:weights='${weights}',select='eq(mod(n\\,${N})\\,${phase})',setpts=N/${fps}/TB`,
-      "-r", String(fps), "-c:v", "libx264", "-preset", "slow", "-crf", "12", "-pix_fmt", "yuv420p", video,
-    ]);
+    let graph;
+    if (adaptive) graph = segmentGraph(map, fps, shutter);
+    else {
+      const N = Math.round((R * S) / fps);
+      const K = Math.max(1, Math.round((N * shutter) / 360));
+      graph = `[0:v]tmix=frames=${K}:weights='${Array(K).fill(1).join(" ")}',select='eq(mod(n\\,${N})\\,${Math.floor(K / 2)})',setpts=N/${fps}/TB[out]`;
+    }
+    fs.writeFileSync(path.join(renders, "mb.graph.txt"), graph);
+    run("ffmpeg", ["-y", "-v", "error", "-i", raw, "-filter_complex", graph, "-map", "[out]", "-r", String(fps), "-c:v", "libx264", "-preset", "slow", "-crf", "12", "-pix_fmt", "yuv420p", video]);
   }
 
   const mix = path.join(projectDir, "audio", "mix.wav");

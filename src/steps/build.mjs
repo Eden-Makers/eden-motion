@@ -110,7 +110,7 @@ function copyDir(src, dst) {
   }
 }
 
-export async function build(projectDir, { slow = 1, out = "comp" } = {}) {
+export async function build(projectDir, { slow = 1, out = "comp", mb = null } = {}) {
   const sb = readJSON(path.join(projectDir, "storyboard.json"));
   const brand = readJSON(path.join(projectDir, "brand.json"), {});
   const comp = path.join(projectDir, out);
@@ -193,7 +193,7 @@ html[data-theme] { ${themeOverrides.join(" ")} }
   <div id="bg"></div>
   <div id="stage"></div>
 </div>
-<script>window.EM_SLOW = ${slow}; window.STORYBOARD = ${JSON.stringify({ ...sb, brand: { ...brand, ...(sb.brand || {}) } })};</script>
+<script>window.EM_SLOW = ${slow}; window.EM_MB = ${mb ? JSON.stringify(mb) : "null"}; window.STORYBOARD = ${JSON.stringify({ ...sb, brand: { ...brand, ...(sb.brand || {}) } })};</script>
 <script src="runtime/icons.js"></script>
 <script src="runtime/engine.js"></script>
 <script src="runtime/fx.js"></script>

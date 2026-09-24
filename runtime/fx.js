@@ -77,6 +77,7 @@
     const write = () => (span.textContent = text.slice(0, Math.round(p.v)));
     write();
     tl.to(p, { v: n, duration: d, ease: "none", onUpdate: write }, t);
+    (EM.cues = EM.cues || []).push({ t, type: "typing", dur: d });
     if (caretEl) {
       // finite blink after typing
       const blinks = 6;

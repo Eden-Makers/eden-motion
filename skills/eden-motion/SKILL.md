@@ -35,7 +35,7 @@ node bin/eden-motion.mjs storyboard <slug>             # storyboard.json  <- REA
 node bin/eden-motion.mjs assets <slug>                 # resolves "gen:<prompt>" images (Nano Banana Pro 2K)
 node bin/eden-motion.mjs audio <slug>                  # music + SFX on engine cues + VO -> audio/mix.wav
 node bin/eden-motion.mjs render <slug> --draft         # ~1-2 min, no motion blur, for review
-node bin/eden-motion.mjs render <slug>                 # final: true shutter motion blur (--slow 4 default 8)
+node bin/eden-motion.mjs render <slug>                 # final: adaptive true shutter motion blur (~7 min / 60 s)
 node bin/eden-motion.mjs qc <slug>                     # Gemini creative-director review
 node bin/eden-motion.mjs preview <slug>                # HyperFrames Studio (scrub, edit timeline)
 ```
@@ -52,7 +52,13 @@ If you change script text, re-run `vo` (timings change) then `storyboard`.
    ffmpeg -v error -i renders/draft.mp4 -vf "fps=2,scale=640:-1,tile=6x6" -frames:v 1 renders/sheet.jpg
    ```
    Check every scene: layout, overflow, text size, collisions, empty frames, logo colour on dark.
-4. **QC.** `qc <slug>` -> fix every HIGH issue in `renders/qc.json`, most MEDIUM ones.
+4. **QC.** `qc <slug>` -> fix every HIGH issue in `renders/qc.json`, most MEDIUM ones. The reviewer is
+   deliberately harsh (a first autopilot pass scores ~50-60). Typical real fixes seen so far:
+   - stock-looking people imagery (stressed worker, office team) -> abstract premium 3D render of the idea, or the brand's real screenshots;
+   - shouting words in card-cloud ("OUTDATED") -> "?" plus a calm sub line;
+   - typed headline that starts on a late word -> type the whole VO line (the hook must show text on the first spoken word);
+   - light scene arriving via zoom-through reading as a small card -> fixed in the engine, but prefer `cut` into tone changes.
+   After editing storyboard props: `assets` (only if new `gen:` images) -> `audio` (cues move with the picture) -> `render --draft`.
 5. **Final.** `render <slug>` (motion blur), `qc` again, compare. Two loops minimum, never ship the first render.
 
 Fix hierarchy: props in storyboard.json -> scene type swap -> timing (split a long line in script) -> new custom scene.

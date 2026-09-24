@@ -31,12 +31,17 @@ projects/<slug>/
 - Top-level optional: `fonts: {display, body}` to override brand fonts, `brandBackground: true` to use brand bg/fg.
 
 ## Rendering and motion blur
-- `render --draft`: HyperFrames capture at 30 fps, no blur (~1-2 min for 60 s).
-- `render` (final): the composition is built with `window.EM_SLOW = S` (default 8) so a real second spans S
-  seconds of timeline; HyperFrames captures that at 60 fps = 2S sub-frames per output frame; ffmpeg `tmix`
-  averages S of them (180 deg shutter) centred on each output frame and keeps every 2S-th. Result: true
-  film-camera motion blur on every moving pixel. Cost ~S x draft. `--slow 4` halves the time with slightly
-  steppier blur on extreme moves.
+- `render --draft`: HyperFrames capture at 30 fps, no blur (~1.5 min for 60 s).
+- `render` (final, default = **adaptive supersampling**): the engine marks fast windows (every non-cut
+  transition +-0.1 s, plus anything a scene pushes to `EM.fastWindows`), snaps them to the frame grid and
+  builds a piecewise time map: fast windows stretched x16 (32 sub-frames per output frame), calm stretches
+  x0.5 (1 sub-frame). The map is exported as `#em-timemap`; render reads it with headless Chrome, sets the
+  capture duration, captures at 60 fps, and ffmpeg processes each segment separately (`trim` -> `tmix` of 16
+  sub-frames = 180 deg shutter -> `select`) and concatenates. Real, smooth film-camera smear exactly where
+  things move fast; ~7 min for a 56 s film on a 10-core Mac.
+- `render --uniform --slow 4`: every second stretched x4 (8 sub-frames). Used automatically when the film
+  contains video clips (their playback rate must be constant). Steppier on very fast moves.
+- `--hi 8` halves the fast-window cost (16 sub-frames) if time is short.
 - Audio is never rendered by the browser: `audio/mix.wav` is muxed by ffmpeg.
 
 ## Sound cues
