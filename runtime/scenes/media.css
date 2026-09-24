@@ -1,0 +1,141 @@
+/* media scenes: media-frame, montage, orb-hero, versus, chat */
+
+/* ---------- media-frame ---------- */
+.mf-stage { position: absolute; inset: 0; perspective: 2000px; display: flex; align-items: center; justify-content: center; }
+.mf-rig { position: relative; transform-style: preserve-3d; display: flex; align-items: center; justify-content: center; }
+.mf-frame { position: relative; overflow: hidden; flex: none; isolation: isolate;
+  box-shadow: 0 0 0 5px rgba(0, 0, 0, 0.32), 0 70px 150px -30px rgba(0, 0, 0, 0.6), 0 20px 50px -20px rgba(0, 0, 0, 0.45); }
+.tone-light .mf-frame, .tone-cream .mf-frame { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 70px 140px -40px rgba(30, 20, 60, 0.4), 0 20px 50px -20px rgba(30, 20, 60, 0.25); }
+.mf-content { position: absolute; inset: 0; overflow: hidden; }
+.mf-refract, .mf-kb { position: absolute; inset: 0; will-change: transform; }
+.mf-refract { filter: blur(2px) brightness(1.3) saturate(1.35) contrast(0.92); }
+.mf-media { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.mf-inner { position: absolute; overflow: hidden;
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.5), 0 0 3px 3px rgba(255, 255, 255, 0.12), 0 0 22px 6px rgba(0, 0, 0, 0.32); }
+.mf-inner::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28), inset 0 18px 40px -18px rgba(0, 0, 0, 0.45); }
+/* Glass rim: gradient ring (padding-box excluded) brighter on top and bottom edges. */
+.mf-rim { position: absolute; inset: 0; border-style: solid; border-color: transparent; pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0%, rgba(235, 240, 255, 0.06) 22%, rgba(255, 255, 255, 0) 50%, rgba(235, 240, 255, 0.05) 78%, rgba(255, 255, 255, 0.34) 100%) border-box;
+  -webkit-mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0) border-box; -webkit-mask-composite: xor; mask-composite: exclude;
+  mix-blend-mode: screen; }
+.mf-spec { position: absolute; inset: 0; pointer-events: none;
+  box-shadow: inset 0 3px 1px rgba(255, 255, 255, 0.9), inset 0 -3px 2px rgba(255, 255, 255, 0.55), inset 0 0 0 1.5px rgba(255, 255, 255, 0.7), inset 0 0 16px rgba(255, 255, 255, 0.3), inset 0 0 44px rgba(190, 210, 255, 0.18); }
+.mf-glint { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen;
+  background: linear-gradient(112deg, transparent 38%, rgba(255, 255, 255, 0.28) 47%, rgba(255, 255, 255, 0.05) 53%, transparent 60%);
+  background-size: 260% 100%; background-position: 130% 0%; }
+.mf-glow { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) translateZ(-40px); filter: blur(90px); opacity: 0.6;
+  background: linear-gradient(120deg, var(--glow1), var(--glow2) 55%, var(--glow3)); }
+.tone-light .mf-glow, .tone-cream .mf-glow { opacity: 0.45; }
+.mf-caption { position: absolute; font-size: 64px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.08; white-space: nowrap; }
+.mf-caption.side { white-space: normal; width: 600px; text-align: left; font-size: 72px; }
+
+/* ---------- montage ---------- */
+.mo-flash { position: absolute; inset: 0; overflow: hidden; background: #000; }
+.mo-full { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.mo-kick { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+.mo-shade { position: absolute; inset: 0; background: radial-gradient(70% 60% at 50% 55%, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.1) 70%, transparent); opacity: 0; }
+.mo-word { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); color: #fff; font-size: 200px; font-weight: 600; letter-spacing: -0.045em; text-shadow: 0 10px 60px rgba(0, 0, 0, 0.35); }
+.mo-view { position: absolute; inset: 0; overflow: hidden; }
+.mo-wall { position: absolute; left: 0; top: 0; width: 1px; height: 1px; will-change: transform; }
+.mo-tile { position: absolute; overflow: hidden; background: #111; box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.55); }
+.mo-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* ---------- orb-hero ---------- */
+.orb-wrap { position: relative; display: flex; flex-direction: column; align-items: center; gap: 70px; }
+.orb-box { position: relative; width: 380px; height: 380px; }
+.orb { position: absolute; inset: 0; border-radius: 50%; overflow: hidden;
+  background: radial-gradient(circle at 34% 28%, #ffffff 0 6%, color-mix(in srgb, var(--accent2) 22%, #fff) 16%, color-mix(in srgb, var(--accent) 55%, var(--accent2)) 42%, var(--accent) 68%, color-mix(in srgb, var(--accent2) 80%, #200a40) 100%);
+  box-shadow: 0 0 90px 12px color-mix(in srgb, var(--accent) 45%, transparent), inset -26px -40px 70px color-mix(in srgb, var(--accent) 45%, #10052a), inset 14px 16px 40px rgba(255, 255, 255, 0.25); }
+.orb-swirl { position: absolute; inset: -20%; border-radius: 50%; mix-blend-mode: screen; opacity: 0.55;
+  background: conic-gradient(from 0deg, transparent 0deg, color-mix(in srgb, var(--accent3) 70%, transparent) 60deg, transparent 130deg, color-mix(in srgb, var(--accent2) 60%, transparent) 220deg, transparent 290deg); filter: blur(28px); }
+.orb-spec { position: absolute; left: 16%; top: 9%; width: 42%; height: 26%; border-radius: 50%; transform: rotate(-24deg);
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.35) 55%, transparent); filter: blur(4px); }
+.orb-rimlight { position: absolute; inset: 0; border-radius: 50%;
+  box-shadow: inset -6px -8px 0 -2px rgba(255, 255, 255, 0.35), inset 0 0 0 1.5px rgba(255, 255, 255, 0.35); }
+.orb-glyph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; font: 700 150px/1 var(--font-display);
+  filter: drop-shadow(0 6px 22px rgba(30, 0, 60, 0.35)); }
+.orb-glyph .em-icon { color: #fff; }
+.orb-glyph .em-icon svg { stroke-width: 1.6; }
+.orb-halo { position: absolute; left: 50%; top: 50%; width: 900px; height: 900px; margin: -450px 0 0 -450px; border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 40%, transparent) 0%, color-mix(in srgb, var(--accent2) 18%, transparent) 38%, transparent 66%); }
+.tone-light .orb-halo, .tone-cream .orb-halo { opacity: 0.8; }
+.orb-ring { position: absolute; left: 50%; top: 50%; border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--fg) 16%, transparent); }
+.orb-ring.r1 { width: 640px; height: 250px; margin: -125px 0 0 -320px; transform: rotate(-8deg); }
+.orb-ring.r2 { width: 860px; height: 330px; margin: -165px 0 0 -430px; border-color: color-mix(in srgb, var(--fg) 9%, transparent); }
+.orb-floor { position: absolute; left: 50%; bottom: -70px; width: 300px; height: 44px; margin-left: -150px; border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 45%, transparent), transparent); filter: blur(10px); }
+.orb-mote { position: absolute; left: 50%; top: 50%; border-radius: 50%; background: color-mix(in srgb, var(--accent3) 50%, #fff); filter: blur(1.5px); box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 70%, transparent); }
+.orb-head { font-size: 96px; font-weight: 600; letter-spacing: -0.035em; white-space: nowrap; }
+.orb-sub { margin-top: -40px; font-size: 40px; }
+.orb-edge { position: absolute; inset: 0; z-index: 20; pointer-events: none; opacity: 0;
+  background: radial-gradient(90% 90% at 50% 50%, transparent 45%, color-mix(in srgb, var(--accent2) 70%, transparent) 85%, var(--accent2) 100%); }
+.orb-white { position: absolute; inset: -400px; z-index: 21; pointer-events: none; opacity: 0;
+  background: radial-gradient(closest-side, #fff 55%, color-mix(in srgb, var(--accent) 22%, #fff) 85%, color-mix(in srgb, var(--accent2) 45%, #fff)) center / 100% 100% no-repeat, #fff; }
+
+/* ---------- versus ---------- */
+.vs-root { position: absolute; inset: 0; overflow: hidden; }
+.vs-left { position: absolute; left: 0; top: 0; bottom: 0; width: var(--split); overflow: hidden; background: #0b0a10; }
+.vs-left-in { position: absolute; left: 0; top: 0; bottom: 0; width: 1920px; }
+.vs-img { position: absolute; left: 0; top: 0; width: 1100px; height: 100%; object-fit: cover; }
+.vs-left-shade { position: absolute; left: 0; top: 0; bottom: 0; width: 1100px; background: linear-gradient(90deg, rgba(8, 8, 12, 0.62), rgba(8, 8, 12, 0.35) 55%, rgba(8, 8, 12, 0.55)), linear-gradient(0deg, rgba(8, 8, 12, 0.6), transparent 50%); }
+.vs-right { position: absolute; top: 0; bottom: 0; right: 0; left: var(--split); overflow: hidden; background: #f6f6f9; color: #111217; }
+.vs-right-in { position: absolute; inset: 0; background: radial-gradient(80% 70% at 70% 30%, #ffffff, #f1f1f6 70%); }
+.vs-divider { position: absolute; top: 0; bottom: 0; left: var(--split); width: 4px; margin-left: -2px; background: #fff; transform-origin: 50% 50%;
+  box-shadow: 0 0 24px rgba(255, 255, 255, 0.8), 0 0 60px color-mix(in srgb, var(--accent) 60%, transparent); z-index: 3; }
+.vs-col { position: absolute; left: 96px; top: 0; bottom: 0; width: 700px; display: flex; flex-direction: column; justify-content: center; gap: 34px; }
+.vs-label { display: inline-flex; align-self: flex-start; align-items: center; padding: 18px 36px; border-radius: 999px; font: 650 54px/1 var(--font-display); letter-spacing: -0.025em; white-space: nowrap; }
+.vs-label.dim { color: rgba(255, 255, 255, 0.9); background: rgba(255, 255, 255, 0.1); border: 1.5px solid rgba(255, 255, 255, 0.2); margin-bottom: 18px; }
+.vs-label.hot { align-self: center; margin-bottom: 6px; color: #fff; background: linear-gradient(90deg, var(--accent), var(--accent2)); box-shadow: 0 24px 60px -16px color-mix(in srgb, var(--accent) 70%, transparent); }
+.vs-item { display: flex; align-items: center; gap: 22px; font: 550 54px/1.1 var(--font-body); letter-spacing: -0.02em; white-space: nowrap; }
+.vs-item.dim { color: rgba(255, 255, 255, 0.85); }
+.vs-x { width: 62px; height: 62px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(255, 90, 110, 0.16); border: 1.5px solid rgba(255, 120, 140, 0.35); flex: none; }
+.vs-x .em-icon { color: #ff8a9b; }
+.vs-rcol { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 14px; padding-top: 120px; transform-origin: 50% 35%; }
+.vs-root.no-value .vs-rcol { justify-content: center; padding-top: 0; gap: 30px; }
+.vs-num { font-size: 320px; font-weight: 700; letter-spacing: -0.06em; line-height: 0.9; color: #111217; font-variant-numeric: tabular-nums; }
+.vs-cap { font: 550 54px/1.15 var(--font-body); color: #5d6170; letter-spacing: -0.02em; white-space: nowrap; }
+.vs-items { display: flex; flex-direction: column; gap: 24px; margin-top: 10px; }
+.vs-root.has-value .vs-items { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 14px 34px; max-width: 1500px; }
+.vs-root.has-value .vs-item { font-size: 44px; }
+.vs-root.has-value .vs-check { width: 52px; height: 52px; }
+.vs-items .vs-item { color: #15161b; }
+.vs-check { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex: none; background: color-mix(in srgb, var(--accent) 14%, #fff); }
+.vs-check .em-icon { color: var(--accent); }
+.vs-chart { position: absolute; left: 7%; right: 7%; bottom: 70px; height: 38%; opacity: 0; }
+.vs-puck { position: absolute; left: 0; top: 0; width: 48px; height: 48px; border-radius: 50%; background: #fff;
+  box-shadow: 0 0 0 9px color-mix(in srgb, var(--accent2) 22%, transparent), 0 0 38px color-mix(in srgb, var(--accent2) 80%, transparent), 0 6px 14px rgba(0, 0, 0, 0.18); }
+
+/* ---------- chat ---------- */
+.chat-stage { position: absolute; inset: 0; perspective: 2200px; display: flex; align-items: center; justify-content: center; }
+.chat-rig { transform-style: preserve-3d; }
+.chat-card { width: 1260px; border-radius: 40px; display: flex; flex-direction: column; overflow: hidden; position: relative;
+  box-shadow: 0 80px 160px -40px rgba(20, 20, 60, 0.35), 0 24px 60px -24px rgba(20, 20, 60, 0.25), 0 0 0 1px var(--line); }
+.chat-head { height: 110px; flex: none; display: flex; align-items: center; gap: 20px; padding: 0 44px; border-bottom: 1px solid var(--line); }
+.chat-title { font: 650 40px/1 var(--font-display); letter-spacing: -0.02em; flex: 1; }
+.chat-live { width: 14px; height: 14px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.15); }
+.chat-av { width: 52px; height: 52px; border-radius: 50%; flex: none; margin-top: 6px;
+  background: radial-gradient(circle at 34% 28%, #fff 0 8%, color-mix(in srgb, var(--accent2) 40%, #fff) 20%, var(--accent) 62%, var(--accent2) 100%);
+  box-shadow: 0 6px 18px -4px color-mix(in srgb, var(--accent) 60%, transparent); }
+.chat-av.big { width: 58px; height: 58px; margin-top: 0; }
+.chat-view { flex: none; min-height: 300px; max-height: 640px; overflow: hidden; position: relative; padding: 0 44px;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 60px, #000 100%); mask-image: linear-gradient(180deg, transparent 0, #000 60px, #000 100%); }
+.chat-list { position: relative; display: flex; flex-direction: column; gap: 28px; padding: 40px 0 20px; will-change: transform; }
+.chat-row { display: flex; gap: 18px; align-items: flex-start; }
+.chat-row.user { justify-content: flex-end; }
+.chat-bwrap { position: relative; }
+.chat-bubble { max-width: 880px; padding: 24px 34px; border-radius: 36px; font: 500 42px/1.3 var(--font-body); letter-spacing: -0.015em; position: relative; box-sizing: border-box; }
+.chat-row.user .chat-bubble { background: var(--accent); color: #fff; border-bottom-right-radius: 12px; box-shadow: 0 18px 40px -16px color-mix(in srgb, var(--accent) 70%, transparent); }
+.chat-row.ai .chat-bubble { background: var(--chip); color: var(--card-fg); border-top-left-radius: 12px; }
+.chat-text { display: block; }
+.chat-dots { position: absolute; left: 0; top: 0; height: 84px; width: 150px; border-radius: 34px; border-top-left-radius: 12px; background: var(--chip);
+  display: flex; align-items: center; justify-content: center; gap: 12px; opacity: 0; }
+.chat-dots i { width: 16px; height: 16px; border-radius: 50%; background: var(--accent); opacity: 0.35; display: block; }
+.chat-chip { display: inline-flex; align-items: center; gap: 14px; margin-top: 22px; padding: 14px 24px 14px 18px; border-radius: 20px; background: var(--card); color: var(--card-fg);
+  font: 600 32px/1 var(--font-body); box-shadow: 0 10px 30px -12px rgba(20, 20, 60, 0.25), 0 0 0 1px var(--line); white-space: nowrap; }
+.chat-composer { height: 128px; flex: none; display: flex; align-items: center; gap: 20px; padding: 0 30px 0 44px; margin: 0 26px 26px; border-radius: 999px; background: var(--chip); }
+.chat-input { flex: 1; position: relative; height: 56px; overflow: hidden; }
+.chat-ph, .chat-input-text { position: absolute; left: 0; top: 0; right: 0; font: 500 38px/56px var(--font-body); letter-spacing: -0.015em; white-space: nowrap; overflow: hidden; }
+.chat-ph { color: var(--muted); }
+.chat-send { width: 80px; height: 80px; border-radius: 50%; flex: none; display: flex; align-items: center; justify-content: center; color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent2)); box-shadow: 0 14px 30px -10px color-mix(in srgb, var(--accent) 70%, transparent); }

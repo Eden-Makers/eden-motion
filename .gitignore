@@ -1,0 +1,11 @@
+node_modules/
+research/refs/*.mp4
+research/astra-remotion/
+projects/
+.env
+*.log
+.DS_Store
+.cache/
+research/analysis/sheets/
+research/refs/
+skills/eden-motion/.repo-path
