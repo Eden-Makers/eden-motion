@@ -32,8 +32,10 @@
 
   // Whip pan: very fast lateral travel; real shutter blur does the smear.
   T("whip", ({ tl, prev, next, at, d }) => {
-    tl.fromTo(prev, { xPercent: 0 }, { xPercent: -120, duration: d, ease: "expo.in", immediateRender: false }, at);
-    tl.fromTo(next, { xPercent: 120, opacity: 1 }, { xPercent: 0, duration: d, ease: "expo.out" }, at + d * 0.5);
+    // power4 instead of expo: still a whip, but the peak speed stays inside what 12-16 shutter
+    // sub-frames can smear without visible ghost copies.
+    tl.fromTo(prev, { xPercent: 0, filter: "blur(0px)" }, { xPercent: -120, filter: "blur(6px)", duration: d, ease: "power4.in", immediateRender: false }, at);
+    tl.fromTo(next, { xPercent: 120, opacity: 1, filter: "blur(6px)" }, { xPercent: 0, filter: "blur(0px)", duration: d, ease: "power4.out" }, at + d * 0.45);
   });
 
   T("blur-dissolve", ({ tl, prev, next, at, d }) => {
