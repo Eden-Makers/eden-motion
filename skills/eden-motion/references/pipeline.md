@@ -59,3 +59,13 @@ ducks music under VO with a sidechain compressor and normalises to -14 LUFS.
 | VO words not synced | text in headline/kinetic-type must contain the VO words of that line. |
 | Render slow | `--slow 4`, fewer blurred elements, or draft only while iterating. |
 | Hidden browser pane stalls | engine boot is synchronous on purpose; never await fonts or timers in scenes. |
+
+## Gotchas learned on the Hlas promo (2026-09-26)
+| symptom | cause and fix |
+|---|---|
+| A video keeps showing over the next scene | HyperFrames owns `<video>` visibility for its whole declared window and overrides the scene's `visibility:hidden`. End the video window exactly at the shot end plus half the outgoing transition, never later. Parent `opacity` still hides it (opacity is inherited multiplicatively). |
+| A short AI clip turns black at the end of its shot | the source ran out (Veo clips are 4 s). Pad every clip with 1.5 s of frozen last frame: `ffmpeg -vf tpad=stop_mode=clone:stop_duration=1.5`. |
+| 4K render aborts "Disk capture may need ~40 GB" | multi-worker screenshot capture writes every frame to disk. The render step sets `HF_CAPTURE_PARALLEL_STREAM=true` to stream frames into the encoder. |
+| Music stops after the last speech line | a sidechain key stream that ends early ends the compressor output. `apad=whole_dur=<D>` the key. |
+| Envelope arrays full of `null` | fractional hop (8000/60) indexing floats. Use integer sample boundaries per bin. |
+| Final render at 60 fps | `render --fps 60 --resolution 4k --uniform --slow 6` = 6 sub-frames per frame, 180 deg shutter (K=3). Films with video clips must use uniform (constant playback rate). |

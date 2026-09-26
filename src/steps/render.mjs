@@ -66,7 +66,8 @@ export async function render(projectDir, { quality = "final", fps = 30, shutter 
   if (resolution && !draft) args.push("--resolution", resolution === "4k" ? "landscape-4k" : resolution); // supersampled 4K via deviceScaleFactor
   log(`hyperframes render (${draft ? "draft" : adaptive ? "adaptive supersampling" : `uniform slow x${S}`})`);
   const t0 = Date.now();
-  await runLive("npx", [...HF, ...args], { cwd: comp });
+  // Stream frames into the encoder instead of writing every frame to disk (4K needs ~40 GB).
+  await runLive("npx", [...HF, ...args], { cwd: comp, env: { ...process.env, HF_CAPTURE_PARALLEL_STREAM: "true" } });
   log(`captured in ${((Date.now() - t0) / 1000).toFixed(0)}s`);
 
   let video = raw;
