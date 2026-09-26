@@ -42,3 +42,26 @@ White cards, radius 12-26 px, hairline border `rgba(0,0,0,.06)`, soft shadow (y 
 - Music bed (tech house / chill-hop 107-120 BPM for SaaS; synth-pop 112 for launches), ducked under VO.
 - Whoosh on every scene change and fast move (~1 per 3-4 s), click on every cursor press, quiet pops (-18 dB under VO) per staggered arrival, riser 1.5-3 s into the reveal resolving on an impact.
 - The main dynamic device: music dips or drops out under the pivot question / the prompt, and returns on the answer / the result.
+
+## Apple framework (Leo, "Make your product videos look expensive", 2026-09)
+- Intention is everything: font, background, music and colour are each chosen on purpose. Give the brand
+  hard rules (3 colours per video type, the same backgrounds, one music family) and keep them film to film.
+- One shot = one idea. Every shot has room to breathe. The key object sits in the centre of the frame. The
+  background never competes with it.
+- Motion is eased and overlapping; linear motion reads cheap. Prefer motivated transitions over direct cuts
+  unless the cut carries meaning. Rhythm adapts: faster in lists and montages, slower on reveal and proof.
+- Music by mood: 60-80 BPM regal/cinematic/heritage, 90-110 smooth/cool/effortless, 115-123
+  elite/kinetic/sophisticated, faster only for hype. Premium: no rap, no trailer cliches.
+- Sound design with restraint: after the mix, remove every effect that is too loud, out of place, or does not
+  help the viewer stay engaged or understand the product.
+
+## Code-native UI motion (open prompt by @twoclipping, 2026-09)
+- One shape never cuts: the same element morphs size, radius and colour through every UI state; content
+  swaps with a short blur on its own enter/exit timing. A cursor drives every change with real clicks and drags.
+- Springs everywhere, a tiny overshoot at most. Springs are closed-form step responses; a value retargeted
+  many times is the sum of one response per change, so it stays a pure function of time (`EM.spring`).
+- Two-edge springs for indicators and knobs: the leading edge stretches ahead of the trailing one.
+- Drags are direct manipulation: value from cursor position while held, spring back on release.
+- Something happens on every beat (120 BPM, measured grid); UI sounds placed by their measured peak.
+- Camera zooms so each state fills the frame. Loops: last frame identical to the first, cursor included.
+- Never `will-change` on camera-scaled elements (blurry text). Render one still per beat before the full render.

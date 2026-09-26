@@ -48,7 +48,7 @@ RULES
 - tone per line: "dark" for problem/tension/question lines, "light" for product/proof/close (Burnwe alternates worlds every 5-13 s).
 
 Return ONLY JSON:
-{"title":"working title","structure":"${structure}","voice_direction":"how the narrator should sound (pace, warmth, energy)","music":"music brief: genre, BPM, instruments, energy arc, where it drops out and returns","lines":[{"beat":"HOOK|PROBLEM|TURN|REVEAL|FEATURE|PROOF|CLOSE|...","text":"narration","scene":"scene type","tone":"dark|light","visual":"one sentence: exactly what is on screen"}]}`,
+{"title":"working title","structure":"${structure}","voice_direction":"how the narrator should sound (pace, warmth, energy)","music":"music brief: genre, BPM chosen by mood (60-80 regal/cinematic/heritage, 90-110 smooth/cool/effortless, 115-123 elite/kinetic/sophisticated, 124+ only for hype brands), instruments, energy arc, where it drops out and returns. Premium brands: no rap, no trailer clichés","lines":[{"beat":"HOOK|PROBLEM|TURN|REVEAL|FEATURE|PROOF|CLOSE|...","text":"narration","scene":"scene type","tone":"dark|light","visual":"one sentence: exactly what is on screen"}]}`,
     { temperature: 0.85 }
   );
   let clean = deepNoDashes(out);

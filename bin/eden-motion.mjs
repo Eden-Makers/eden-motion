@@ -20,7 +20,11 @@ STEPS (in order)
   research     find site, capture it, extract brand.json + logo/fonts/screenshots
   script       write script.json (narration lines + shot ideas)
   vo           ElevenLabs voiceover with word timings -> vo.json, audio/vo.mp3
-  storyboard   map lines to scenes/props/transitions -> storyboard.json
+  ref          <slug> <url|file>...  analyse reference film(s) -> research/ref-style.md (storyboard copies its style)
+  storyboard   map lines to scenes/props/transitions -> storyboard.json  [--variants 3: product/type/metaphor-led]
+  stills       one settled frame per scene + Gemini art-director review, BEFORE rendering motion [--variants]
+  pick         <slug> <n>  make storyboard.v<n>.json the storyboard
+  note         <slug> "slow every zoom to 0.7x; hard cut into s5; push in on the button"  director notes
   assets       generate images for "gen:" props (Nano Banana Pro 2K)
   audio        music + SFX on engine cues + VO mix -> audio/mix.wav
   preview      build comp/ and open HyperFrames Studio preview
@@ -72,8 +76,31 @@ async function step(name, dir, args) {
     case "vo":
       await (await import("../src/steps/vo.mjs")).vo(dir, { voice: args.voice });
       break;
-    case "storyboard":
-      await (await import("../src/steps/storyboard.mjs")).storyboard(dir);
+    case "storyboard": {
+      const m = await import("../src/steps/storyboard.mjs");
+      if (args.variants && +args.variants > 1) await m.storyboardVariants(dir, { n: +args.variants });
+      else await m.storyboard(dir);
+      break;
+    }
+    case "stills": {
+      const m = await import("../src/steps/stills.mjs");
+      const files = args.variants ? fs.readdirSync(dir).filter((f) => /^storyboard\.v\d+\.json$/.test(f)).sort() : [args.storyboard || "storyboard.json"];
+      for (const f of files) await m.stills(dir, { storyboardFile: f, tag: f === "storyboard.json" ? "" : f.match(/v\d+/)[0], review: !args["no-review"] });
+      break;
+    }
+    case "pick": {
+      const n = args._[2];
+      const src = path.join(dir, `storyboard.v${n}.json`);
+      if (!fs.existsSync(src)) throw new Error(`no ${src}`);
+      fs.copyFileSync(src, path.join(dir, "storyboard.json"));
+      log(`storyboard.json <- storyboard.v${n}.json. Next: assets -> audio -> render --draft`);
+      break;
+    }
+    case "ref":
+      await (await import("../src/steps/ref.mjs")).ref(dir, args._.slice(2));
+      break;
+    case "note":
+      await (await import("../src/steps/note.mjs")).note(dir, args._.slice(2).join(" "));
       break;
     case "assets":
       await (await import("../src/steps/assets.mjs")).assets(dir);

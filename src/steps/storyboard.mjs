@@ -21,8 +21,29 @@ function availableScenes() {
   return Object.keys(SCENES).filter((k) => src.includes(`EM.scene("${k}"`));
 }
 
-export async function storyboard(projectDir, { endHold = 2.2 } = {}) {
+// Three deliberately different directions so the human picks a direction instead of fixing the
+// model's first idea (workflow from the 2026-09 motion threads, research/analysis/x-2026-09-workflows.md).
+export const VARIANT_DIRECTIONS = [
+  "PRODUCT-LED: the real product UI is the hero. Maximise ui-window, prompt-box, tasks, chat and ui-morph; camera lives inside the interface; typography only for hooks and the close.",
+  "TYPE-LED: kinetic typography carries the story. Maximise headline, kinetic-type, pixel-type, stat-hit and drum-list; product appears in 2-3 precise UI moments; bold rhythm, big words.",
+  "METAPHOR-LED: one visual metaphor and hero token carries the film (orb-hero, card-cloud, orbit, flow-line, media-frame with abstract 3D renders); the product proves it in 2-3 shots.",
+];
+
+export async function storyboardVariants(projectDir, { n = 3 } = {}) {
+  const out = [];
+  for (let k = 0; k < n; k++) {
+    const sb = await storyboard(projectDir, { direction: VARIANT_DIRECTIONS[k % VARIANT_DIRECTIONS.length], outFile: `storyboard.v${k + 1}.json` });
+    out.push(`storyboard.v${k + 1}.json`);
+    if (k === 0) writeJSON(path.join(projectDir, "storyboard.json"), sb);
+  }
+  log(`variants written: ${out.join(", ")} (storyboard.json = v1 until you run: pick <slug> <n>)`);
+  return out;
+}
+
+export async function storyboard(projectDir, { endHold = 2.2, direction = null, outFile = "storyboard.json" } = {}) {
   const brief = readJSON(path.join(projectDir, "brief.json"), {});
+  const refStyleFile = path.join(projectDir, "research", "ref-style.md");
+  const refStyle = fs.existsSync(refStyleFile) ? fs.readFileSync(refStyleFile, "utf8").slice(0, 6000) : "";
   const brand = readJSON(path.join(projectDir, "brand.json"));
   const sc = readJSON(path.join(projectDir, "script.json"));
   const vo = readJSON(path.join(projectDir, "vo.json"));
@@ -60,6 +81,8 @@ TRANSITIONS:
 ${trans}
 
 STYLE: ${STYLES[brief.style || "burnwe"] || brief.style}
+${refStyle ? `REFERENCE FILM TO MATCH (measured from the client's chosen reference; copy its pacing, type behaviour, transitions and camera, not its content):\n${refStyle}\n` : ""}${direction ? `CREATIVE DIRECTION FOR THIS VARIANT: ${direction}\n` : ""}
+APPLE FRAMEWORK: every choice is intentional; one shot = one idea; each shot has room to breathe; the key object sits in the centre of the frame; backgrounds never compete with the key object; motion is eased and overlapping, never linear; rhythm adapts (speeds up in lists and montages, slows down on the reveal and the proof).
 
 DIRECTION RULES
 - Pick one scene type per shot from the catalog (you may change the suggestion if another fits better). Never the same type twice in a row.
@@ -128,8 +151,8 @@ Return ONLY JSON: {"scenes":[{"i":0,"type":"...","tone":"dark|light|cream|black|
     vo: { file: vo.file, words: vo.words },
     scenes,
   });
-  writeJSON(path.join(projectDir, "storyboard.json"), sb);
+  writeJSON(path.join(projectDir, outFile), sb);
   const gens = JSON.stringify(sb).match(/"gen:/g)?.length || 0;
-  log(`storyboard.json: ${scenes.length} scenes, ${scenes.filter((s) => s.transition).length} transitions, ${gens} images to generate`);
+  log(`${outFile}: ${scenes.length} scenes, ${scenes.filter((s) => s.transition).length} transitions, ${gens} images to generate`);
   return sb;
 }

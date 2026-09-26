@@ -42,6 +42,24 @@ node bin/eden-motion.mjs preview <slug>                # HyperFrames Studio (scr
 Re-run any step after editing its input JSON. `run <slug> --from storyboard --to render` chains a range.
 If you change script text, re-run `vo` (timings change) then `storyboard`.
 
+## 2b. Context first (what separates pro from "mid" one-prompt videos)
+Everyone has the same model; the context decides the look.
+```bash
+eden-motion ref <slug> https://whatships.com/...  ./their-favourite.mp4   # 1-2 reference films to MATCH
+eden-motion storyboard <slug> --variants 3     # product-led / type-led / metaphor-led
+eden-motion stills <slug> --variants           # one settled frame per scene per variant + art-director review
+eden-motion pick <slug> 2                      # choose a direction instead of fixing the first idea
+eden-motion note <slug> "slow every zoom to 0.7x; hard cut into s5; push in on the button in s9"
+```
+- Name a reference instead of describing a style. Without one the model falls back to its default look
+  (centred text, gradient background, everything fading in).
+- Real brand context: `research` pulls logo, fonts, colours and vetted product screenshots; add client
+  notes with `--notes`. Real UI components beat invented ones (21st.dev MCP when authorised, or the
+  captured screenshots).
+- Stills before motion: fixing a storyboard on stills takes seconds, fixing a render takes minutes.
+- Notes like a director, in camera words. `note` maps them to exact fields (`cameraSpeed`,
+  `transitionSpeed`, per-scene `camera`, `transition`, props) and asks back instead of guessing on vague notes.
+
 ## 3. Director loop (this is where quality comes from)
 1. **Script pass.** Read `script.json`. Kill buzzwords, make every line concrete and speakable, one clause per line, 7-11 words mostly, product named by 38% of runtime, exactly one real number, last lines = tagline then "Brand. CTA.". Check `brand.json` facts; never invent numbers.
 2. **Storyboard pass.** Read `storyboard.json` against `references/style-dna.md` and `references/scene-catalog.md`:

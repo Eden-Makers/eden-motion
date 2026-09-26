@@ -67,3 +67,6 @@ Tone classes on the scene (`tone-light|dark|cream|black`) re-define the tokens, 
 8. Deterministic only: no Math.random, no Date, no timers, no `repeat:-1`, no CSS transitions/animations.
 9. Never tween `display`/`visibility` on the scene; use opacity/autoAlpha on your own children.
 10. Keep simultaneous `filter: blur` elements under ~12 (render cost).
+11. Never put `will-change` on anything the camera scales (text and images rasterise at the initial scale and render blurry).
+12. Text that swaps inside a morphing container gets its own enter and exit timing (exit ~0.12 s before enter) or the two overlap.
+13. For values that change target many times (a morphing container), use `EM.spring.track` (sum of closed-form spring responses, pure function of time) instead of chained tweens.

@@ -7,6 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { music as elMusic } from "../lib/eleven.mjs";
 import { readCues } from "../lib/browser.mjs";
+import { beatGrid, peakTime } from "../lib/audiofx.mjs";
 import { build } from "./build.mjs";
 import { REPO } from "../lib/env.mjs";
 import { log, warn, readJSON, writeJSON, run, probeDuration } from "../lib/util.mjs";
@@ -49,7 +50,8 @@ export async function audio(projectDir, { musicPrompt, noMusic = false } = {}) {
   }
   const whooshes = thin(cues, "whoosh", 0.8);
   const clicks = thin(cues, "click", 0.25);
-  const pops = thin(cues, "pop", 0.22).slice(0, 40);
+  // Restraint (Apple framework): a pop that does not help understanding is noise.
+  const pops = thin(cues, "pop", 0.5).slice(0, 14);
   // Scenes without a transition still get a soft whoosh on tone changes.
   sb.scenes.forEach((s, i) => {
     if (i && !s.transition && s.tone !== sb.scenes[i - 1].tone) whooshes.push({ t: s.start - 0.15, type: "whoosh", soft: true });
@@ -65,7 +67,9 @@ export async function audio(projectDir, { musicPrompt, noMusic = false } = {}) {
   const place = (file, t, gainDb, label) => {
     if (t < 0 || t > D) return;
     const k = add(file);
-    filters.push(`[${k}:a]aformat=sample_rates=48000:channel_layouts=stereo,volume=${gainDb}dB,adelay=${Math.round(t * 1000)}:all=1[${label}]`);
+    // t is the EVENT time: shift by the sample's measured peak so the transient lands on it
+    const at = Math.max(0, t - peakTime(file));
+    filters.push(`[${k}:a]aformat=sample_rates=48000:channel_layouts=stereo,volume=${gainDb}dB,adelay=${Math.round(at * 1000)}:all=1[${label}]`);
     mixLabels.push(`[${label}]`);
   };
 
@@ -75,6 +79,24 @@ export async function audio(projectDir, { musicPrompt, noMusic = false } = {}) {
     voIdx = add(voFile);
     filters.push(`[${voIdx}:a]aformat=sample_rates=48000:channel_layouts=stereo,highpass=f=70,acompressor=threshold=-20dB:ratio=3:attack=5:release=120,volume=1.0,asplit=2[vo][vokey]`);
     mixLabels.push("[vo]");
+  }
+  // Beat grid + drop alignment: shift the music so its strongest hit just after the reveal lands
+  // exactly on the logo (the only thing the references lock to the music besides drops).
+  let trimStart = 0;
+  if (fs.existsSync(musicFile)) {
+    try {
+      const g = beatGrid(musicFile);
+      const T = reveal ? reveal.start + 0.2 : null;
+      if (T != null) {
+        const cands = g.onsets.filter((o) => o.t >= T && o.t <= T + 1.6);
+        const hit = cands.sort((a, b) => b.v - a.v)[0];
+        if (hit) trimStart = +(hit.t - T).toFixed(3);
+      }
+      writeJSON(path.join(aDir, "beats.json"), { bpm: g.bpm, period: g.period, trimStart, beats: g.beats.map((b) => +(b - trimStart).toFixed(3)).filter((b) => b >= 0) });
+      log(`music: ${g.bpm} BPM, shifted ${trimStart}s so the strongest hit lands on the logo`);
+    } catch (e) {
+      warn("beat analysis failed: " + e.message.slice(0, 120));
+    }
   }
   if (fs.existsSync(musicFile)) {
     const mk = add(musicFile);
@@ -86,7 +108,7 @@ export async function audio(projectDir, { musicPrompt, noMusic = false } = {}) {
       .map((s, i) => ({ s, beat: (sc.lines?.[i]?.beat || "").toUpperCase() }))
       .filter(({ s, beat }) => beat === "TURN" || s.type === "prompt-box")
       .map(({ s }) => `volume=enable='between(t,${(s.start + 0.1).toFixed(2)},${(s.start + s.duration - 0.35).toFixed(2)})':volume=0.4`);
-    filters.push(`[${mk}:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=0:${D.toFixed(2)},afade=t=in:d=0.4,afade=t=out:st=${fadeOut.toFixed(2)}:d=1.4,volume=-9dB${dips.length ? "," + dips.join(",") : ""}[mraw]`);
+    filters.push(`[${mk}:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=start=${trimStart},asetpts=PTS-STARTPTS,atrim=0:${D.toFixed(2)},afade=t=in:d=0.4,afade=t=out:st=${fadeOut.toFixed(2)}:d=1.4,volume=-9dB${dips.length ? "," + dips.join(",") : ""}[mraw]`);
     if (voIdx >= 0) {
       filters.push(`[mraw][vokey]sidechaincompress=threshold=0.03:ratio=6:attack=40:release=450:makeup=1[music]`);
     } else filters.push(`[mraw]anull[music]`);
@@ -103,11 +125,11 @@ export async function audio(projectDir, { musicPrompt, noMusic = false } = {}) {
     mixLabels.push(`[ty${i}]`);
   });
   const W = [path.join(SFX, "whoosh.mp3"), path.join(SFX, "whoosh-short.mp3")];
-  whooshes.forEach((c, i) => place(W[i % 2], Math.max(0, c.t - 0.05), c.soft ? -6 : -1, `w${i}`));
+  whooshes.forEach((c, i) => place(W[i % 2], c.t + (c.dur || 0.3) / 2, c.soft ? -6 : -1, `w${i}`));
   clicks.forEach((c, i) => place(path.join(SFX, "click.mp3"), c.t, 2, `c${i}`));
   pops.forEach((c, i) => place(path.join(SFX, "pop.mp3"), c.t, -7, `p${i}`));
   if (reveal) {
-    place(path.join(SFX, "riser.mp3"), Math.max(0, reveal.start - 2.4), -9, "riser");
+    place(path.join(SFX, "riser.mp3"), reveal.start + 0.1, -9, "riser");
     place(path.join(SFX, "impact-bass-1.mp3"), reveal.start + 0.2, -10, "impact");
   }
 

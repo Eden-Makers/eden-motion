@@ -110,8 +110,8 @@ function copyDir(src, dst) {
   }
 }
 
-export async function build(projectDir, { slow = 1, out = "comp", mb = null } = {}) {
-  const sb = readJSON(path.join(projectDir, "storyboard.json"));
+export async function build(projectDir, { slow = 1, out = "comp", mb = null, storyboard = null } = {}) {
+  const sb = storyboard || readJSON(path.join(projectDir, "storyboard.json"));
   const brand = readJSON(path.join(projectDir, "brand.json"), {});
   const comp = path.join(projectDir, out);
   fs.mkdirSync(comp, { recursive: true });

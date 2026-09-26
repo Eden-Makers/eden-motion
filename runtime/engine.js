@@ -65,6 +65,11 @@
 
     const tl = gsap.timeline({ paused: true });
     const scenes = sb.scenes;
+    // Director knobs (set by `eden-motion note`): transitionSpeed scales every transition,
+    // cameraSpeed scales the perpetual drift and emphasis pushes.
+    const TS = sb.transitionSpeed || 1;
+    if (TS !== 1) scenes.forEach((s) => s.transition && s.transition.type && (s.transition.duration = (s.transition.duration || 0.6) * TS));
+    const CS = sb.cameraSpeed || 1;
 
     // Background layer gets the whole duration.
     if (EM.backgrounds && EM.backgrounds[sb.background || "auto"]) {
@@ -126,11 +131,11 @@
       // direction alternating shot to shot). "push" = emphasis push at ~5%/s.
       if (s.camera !== "static" && !def.ownsCamera) {
         const D = s.duration + tIn / 2 + tOut / 2;
-        const rate = s.camera === "push" ? 0.05 : 0.014;
+        const rate = (s.camera === "push" ? 0.05 : 0.014) * CS;
         const pull = s.camera === "pull" || (s.camera == null && i % 2 === 1);
         const sc = [1, 1 + rate * D];
         const dir = i % 2 ? 1 : -1;
-        tl.fromTo(inner, { scale: pull ? sc[1] : sc[0], x: -dir * 20 * D }, { scale: pull ? sc[0] : sc[1], x: dir * 20 * D, duration: D, ease: "none" }, Math.max(0, start - tIn / 2));
+        tl.fromTo(inner, { scale: pull ? sc[1] : sc[0], x: -dir * 20 * CS * D }, { scale: pull ? sc[0] : sc[1], x: dir * 20 * CS * D, duration: D, ease: "none" }, Math.max(0, start - tIn / 2));
       }
     });
 

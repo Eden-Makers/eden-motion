@@ -60,7 +60,7 @@ html[data-theme="saas-light"] .em-vignette, html[data-theme="glow"] .em-vignette
 .em-display.sm { font-size: 58px; letter-spacing: -0.02em; font-weight: 600; }
 .em-sub { font-family: var(--font-body); font-size: 34px; color: var(--muted); font-weight: 500; letter-spacing: -0.01em; text-align: center; }
 .em-word { display: inline-block; white-space: nowrap; }
-.em-word-in { display: inline-block; will-change: transform, filter, opacity; }
+.em-word-in { display: inline-block; }
 .em-mask { overflow: hidden; vertical-align: bottom; padding-bottom: 0.08em; margin-bottom: -0.08em; }
 .em-kw .em-word-in { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; padding: 0 0.04em; }
 .em-caret { display: inline-block; width: 0.07em; height: 0.9em; margin-left: 0.05em; vertical-align: -0.08em; background: linear-gradient(180deg, var(--accent), var(--accent2)); border-radius: 2px; }
