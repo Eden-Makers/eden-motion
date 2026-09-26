@@ -154,7 +154,8 @@
         const pull = s.camera === "pull" || (s.camera == null && i % 2 === 1);
         const sc = [1, 1 + rate * D];
         const dir = i % 2 ? 1 : -1;
-        tl.fromTo(inner, { scale: pull ? sc[1] : sc[0], x: -dir * 20 * CS * D }, { scale: pull ? sc[0] : sc[1], x: dir * 20 * CS * D, duration: D, ease: "none" }, Math.max(0, start - tIn / 2));
+        const truck = s.camera === "truck" ? 20 * CS * D : 0; // lateral drift only on request: it reads as a wobble
+        tl.fromTo(inner, { scale: pull ? sc[1] : sc[0], x: -dir * truck }, { scale: pull ? sc[0] : sc[1], x: dir * truck, duration: D, ease: "none" }, Math.max(0, start - tIn / 2));
       }
     });
 
