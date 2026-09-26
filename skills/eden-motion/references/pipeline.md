@@ -69,3 +69,4 @@ ducks music under VO with a sidechain compressor and normalises to -14 LUFS.
 | Music stops after the last speech line | a sidechain key stream that ends early ends the compressor output. `apad=whole_dur=<D>` the key. |
 | Envelope arrays full of `null` | fractional hop (8000/60) indexing floats. Use integer sample boundaries per bin. |
 | Final render at 60 fps | `render --fps 60 --resolution 4k --uniform --slow 6` = 6 sub-frames per frame, 180 deg shutter (K=3). Films with video clips must use uniform (constant playback rate). |
+| Videos look frozen or stutter in the render (fine in the browser) | HyperFrames pre-extracts video frames only for `<video>` present in the STATIC html. Scenes must create videos via `EM.video(attrs, cls)`; the build boots the page once, reads the `#em-media` manifest and writes those elements statically (`#em-static-media`), scenes then reuse them by id. Check the render log: `extraction.videoCount` must be > 0. |

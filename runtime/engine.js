@@ -48,6 +48,25 @@
     return span;
   };
 
+  // Videos MUST exist in the static HTML: HyperFrames pre-extracts video frames at compile time
+  // and only knows elements it can see before scripts run. A <video> created at runtime is left
+  // to the browser's live seeking, which renders frozen/stuttering frames. Scenes create videos
+  // through EM.video(attrs): if the build already placed a static element with that id, it is
+  // reused (moved into the scene); otherwise it is created and recorded in the #em-media manifest
+  // so the next build pass writes it statically.
+  EM.video = function (attrs, cls) {
+    const ex = attrs.id && document.getElementById(attrs.id);
+    if (ex && ex.tagName === "VIDEO") {
+      for (const [k, v] of Object.entries(attrs)) if (v != null && k !== "id") ex.setAttribute(k, v);
+      if (cls) ex.className = cls;
+      return ex;
+    }
+    const v = EM.h("video", attrs);
+    if (cls) v.className = cls;
+    (EM.mediaManifest = EM.mediaManifest || []).push(attrs);
+    return v;
+  };
+
   EM.asset = (p) => (p ? (p.startsWith("http") || p.startsWith("data:") ? p : p) : "");
 
   function words(sb, t0, t1) {
@@ -223,6 +242,11 @@
     cueEl.id = "em-cues";
     cueEl.textContent = JSON.stringify(cues);
     document.body.appendChild(cueEl);
+    const mediaEl = document.createElement("script");
+    mediaEl.type = "application/json";
+    mediaEl.id = "em-media";
+    mediaEl.textContent = JSON.stringify(EM.mediaManifest || []);
+    document.body.appendChild(mediaEl);
     window.EM_READY = true;
     return master;
   };

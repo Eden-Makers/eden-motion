@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { REPO } from "../lib/env.mjs";
 import { log, warn, readJSON, writeJSON } from "../lib/util.mjs";
+import { readDomJson } from "../lib/browser.mjs";
 
 const RUNTIME = path.join(REPO, "runtime");
 const CACHE = path.join(REPO, ".cache");
@@ -190,6 +191,7 @@ html[data-theme] { ${themeOverrides.join(" ")} }
 </head>
 <body>
 <div id="root" data-composition-id="main" data-start="0" data-width="1920" data-height="1080" data-duration="${(total * slow).toFixed(3)}">
+  <!--EM_STATIC_MEDIA-->
   <div id="bg"></div>
   <div id="stage"></div>
 </div>
@@ -205,7 +207,25 @@ ${customFiles.map((f) => `<script src="custom-scenes/${f}"></script>`).join("\n"
 </body>
 </html>
 `;
-  fs.writeFileSync(path.join(comp, "index.html"), html);
+  const indexFile = path.join(comp, "index.html");
+  fs.writeFileSync(indexFile, html);
+  // Pass 2: videos must be static HTML so HyperFrames pre-extracts their frames (runtime-created
+  // <video> elements render frozen or stuttering). Boot the page once, read the manifest of every
+  // video the scenes asked for, write them statically; scenes then reuse them by id.
+  if (/\.(mp4|mov|webm|m4v)"/i.test(JSON.stringify(sb.scenes))) {
+    try {
+      const manifest = await readDomJson(indexFile, "em-media", []);
+      if (manifest.length) {
+        const esc = (v) => String(v).replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+        const tags = manifest.map((a) => `<video ${Object.entries(a).filter(([, v]) => v != null).map(([k, v]) => (v === "" ? k : `${k}="${esc(v)}"`)).join(" ")}></video>`).join("\n    ");
+        const holder = `<div id="em-static-media" aria-hidden="true" style="position:absolute;left:-10000px;top:0;width:2px;height:2px;overflow:hidden">\n    ${tags}\n  </div>`;
+        fs.writeFileSync(indexFile, html.replace("<!--EM_STATIC_MEDIA-->", holder));
+        log(`static media: ${manifest.length} video element(s) written into index.html`);
+      }
+    } catch (e) {
+      warn("static media pass failed: " + e.message.slice(0, 160));
+    }
+  }
   log(`built ${path.relative(process.cwd(), comp)}/index.html (slow=${slow}, ${sb.scenes.length} scenes, ${total}s)`);
   return comp;
 }

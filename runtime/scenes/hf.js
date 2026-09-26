@@ -443,19 +443,20 @@
   function mediaEl(ctx, p, cls) {
     if (!isVideo(p)) return h("img", { src: p.src, class: cls, alt: "" });
     const S = SLOW();
+    const nt = ctx.sb.scenes[ctx.index + 1]?.transition;
+    const tail = nt && nt.type && nt.type !== "cut" ? (nt.duration || 0.5) / 2 : 0;
     const t0 = Math.max(0, ctx.start - 0.6);
-    const d = ctx.end + 0.6 - t0;
-    return h("video", {
+    const d = ctx.end + tail - t0;
+    return EM.video({
       id: `em-hf-v${ctx.index}-${vidCount++}`,
       src: p.src,
-      class: cls,
       muted: "",
       playsinline: "",
       "data-start": (t0 * S).toFixed(3),
       "data-duration": (d * S).toFixed(3),
       "data-media-start": String(p.mediaStart || 0),
       "data-playback-rate": (1 / S).toFixed(4),
-    });
+    }, cls);
   }
 
   function startOf(ctx, at, fallback) {
