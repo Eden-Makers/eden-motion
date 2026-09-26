@@ -131,7 +131,7 @@ export async function build(projectDir, { slow = 1, out = "comp", mb = null, sto
   const display = sb.fonts?.display || pickFont("display", sb.theme === "cinematic" ? "Outfit" : "Inter Tight");
   const body = sb.fonts?.body || pickFont("body", "Inter");
   const localCss = local
-    .map((f) => `@font-face { font-family: "${f.family}"; src: url("${f.file}") format("woff2"); font-weight: ${f.weight}; font-style: normal; font-display: block; }`)
+    .map((f) => `@font-face { font-family: "${f.family}"; src: url("${f.file}") format("${/\.otf$/i.test(f.file) ? "opentype" : /\.ttf$/i.test(f.file) ? "truetype" : "woff2"}"); font-weight: ${f.weight}; font-style: normal; font-display: block; }`)
     .join("\n");
   const google = [display, body, "Inter Tight", "Inter"].filter((f) => !hasLocal(f));
   const fontCss = localCss + "\n" + (await vendorFonts([...new Set(google)], path.join(comp, "fonts")));

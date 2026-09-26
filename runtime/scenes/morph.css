@@ -1,0 +1,90 @@
+/* ui-morph: one shape, never cut. All motion is written by morph.js per frame; nothing here
+ * animates (no transitions, no keyframes, no will-change: the camera scales this tree). */
+.um-root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font-body); }
+.um-canvas { position: absolute; inset: 0; }
+.um-world { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform-origin: 0 0; }
+.um-shape { position: absolute; left: 0; top: 0; overflow: hidden; transform-origin: 50% 50%; isolation: isolate; }
+.um-world .em-cursor { z-index: 60; }
+.um-world .em-ripple { display: none; }
+
+.um-layer { position: absolute; left: 50%; top: 50%; box-sizing: border-box; white-space: nowrap; color: var(--um-fg); transform-origin: 50% 50%;
+  font-family: var(--font-body); font-feature-settings: "ss01", "cv11"; -webkit-font-smoothing: antialiased; }
+.um-row { display: flex; align-items: center; }
+.um-center { display: flex; align-items: center; justify-content: center; }
+.um-col { display: flex; flex-direction: column; gap: 3px; }
+.um-grow { flex: 1 1 auto; }
+.um-ic { display: inline-flex; flex: none; align-items: center; justify-content: center; }
+.um-ic svg { display: block; overflow: visible; }
+
+/* type scale (world px; the camera zooms ~1.6-2.3x) */
+.um-t-btn { font-size: 30px; font-weight: 500; letter-spacing: -0.02em; line-height: 1; }
+.um-t-title { font-size: 25px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.3; white-space: nowrap; }
+.um-t-sub { font-size: 21px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.2; color: var(--um-muted); white-space: nowrap; }
+.um-t-toast { font-size: 25px; font-weight: 500; letter-spacing: -0.015em; line-height: 1; }
+.um-time { position: absolute; font-size: 17px; font-weight: 500; color: var(--um-muted); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+
+/* shared pieces */
+.um-art { flex: none; display: block;
+  background: radial-gradient(120% 120% at 22% 14%, color-mix(in srgb, var(--um-acc) 45%, #fff) 0%, var(--um-acc) 42%, color-mix(in srgb, var(--um-acc) 38%, #000) 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1); }
+.um-wave { display: flex; align-items: center; gap: 4px; height: 32px; }
+.um-wave i { display: block; width: 4px; height: 8px; border-radius: 2px; background: var(--um-acc); }
+.um-disc { flex: none; display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 50%; background: var(--um-sub2); color: var(--um-fg); }
+.um-disc-acc { width: 44px; height: 44px; background: var(--um-acc); color: #fff; }
+.um-tile { display: flex; align-items: center; justify-content: center; background: var(--um-sub); color: var(--um-fg); }
+.um-tile-sm { flex: none; width: 44px; height: 44px; border-radius: 12px; }
+.um-tile-sm.on { background: var(--um-bg); box-shadow: 0 0 0 1px var(--um-sub2), 0 1px 2px rgba(0, 0, 0, 0.06); }
+.um-spin svg { transform-origin: 50% 50%; }
+
+/* player */
+.um-track { position: absolute; top: 148px; height: 8px; border-radius: 4px; background: var(--um-sub2); overflow: hidden; }
+.um-track-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--um-fg); }
+.um-knob-dot { position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 50%; background: var(--um-fg); transform-origin: 50% 50%;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35); }
+
+/* slider */
+.um-sl-fill { position: absolute; left: 7px; top: 7px; background: var(--um-fg); }
+.um-sl-text { position: absolute; inset: 0; }
+.um-sl-label { position: absolute; left: 104px; top: 50%; transform: translateY(-50%); font-size: 25px; font-weight: 500; letter-spacing: -0.015em; color: var(--um-fg); }
+.um-sl-val { position: absolute; right: 34px; top: 50%; transform: translateY(-50%); font-size: 23px; font-weight: 500; color: var(--um-muted); font-variant-numeric: tabular-nums; }
+.um-sl-over { color: var(--um-on); }
+.um-sl-over .um-sl-label { color: var(--um-on); }
+.um-sl-over .um-sl-val { color: var(--um-on); opacity: 0.7; }
+
+/* toggle */
+.um-switch { position: absolute; border-radius: 26px; transform-origin: 50% 50%; }
+.um-knob { position: absolute; top: 5px; height: 42px; border-radius: 21px; background: #fff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.16), 0 1px 1.5px rgba(0, 0, 0, 0.1), 0 0 0 0.5px rgba(0, 0, 0, 0.04); }
+
+/* tabs */
+.um-tabs-row { position: absolute; left: 10px; top: 10px; display: flex; }
+.um-tabs-base { position: relative; left: 0; top: 0; }
+.um-tab { display: block; height: 72px; line-height: 72px; padding: 0 34px; font-size: 25px; font-weight: 500; letter-spacing: -0.015em; }
+.um-tabs-base .um-tab { color: var(--um-muted); }
+.um-tabs-over .um-tab { color: var(--um-on); }
+.um-tabs-ind { position: absolute; top: 10px; height: 72px; border-radius: 36px; background: var(--um-fg); }
+
+/* chart */
+.um-chart-v { font-size: 52px; font-weight: 600; letter-spacing: -0.035em; line-height: 1; font-variant-numeric: tabular-nums; }
+.um-chip-acc { height: 36px; line-height: 36px; padding: 0 14px; border-radius: 18px; font-size: 18px; font-weight: 600;
+  color: color-mix(in srgb, var(--um-acc) 72%, #000); background: color-mix(in srgb, var(--um-acc) 12%, transparent); }
+.um-bar { position: absolute; }
+.um-tip { position: absolute; left: 0; top: 0; height: 38px; min-width: 78px; padding: 0 14px; border-radius: 19px; background: var(--um-fg);
+  box-shadow: 0 6px 16px -4px rgba(0, 0, 0, 0.3); transform-origin: 50% 100%; }
+.um-tip span { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); color: var(--um-on); font-size: 18px; font-weight: 600;
+  font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+
+/* command palette */
+.um-cmd-input { position: absolute; left: 78px; right: 110px; top: 0; height: 92px; display: flex; align-items: center; font-size: 27px; font-weight: 500; letter-spacing: -0.015em; }
+.um-cmd-typed { color: var(--um-fg); white-space: pre; }
+.um-cmd-ph { color: var(--um-muted); margin-left: 2px; }
+.um-caret { display: inline-block; width: 2px; height: 32px; margin-left: 1px; border-radius: 1px; background: var(--um-acc); }
+.um-kbd { display: inline-flex; align-items: center; justify-content: center; height: 36px; min-width: 36px; padding: 0 10px; border-radius: 9px;
+  font-size: 16px; font-weight: 600; color: var(--um-muted); background: var(--um-sub); box-shadow: inset 0 0 0 1px var(--um-sub2); }
+.um-kbd-sm { height: 32px; min-width: 32px; padding: 0 8px; font-size: 17px; margin-left: 12px; transform-origin: 50% 50%; }
+.um-hair { position: absolute; left: 0; right: 0; height: 1px; background: var(--um-sub2); }
+.um-cmd-sel { position: absolute; left: 8px; right: 8px; border-radius: 16px; background: var(--um-sub); }
+.um-cmd-row { position: absolute; left: 8px; right: 8px; top: 0; display: flex; align-items: center; gap: 16px; padding: 0 18px 0 12px; }
+.um-cmd-l { font-size: 24px; font-weight: 500; letter-spacing: -0.015em; color: var(--um-fg); }
+.um-cmd-l.q { color: var(--um-muted); }
+.um-cmd-l.q b { color: var(--um-fg); font-weight: 600; }

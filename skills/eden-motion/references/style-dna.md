@@ -21,7 +21,7 @@ Full forensic notes: `~/Dev/eden-motion/research/analysis/`.
 |---|---|
 | Arrival (default) | focus pull: blur 12-20 px -> 0, scale 1.06 -> 1 (small icons 0.92 -> 1), opacity 0 -> 1, 0.3-0.5 s, `power3.out` / `expo.out`. |
 | Exit | blur 0 -> 20 px + fade, ~0.25 s, `power2.in`. |
-| Overshoot | none. No `back.out` bounces anywhere. |
+| Overshoot | none for layout and type (no `back.out` bounces). Exception: UI morphs ride springs with 3-5% overshoot (damping ratio ~0.70, 2.6 Hz, settle 0.45-0.55 s). |
 | Camera | never still: 0.4-2%/s zoom and 15-60 px/s truck, linear, alternating direction per shot. Emphasis push 5-7%/s. |
 | Lists | stagger 0.12-0.32 s. |
 | Cursor | eased arcs 0.5-0.7 s `power2.inOut`, dwell 0.2 s, press = cursor 0.85 + target 0.96, click triggers a state change. |
@@ -62,6 +62,6 @@ White cards, radius 12-26 px, hairline border `rgba(0,0,0,.06)`, soft shadow (y 
   many times is the sum of one response per change, so it stays a pure function of time (`EM.spring`).
 - Two-edge springs for indicators and knobs: the leading edge stretches ahead of the trailing one.
 - Drags are direct manipulation: value from cursor position while held, spring back on release.
-- Something happens on every beat (120 BPM, measured grid); UI sounds placed by their measured peak.
+- Morphs sit on a steady grid (0.25 s in the reference, not beat-locked to its 117.5 BPM track); UI sounds placed by their measured peak. Measured spring: damping ratio 0.70, 16.5 rad/s, 3-5% overshoot; content blurs out 0.07-0.10 s, new content in 0.08-0.13 s starting at the overshoot peak.
 - Camera zooms so each state fills the frame. Loops: last frame identical to the first, cursor included.
 - Never `will-change` on camera-scaled elements (blurry text). Render one still per beat before the full render.

@@ -40,7 +40,7 @@ function segmentGraph(map, fps, shutter) {
   return `${parts.join(";")};${labels.join("")}concat=n=${labels.length}:v=1:a=0[out]`;
 }
 
-export async function render(projectDir, { quality = "final", fps = 30, shutter = 180, slow, workers, out, uniform, hi = 16 } = {}) {
+export async function render(projectDir, { quality = "final", fps = 30, shutter = 180, slow, workers, out, uniform, hi = 16, resolution } = {}) {
   const sb = readJSON(path.join(projectDir, "storyboard.json"));
   const draft = quality === "draft";
   const hasVideo = JSON.stringify(sb.scenes).includes('"kind":"video"');
@@ -49,7 +49,7 @@ export async function render(projectDir, { quality = "final", fps = 30, shutter 
   const renders = path.join(projectDir, "renders");
   fs.mkdirSync(renders, { recursive: true });
 
-  const comp = await build(projectDir, adaptive ? { slow: 1, mb: { hi, lo: 0.5, pad: 0.1, fps }, out: "comp-final" } : { slow: S, out: draft ? "comp" : "comp-final" });
+  const comp = await build(projectDir, adaptive ? { slow: 1, mb: { hi, lo: fps / 60, pad: 0.1, fps }, out: "comp-final" } : { slow: S, out: draft ? "comp" : "comp-final" });
   let map = null;
   if (adaptive) {
     map = await readDomJson(path.join(comp, "index.html"), "em-timemap");
@@ -63,6 +63,7 @@ export async function render(projectDir, { quality = "final", fps = 30, shutter 
   const raw = path.join(renders, draft ? "raw-draft.mp4" : "raw-slow.mp4");
   const args = ["render", "--fps", String(draft ? fps : R), "--quality", draft ? "draft" : "high", "-o", raw];
   if (workers) args.push("--workers", String(workers));
+  if (resolution && !draft) args.push("--resolution", resolution === "4k" ? "landscape-4k" : resolution); // supersampled 4K via deviceScaleFactor
   log(`hyperframes render (${draft ? "draft" : adaptive ? "adaptive supersampling" : `uniform slow x${S}`})`);
   const t0 = Date.now();
   await runLive("npx", [...HF, ...args], { cwd: comp });
@@ -79,7 +80,7 @@ export async function render(projectDir, { quality = "final", fps = 30, shutter 
       graph = `[0:v]tmix=frames=${K}:weights='${Array(K).fill(1).join(" ")}',select='eq(mod(n\\,${N})\\,${Math.floor(K / 2)})',setpts=N/${fps}/TB[out]`;
     }
     fs.writeFileSync(path.join(renders, "mb.graph.txt"), graph);
-    run("ffmpeg", ["-y", "-v", "error", "-i", raw, "-filter_complex", graph, "-map", "[out]", "-r", String(fps), "-c:v", "libx264", "-preset", "slow", "-crf", "12", "-pix_fmt", "yuv420p", video]);
+    run("ffmpeg", ["-y", "-v", "error", "-i", raw, "-filter_complex", graph, "-map", "[out]", "-r", String(fps), "-c:v", "libx264", "-preset", "slow", "-crf", resolution ? "14" : "12", "-pix_fmt", "yuv420p", video]);
   }
 
   const mix = path.join(projectDir, "audio", "mix.wav");

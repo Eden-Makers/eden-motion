@@ -112,7 +112,7 @@ async function step(name, dir, args) {
       await (await import("../src/steps/build.mjs")).build(dir, { slow: +args.slow || 1 });
       break;
     case "render":
-      await (await import("../src/steps/render.mjs")).render(dir, { quality: args.draft ? "draft" : "final", slow: args.slow && +args.slow, fps: args.fps && +args.fps, workers: args.workers, uniform: !!args.uniform, hi: args.hi && +args.hi });
+      await (await import("../src/steps/render.mjs")).render(dir, { quality: args.draft ? "draft" : "final", slow: args.slow && +args.slow, fps: args.fps && +args.fps, workers: args.workers, uniform: !!args.uniform, hi: args.hi && +args.hi, resolution: args.resolution });
       break;
     case "qc":
       await (await import("../src/steps/qc.mjs")).qc(dir, { file: args.file });
