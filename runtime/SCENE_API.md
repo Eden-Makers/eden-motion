@@ -70,3 +70,8 @@ Tone classes on the scene (`tone-light|dark|cream|black`) re-define the tokens, 
 11. Never put `will-change` on anything the camera scales (text and images rasterise at the initial scale and render blurry).
 12. Text that swaps inside a morphing container gets its own enter and exit timing (exit ~0.12 s before enter) or the two overlap.
 13. For values that change target many times (a morphing container), use `EM.spring.track` (sum of closed-form spring responses, pure function of time) instead of chained tweens.
+
+## Springs and cuts
+- `EM.spring.response(t, preset | {freq, damping})`, presets in `EM.spring.PRESETS`: `ui`, `snappy`, `default`, `heavy`, `playful`, `glide`.
+- `EM.spring.track(changes, t, o)` for values with many targets, `EM.spring.indicator(stops, t)` for two-edge stretch, `EM.spring.swapAlpha(t, tIn, tOut)` for text inside a morphing container, `EM.spring.loopT(t, dur)`.
+- A scene that hard-cuts inside itself declares it: `(EM.cues = EM.cues || []).push({ t, type: "cut" })`, so `critique` treats the frame jump as intended. Cues may carry `x` (screen px) to pan their SFX.

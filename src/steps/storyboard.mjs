@@ -84,6 +84,12 @@ STYLE: ${STYLES[brief.style || "burnwe"] || brief.style}
 ${refStyle ? `REFERENCE FILM TO MATCH (measured from the client's chosen reference; copy its pacing, type behaviour, transitions and camera, not its content):\n${refStyle}\n` : ""}${direction ? `CREATIVE DIRECTION FOR THIS VARIANT: ${direction}\n` : ""}
 APPLE FRAMEWORK: every choice is intentional; one shot = one idea; each shot has room to breathe; the key object sits in the centre of the frame; backgrounds never compete with the key object; motion is eased and overlapping, never linear; rhythm adapts (speeds up in lists and montages, slows down on the reveal and the proof).
 
+BANNED DEFAULTS (the tells of AI-made video): centered title on a gradient, everything fading in, corner labels and frame borders, glow on UI chrome, generic particle bursts, a beat where nothing happens, invented UI when the real product exists (use its screenshots or rebuild it 1:1).
+
+READS (the rule models break most often): a read is one thing the viewer must understand (a word, a number, a UI change). Give every shot a "reads" array: [{"what":"...","at":seconds from shot start,"hold":seconds}]. Time to find it, understand it and let it land: hold >= 0.4 s for a word or icon, >= 0.8 s for a sentence or number. Two important reads never overlap; a cause comes before its reaction. Fast actions, slow meanings: motion can be quick, what it means gets held time.
+
+BEAT CONTRACT: every shot ends in a state the viewer could point at; its key beat sits mid-shot where the cut cannot eat it; a cut must add information (if the next shot would show the same thing bigger, move the camera instead); something new every 2-4 s; pops and stamps snap in 1-2 frames and ease only on the settle.
+
 DIRECTION RULES
 - Pick one scene type per shot from the catalog (you may change the suggestion if another fits better). Never the same type twice in a row.
 - Fill props with the brand's REAL words: feature names, UI labels, numbers only from BRAND.proof. On-screen text is shorter than the VO (2-6 words for headlines).
@@ -119,6 +125,7 @@ Return ONLY JSON: {"scenes":[{"i":0,"type":"...","tone":"dark|light|cream|black|
       ...(i > 0 && tr ? { transition: tr } : {}),
       ...(s.camera ? { camera: s.camera } : {}),
       props: s.props || {},
+      ...(Array.isArray(s.reads) && s.reads.length ? { reads: s.reads } : {}),
       vo: l.text,
     };
   });

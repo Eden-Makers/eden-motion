@@ -77,7 +77,18 @@ eden-motion note <slug> "slow every zoom to 0.7x; hard cut into s5; push in on t
    - typed headline that starts on a late word -> type the whole VO line (the hook must show text on the first spoken word);
    - light scene arriving via zoom-through reading as a small card -> fixed in the engine, but prefer `cut` into tone changes.
    After editing storyboard props: `assets` (only if new `gen:` images) -> `audio` (cues move with the picture) -> `render --draft`.
-5. **Final.** `render <slug>` (motion blur), `qc` again, compare. Two loops minimum, never ship the first render.
+5. **Critique loop.** `critique <slug>` is the watch-your-own-frames pass: contact sheet (2 fps),
+   phone test (360 px), 12-frame strips around every cut, measured single-frame pops away from cuts,
+   dead half-seconds, gaps with nothing new (> 4 s), a black still opening, storyboard `reads` that
+   overlap or are held too short, then a harsh 1-10 rubric (hook, phone readability, motion, variety,
+   composition, brand, sound sync). Each round appends `renders/review_log.md`. Fix the 3 worst problems,
+   re-render, repeat until the round says PASS (every score 8+, no metric fail); minimum 3 rounds on a
+   new film. Scenes that cut inside themselves declare it with `EM.cues.push({t, type: "cut"})`.
+   Open the sheets yourself with the Read tool, do not trust the score alone.
+6. **Final.** `render <slug>` (motion blur), `critique --file renders/final.mp4` again. Never ship the first render.
+
+Effort: run new films on xhigh (max when the first 3 seconds carry a launch), medium for fixes and re-renders.
+Long films (60 s+): split by chapter into parallel subagents, see `references/director-brief.md`.
 
 Fix hierarchy: props in storyboard.json -> scene type swap -> timing (split a long line in script) -> new custom scene.
 
@@ -110,5 +121,6 @@ promote it into `runtime/scenes/` and add it to `src/lib/catalog.mjs`.
 ## References
 - `references/style-dna.md` - measured rules from the reference films (pacing, easing, type, sound).
 - `references/scene-catalog.md` - every scene type, props, when to use.
+- `references/director-brief.md` - the long-brief template (logline, refs, keys, beat sheet, gates, critique loop, deliverables) and the parallel-chapter subagent pattern.
 - `references/pipeline.md` - file formats (brief, brand, script, vo, storyboard), rendering and motion blur internals, troubleshooting.
 - Repo research: `~/Dev/eden-motion/research/analysis/{burnwe,launch-films,higgsfield,tooling-and-workflows}.md` (full forensic breakdowns, 90+ techniques with parameters, Higgsfield preset map).

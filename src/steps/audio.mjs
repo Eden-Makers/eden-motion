@@ -5,6 +5,7 @@
 // the picture ends. Cues come from the composition itself so SFX land on exact frames.
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import { music as elMusic } from "../lib/eleven.mjs";
 import { readCues } from "../lib/browser.mjs";
 import { beatGrid, peakTime } from "../lib/audiofx.mjs";
@@ -64,12 +65,18 @@ export async function audio(projectDir, { musicPrompt, noMusic = false } = {}) {
   const filters = [];
   const mixLabels = [];
   const add = (file) => (inputs.push("-i", file), inputs.length / 2 - 1);
-  const place = (file, t, gainDb, label) => {
+  // Repeated one-shots get a small deterministic pitch spread (0.92-1.12) so a run of pops or
+  // clicks never sounds pasted; an optional screen x (0..1920) pans the sound with its element.
+  const hash = (str) => [...str].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+  const place = (file, t, gainDb, label, { x, pitch } = {}) => {
     if (t < 0 || t > D) return;
     const k = add(file);
-    // t is the EVENT time: shift by the sample's measured peak so the transient lands on it
-    const at = Math.max(0, t - peakTime(file));
-    filters.push(`[${k}:a]aformat=sample_rates=48000:channel_layouts=stereo,volume=${gainDb}dB,adelay=${Math.round(at * 1000)}:all=1[${label}]`);
+    const rate = pitch ?? (/^w/.test(label) ? 1 : 0.92 + (hash(label) % 1000) / 5000);
+    // t is the EVENT time: shift by the sample's measured peak (scaled by the pitch change) so the transient lands on it
+    const at = Math.max(0, t - peakTime(file) / rate);
+    const pan = x != null ? (() => { const p = Math.max(-1, Math.min(1, (x - 960) / 960)) * 0.6; return `,pan=stereo|c0=${(1 - Math.max(0, p)).toFixed(3)}*c0|c1=${(1 + Math.min(0, p)).toFixed(3)}*c1`; })() : "";
+    const shift = rate !== 1 ? `,asetrate=${Math.round(48000 * rate)},aresample=48000` : "";
+    filters.push(`[${k}:a]aformat=sample_rates=48000:channel_layouts=stereo${shift}${pan},volume=${gainDb}dB,adelay=${Math.round(at * 1000)}:all=1[${label}]`);
     mixLabels.push(`[${label}]`);
   };
 
@@ -126,17 +133,32 @@ export async function audio(projectDir, { musicPrompt, noMusic = false } = {}) {
   });
   const W = [path.join(SFX, "whoosh.mp3"), path.join(SFX, "whoosh-short.mp3")];
   whooshes.forEach((c, i) => place(W[i % 2], c.t + (c.dur || 0.3) / 2, c.soft ? -6 : -1, `w${i}`));
-  clicks.forEach((c, i) => place(path.join(SFX, "click.mp3"), c.t, 2, `c${i}`));
-  pops.forEach((c, i) => place(path.join(SFX, "pop.mp3"), c.t, -7, `p${i}`));
+  clicks.forEach((c, i) => place(path.join(SFX, "click.mp3"), c.t, 2, `c${i}`, { x: c.x }));
+  pops.forEach((c, i) => place(path.join(SFX, "pop.mp3"), c.t, -7, `p${i}`, { x: c.x }));
   if (reveal) {
     place(path.join(SFX, "riser.mp3"), reveal.start + 0.1, -9, "riser");
     place(path.join(SFX, "impact-bass-1.mp3"), reveal.start + 0.2, -10, "impact");
   }
 
   const out = path.join(aDir, "mix.wav");
-  const graph = `${filters.join(";")};${mixLabels.join("")}amix=inputs=${mixLabels.length}:normalize=0:dropout_transition=0,atrim=0:${D.toFixed(2)},loudnorm=I=-14:TP=-1.2:LRA=11[out]`;
+  const graph = `${filters.join(";")};${mixLabels.join("")}amix=inputs=${mixLabels.length}:normalize=0:dropout_transition=0,atrim=0:${D.toFixed(2)}[out]`;
   fs.writeFileSync(path.join(aDir, "mix.graph.txt"), graph);
-  run("ffmpeg", ["-y", "-v", "error", ...inputs, "-filter_complex", graph, "-map", "[out]", "-ar", "48000", "-ac", "2", out]);
+  const pre = path.join(aDir, "mix.pre.wav");
+  run("ffmpeg", ["-y", "-v", "error", ...inputs, "-filter_complex", graph, "-map", "[out]", "-ar", "48000", "-ac", "2", "-c:a", "pcm_f32le", pre]);
+  master(pre, out);
+  fs.rmSync(pre, { force: true });
   log(`audio mix: vo + ${fs.existsSync(musicFile) ? "music" : "no music"} + ${whooshes.length} whooshes, ${clicks.length} clicks, ${pops.length} pops -> ${probeDuration(out).toFixed(1)}s`);
   return out;
+}
+
+// Two-pass loudness to -14 LUFS with the measured values, then a 4x-oversampled limiter: AAC adds
+// ~1.5 dB of inter-sample overshoot, so a single-pass loudnorm peak target is not enough.
+export function master(input, output, { I = -14, TP = -1.5, LRA = 11, ceilingDb = -2.0 } = {}) {
+  const r = spawnSync("ffmpeg", ["-hide_banner", "-i", input, "-af", `loudnorm=I=${I}:TP=${TP}:LRA=${LRA}:print_format=json`, "-f", "null", "-"], { encoding: "utf8" });
+  const m = JSON.parse((r.stderr.match(/\{[\s\S]*?\}(?![\s\S]*\{)/) || ["{}"])[0]);
+  const ln = m.input_i
+    ? `loudnorm=I=${I}:TP=${TP}:LRA=${LRA}:measured_I=${m.input_i}:measured_TP=${m.input_tp}:measured_LRA=${m.input_lra}:measured_thresh=${m.input_thresh}:offset=${m.target_offset}:linear=true`
+    : `loudnorm=I=${I}:TP=${TP}:LRA=${LRA}`;
+  const lim = Math.pow(10, ceilingDb / 20).toFixed(4);
+  run("ffmpeg", ["-y", "-v", "error", "-i", input, "-af", `${ln},aresample=192000,alimiter=limit=${lim}:attack=2:release=60:level=false,aresample=48000`, "-ar", "48000", "-ac", "2", output]);
 }

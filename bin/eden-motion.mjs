@@ -30,6 +30,8 @@ STEPS (in order)
   preview      build comp/ and open HyperFrames Studio preview
   render       --draft (fast, no blur) or final (true shutter motion blur, --slow 4..8)
   qc           Gemini creative-director review -> renders/qc.json
+  critique     watch-your-own-frames loop: contact/phone/strip sheets + measured pops, dead air,
+               variety gaps, hook; harsh 1-10 rubric; appends renders/review_log.md [--no-ai] [--file]
   review       HTML review sheet (frames per shot, VO, props, prompts, QC) [--deliver <drive folder>]
   build        only build comp/index.html from storyboard.json
   doctor       check keys and tools
@@ -116,6 +118,9 @@ async function step(name, dir, args) {
       break;
     case "qc":
       await (await import("../src/steps/qc.mjs")).qc(dir, { file: args.file });
+      break;
+    case "critique":
+      await (await import("../src/steps/critique.mjs")).critique(dir, { file: args.file, noAi: !!args["no-ai"] });
       break;
     case "review":
       await (await import("../src/steps/review.mjs")).review(dir, { deliver: args.deliver || process.env.EDEN_MOTION_DELIVER });

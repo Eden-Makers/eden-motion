@@ -31,9 +31,24 @@
   // ---------------------------------------------------------------- springs (EM.spring)
   const DEF = { freq: 2.2, damping: 0.82 };
 
+  // Named feel presets (freq Hz, damping ratio). "ui" is the measured reference spring (3-5%
+  // overshoot); the rest follow the role table from the Opus 5.5 motion-studio course:
+  // snappy for buttons/toggles/leading edges, default for cards/containers/camera, heavy for big
+  // type/3D/logo lockups (no overshoot), playful for mascots and stickers (visible overshoot).
+  const PRESETS = {
+    ui: { freq: 2.6, damping: 0.7 },
+    snappy: { freq: 2.85, damping: 0.84 },
+    default: { freq: 2.07, damping: 1.0 },
+    heavy: { freq: 1.5, damping: 1.0 },
+    playful: { freq: 2.25, damping: 0.5 },
+    glide: { freq: 1.15, damping: 1.0 }, // elegant camera zooms
+  };
+  const resolve = (o) => (typeof o === "string" ? PRESETS[o] || DEF : o);
+
   // Closed-form step response 0 -> 1 of a mass-spring-damper. Pure function of t.
   function response(t, o) {
     if (!(t > 0)) return 0;
+    o = resolve(o);
     const f = (o && o.freq) || DEF.freq;
     const z = o && o.damping != null ? o.damping : DEF.damping;
     const w = 2 * Math.PI * f;
@@ -69,7 +84,28 @@
     tl.fromTo(proxy, { p: 0 }, { p: 1, duration: d, ease: "none", immediateRender: false, onUpdate: () => fn(start + proxy.p * d) }, start);
   }
 
-  EM.spring = { DEFAULTS: DEF, response, track, drive };
+  // Two-edge indicator: the leading edge rides a stiffer spring than the trailing one, so a tab
+  // pill or toggle knob stretches toward its target and contracts on arrival. stops: [{t, left, right}].
+  function indicator(stops, t, lead = "snappy", trail = { freq: 1.6, damping: 0.9 }) {
+    const L = stops.map((s) => ({ t: s.t, to: s.left })), Rr = stops.map((s) => ({ t: s.t, to: s.right }));
+    const movingRight = (i) => i > 0 && stops[i].left > stops[i - 1].left;
+    let idx = 0;
+    stops.forEach((s, i) => (s.t <= t ? (idx = i) : 0));
+    const right = movingRight(idx);
+    const l = track(L, t, resolve(right ? trail : lead)), r = track(Rr, t, resolve(right ? lead : trail));
+    return { left: Math.min(l, r), right: Math.max(l, r) };
+  }
+
+  // Text inside a morphing container: enters after the morph starts, leaves before the next one,
+  // so swapped content never overlaps. Returns 0..1 opacity.
+  function swapAlpha(t, tIn, tOut, { inDelay = 0.08, inDur = 0.12, outDur = 0.1 } = {}) {
+    return Math.min(clamp((t - tIn - inDelay) / inDur, 0, 1), clamp((tOut - outDur - t) / outDur, 0, 1));
+  }
+
+  // Seamless loop: map any t into [0, dur) so the last frame equals the first.
+  const loopT = (t, dur) => ((t % dur) + dur) % dur;
+
+  EM.spring = { DEFAULTS: DEF, PRESETS, response, track, drive, indicator, swapAlpha, loopT };
 
   // ---------------------------------------------------------------- utils
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));

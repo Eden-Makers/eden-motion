@@ -100,3 +100,23 @@ glows on text and anything template-like. What transfers:
   footage re-encoded all-intra (`-g 1`) seeks exactly.
 - **QC they run:** one still per beat before the full render, then a scan for single-frame pops (frame
   difference spikes 3x their neighbours).
+
+## Opus 5.5 motion wave, measured (19 viral films, 2026-09-28)
+Cut detection over the films the "motion design studio" course collected:
+- Two families. **One-take morph films** have zero cuts (twoclipping UI loop, MakerMap, TypingMind,
+  hand-drawn shorts): one container changes state on a 120 BPM grid for 14-20 s. **Showreels and
+  launch reels** cut every 1.5-2.7 s (the "résumé showreel" prompt on max/xhigh: ASL 1.5-2.2 s).
+  Music videos run 1.0-1.4 s per shot. Pick the family on purpose; mixing them reads as indecision.
+- Product reels that did numbers mix a clean sans with **one italic serif accent word** per line
+  ("Posted when your audience is *awake*", "Sell *memberships*"), big number stacks ("11,294+
+  creators / 400K+ posts / 5B+ impressions"), a mascot or presenter carrying the product, real UI.
+- Light motion/UI films got about twice the median likes of dark ones in the dataset sample (104 vs
+  50, 22 posts each; descriptive, not causal). Default dark is not automatically premium.
+- The course's rule set, now in the storyboard prompt: banned AI tells (centered title on a gradient,
+  everything fading in, corner labels and frame borders, glow on UI chrome, particle bursts), a new
+  thing every 2-4 s, reads with held time, real product UI only.
+- Spring roles (`EM.spring.PRESETS`): snappy for buttons, toggles and leading edges; default
+  (critically damped) for cards, containers and camera; heavy for big type, 3D and logo lockups;
+  playful (visible overshoot) only for mascots and stickers; ui is the measured 3-5% reference.
+  Helpers: `EM.spring.indicator` (two-edge stretch), `swapAlpha` (text in a morphing box never
+  overlaps), `loopT`.
