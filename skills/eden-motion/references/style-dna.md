@@ -65,3 +65,38 @@ White cards, radius 12-26 px, hairline border `rgba(0,0,0,.06)`, soft shadow (y 
 - Morphs sit on a steady grid (0.25 s in the reference, not beat-locked to its 117.5 BPM track); UI sounds placed by their measured peak. Measured spring: damping ratio 0.70, 16.5 rad/s, 3-5% overshoot; content blurs out 0.07-0.10 s, new content in 0.08-0.13 s starting at the overshoot peak.
 - Camera zooms so each state fills the frame. Loops: last frame identical to the first, cursor included.
 - Never `will-change` on camera-scaled elements (blurry text). Render one still per beat before the full render.
+
+## Keyframe-table films (open prompts by @notdwd and @twoclipping, 2026-09-27)
+Two more "everything is code" launch films, both one continuous take, both banning crossfades, blur-ins,
+glows on text and anything template-like. What transfers:
+- **Direction is written in frames, not adjectives.** Every move is a table `kf(frame, [[f, v], ...], ease)`
+  interpolating numbers or arrays (positions, sizes, colours). Write the storyboard the same way when a
+  scene matters: "box x884 y635 709x112 eases to x570 y477 778x130, 90% there by f12".
+- **Typed text settles colour:** each new character arrives in an accent, passes through a second hue and
+  settles to ink over ~13 frames (`HL3.settleType` in the Hlas project is the reference implementation).
+- **Charge before the payoff:** a solarised colour wash floods the frame, the object tilts back (rotateX
+  up to 12 deg), selection handles fly to the frame corners, a glyph field appears at the edges, then the
+  rest of the content bursts in at ~50 characters per frame.
+- **Press = hard cut to a 3x macro of the button,** cursor swings in, squashes to 0.9 on the press, the
+  button inflates 12% and flashes the brand colour, the container edge bulges under it. The zoom is a cut,
+  never an animated zoom.
+- **Container becomes the page:** the prompt box drops, goes grey then dark from the bottom while a cyan
+  band sweeps down and wipes its text, then grows to full frame on a fast ease-out while every page element
+  slides out from inside it on one shared progress curve (overflow hidden). Finish by pulling the page
+  back onto a flat neutral ground.
+- **Menu-bar origin** (Frame by Frame film): click the menu-bar icon, the prompt field drops out of the
+  menu bar over a line-graphic wallpaper, the product lives where the user meets it.
+- **Launch-film grammar (twoclipping v2):** every scene is made out of the previous one. Wordmark squeezes
+  into its own period like an accordion (letters move toward the dot by one factor and narrow their wdth
+  axis so they keep touching), the dot grows into a pill, six iris blades close and snap open onto a photo,
+  a grid unfolds from behind a tile like a paper map, a black shape floods the frame and contracts into the
+  next scene. Floods overscale past the corners and take ~0.3 s or half the screen changes in one frame.
+- **Liquid glass without backdrop-filter(url()):** Chromium misreads displacement maps there, so each glass
+  element holds its own clone of the scene behind it, filtered by an SVG feImage distance field through
+  three feDisplacementMaps at slightly different scales (chromatic edge) plus a rim light. Goo = blur +
+  alpha threshold, then composite the sharp source on top.
+- **Gotchas they list:** measure text only after fonts load; a child with `visibility: visible` shows
+  through a hidden parent (use `inherit`); text swapping inside a morphing shape needs its own mask;
+  footage re-encoded all-intra (`-g 1`) seeks exactly.
+- **QC they run:** one still per beat before the full render, then a scan for single-frame pops (frame
+  difference spikes 3x their neighbours).

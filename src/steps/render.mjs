@@ -45,7 +45,15 @@ export async function render(projectDir, { quality = "final", fps = 30, shutter 
   const draft = quality === "draft";
   const hasVideo = JSON.stringify(sb.scenes).includes('"kind":"video"');
   const adaptive = !draft && !uniform && !slow && !hasVideo;
-  const S = draft ? 1 : slow || 4;
+  let S = draft ? 1 : slow || 4;
+  // HyperFrames clamps a <video> playbackRate to >= 0.1. Time stretching plays video at 1/S, so
+  // S > 10 makes every clip run fast (S=12 -> 1.2x, lips drift ~200 ms per second). Measured with
+  // a frame-coded clip (tools/synccheck.mjs). Cap the stretch whenever the film has video.
+  const usesVideo = /\.(mp4|mov|webm)"/i.test(JSON.stringify(sb.scenes));
+  if (usesVideo && S > 10) {
+    log(`slow x${S} would push video below HyperFrames' 0.1 playbackRate floor; using x10`);
+    S = 10;
+  }
   const renders = path.join(projectDir, "renders");
   fs.mkdirSync(renders, { recursive: true });
 
