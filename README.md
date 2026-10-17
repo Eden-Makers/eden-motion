@@ -8,6 +8,7 @@ unattended.
 
 ```bash
 ./install.sh                                   # skills for Claude Code + Codex + ~/.agents, global CLI
+eden-motion setup                              # first run: asks for missing keys (masked), verifies, smoke render
 eden-motion new "Attio" --url https://attio.com --duration 60
 # ~25-40 min later: projects/attio/renders/final.mp4 + review/index.html + qc.json
 ```

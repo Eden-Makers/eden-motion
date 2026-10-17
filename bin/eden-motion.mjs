@@ -28,11 +28,14 @@ STEPS (in order)
   note         <slug> "slow every zoom to 0.7x; hard cut into s5; push in on the button"  director notes
   assets       generate images for "gen:" props (Nano Banana Pro 2K)
   blender      render "blender:<template>?k=v" props headless into transparent webm plates [--preview] [--force]
-               templates: chrome-object (object=block|screw|screws3|ring|rodblock), card-stack (action=collapse|flyoff|fan)
+               templates: chrome-object (object=block|screw|screws3|ring|rodblock), card-stack (action=collapse|flyoff|fan),
+               layers-3d (images=a.png,b.mp4 layout=stack|row|fan|floor move=dolly|orbit|tilt|float fstop=2.8 focus=i)
   audio        VO + music + ambience + layered SFX -> audio/stems/<layer>.wav + audio/mix.wav
                layers: vo, music, ambience, sfx_transitions, sfx_ui, sfx_foley, sfx_accents
                [--sfx-source local|openverse (fresh CC0/CC-BY palette per film, Gemini picks by ear)]
                [--ambience "rain on window"] [--no-openverse] [--no-music]
+               [--stingers (accent thumps + logo sting composed in code in the music's key; needs uv)]
+               no ElevenLabs music? a bed is composed in code as a fallback (audio/music-code.wav)
   remix        <slug> --music -3 --sfx +2 --ambience off --sfx-foley -4   rebalance stems -> mix.wav (no regeneration)
   preview      build comp/ and open HyperFrames Studio preview
   render       --draft (fast, no blur) or final (true shutter motion blur, --slow 4..8) [--shutter-phase center|forward]
@@ -43,7 +46,9 @@ STEPS (in order)
   compare      <slug> <ref.mp4> side by side + frame pairs + SSIM vs a reference film [--file]
   review       HTML review sheet (frames per shot, VO, props, prompts, QC) [--deliver <drive folder>]
   build        only build comp/index.html from storyboard.json
-  doctor       check keys and tools
+  setup        first-run wizard: installs deps + skill links, asks for missing keys (masked, saved to .env),
+               verifies them live, runs a 20 s smoke render [--yes non-interactive]
+  doctor       check tools and keys [--json for agents] [--verify pings the APIs]
 
 ENV / KEYS: GEMINI_API_KEY, ELEVENLABS_API_KEY (read from env, repo .env or ~/.zshrc)`;
 
@@ -123,7 +128,7 @@ async function step(name, dir, args) {
       await (await import("../src/steps/compare.mjs")).compare(dir, args._[2], { file: args.file });
       break;
     case "audio":
-      await (await import("../src/steps/audio.mjs")).audio(dir, { noMusic: !!args["no-music"], sfxSource: args["sfx-source"], ambience: args.ambience, openverse: !args["no-openverse"] });
+      await (await import("../src/steps/audio.mjs")).audio(dir, { noMusic: !!args["no-music"], sfxSource: args["sfx-source"], ambience: args.ambience, openverse: !args["no-openverse"], stingers: args.stingers ? true : undefined });
       break;
     case "remix": {
       const { remix, LAYERS } = await import("../src/steps/audio.mjs");
@@ -165,10 +170,16 @@ async function main() {
   if (!cmd || cmd === "help" || args.help) return console.log(HELP);
 
   if (cmd === "doctor") {
-    const env = loadEnv();
-    for (const k of ["GEMINI_API_KEY", "ELEVENLABS_API_KEY", "FAL_KEY"]) console.log(`${k.padEnd(20)} ${env[k] ? "ok" : "MISSING"}`);
-    for (const t of ["ffmpeg", "ffprobe", "npx"]) console.log(`${t.padEnd(20)} ${run("which", [t], { allowFail: true }).status === 0 ? "ok" : "MISSING"}`);
-    console.log(`${"projects root".padEnd(20)} ${projectsRoot(args)}`);
+    const { doctor } = await import("../src/steps/setup.mjs");
+    const { ready } = await doctor({ json: !!args.json, verify: !!args.verify });
+    if (!args.json) console.log(`${"projects root".padEnd(29)} ${projectsRoot(args)}`);
+    process.exitCode = ready ? 0 : 1;
+    return;
+  }
+
+  if (cmd === "setup") {
+    const ok = await (await import("../src/steps/setup.mjs")).setup({ yes: !!args.yes });
+    process.exitCode = ok ? 0 : 1;
     return;
   }
 
@@ -192,6 +203,7 @@ async function main() {
       fps: args.fps ? +args.fps : null,
       sfxSource: args["sfx-source"] || null,
       ambience: typeof args.ambience === "string" ? args.ambience : null,
+      stingers: !!args.stingers,
       created: new Date().toISOString(),
     };
     writeJSON(path.join(dir, "brief.json"), brief);

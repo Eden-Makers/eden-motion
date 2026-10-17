@@ -9,7 +9,7 @@ import crypto from "node:crypto";
 import { REPO } from "../lib/env.mjs";
 import { log, warn, readJSON, writeJSON, run } from "../lib/util.mjs";
 
-function findBlender() {
+export function findBlender() {
   for (const c of [process.env.BLENDER, "/opt/homebrew/bin/blender", "/Applications/Blender.app/Contents/MacOS/Blender", "blender"]) {
     if (!c) continue;
     const r = run("which", [c], { allowFail: true });

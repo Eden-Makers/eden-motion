@@ -8,11 +8,22 @@ description: Company name in, finished motion-graphics brand film out (Burnwe / 
 Repo: `~/Dev/eden-motion` (path also in `.repo-path` next to this file). CLI: `eden-motion` (global) or `node <repo>/bin/eden-motion.mjs`. Engine = HyperFrames (HTML + GSAP, seek-deterministic).
 Everything is plain JSON in a project folder, so any harness can run steps, read results and edit them.
 
-## 0. Setup check (10 s)
+## 0. Setup check (first thing, every new machine)
 ```bash
-cd ~/Dev/eden-motion && node bin/eden-motion.mjs doctor
+cd ~/Dev/eden-motion && node bin/eden-motion.mjs doctor --json
 ```
-Needs `GEMINI_API_KEY`, `ELEVENLABS_API_KEY` (env, repo `.env` or `~/.zshrc`), ffmpeg, node 20+, npx.
+Each check has `level` (required | recommended | optional), `status`, `why` and `fix`. If `ready` is
+false or a recommended item is missing, onboard the person before anything else:
+- Talk them through it one item at a time, in their language (Czech if they write Czech), plain words:
+  what it is for (`why`), then the exact fix. Install tools yourself when you have a shell
+  (`brew install ffmpeg`, `brew install --cask blender`, `bash install.sh`), after saying what you run.
+- **API keys: never ask for them in chat.** Send the person to the key page from `fix`, then have them
+  run `eden-motion setup` in their own terminal: input is masked, the key goes to the repo `.env`
+  (gitignored, chmod 600) and is verified live. If a key appears in chat anyway, tell them to rotate it.
+- Required: Node 20+, ffmpeg, Chrome, `GEMINI_API_KEY` (free at aistudio.google.com/apikey).
+  Recommended: `ELEVENLABS_API_KEY` (voice + music), skill links. Optional, only when the film needs it:
+  Blender 4.2+ (3D plates), uv (stingers), `FAL_KEY` (AI clips). Do not block on optional items.
+- Finish with `eden-motion setup --yes` (20 s smoke render, no API calls) and show them the frame.
 
 ## 1. One command (autopilot, ~25-40 min)
 ```bash
@@ -123,6 +134,38 @@ promote it into `runtime/scenes/` and add it to `src/lib/catalog.mjs`.
   transition, World morphing, Overexposed, Break Typography, Slot Roll ...) and generate hero shots there,
   then drop the mp4 into `assets/` and reference it from storyboard.json.
 
+## 4b. 2D assets in real 3D (Blender `layers-3d`)
+
+HyperFrames (like Remotion) fakes depth with CSS 3D: no true depth of field, no rack focus,
+perspective that breaks on big rotations, no parallax between layers. When a shot needs that, put
+the pre-rendered assets into Blender and film them with a real camera:
+
+```json
+{"type": "clip-3d", "props": {"src": "blender:layers-3d?images=assets/ui-1.png,assets/ui-2.png,assets/still.jpg&layout=stack&move=dolly&focus=2"}}
+```
+then `eden-motion blender <slug>`. Inputs: UI screenshots, Nano Banana stills, PNG/MOV-with-alpha
+layers you rendered from HyperFrames, or plain video (plays as a moving texture). Layouts: `stack`
+(one behind another), `row` (curved side by side), `fan`, `floor` (lying on a table). Moves: `dolly`
+(push in + rack focus from the first layer to `focus`), `orbit`, `tilt` (swing from flat into 3D),
+`float`. The rig is tabletop scale so f-stops behave like a real lens: `fstop=2.8` default, `1.4`
+leaves only a sliver of the focus layer sharp. Assets render unlit, so UI colours stay exact.
+Typical uses: a product UI flythrough with focus pulls, a wall of stills the camera orbits, a
+screenshot that swings from flat into a 3D hero angle. Render cost ~1.5 s per 1080p frame (EEVEE).
+
+## Motion curves
+
+No linear motion by default (`runtime/SCENE_API.md` rule 14): arrivals `power3.out`/`expo.out`,
+settles `power2.out`, drifts and push-ins `sine.out` (energy first, settles into the cut), camera
+moves across a cut `sine.inOut`. Linear only for typing, time remaps, continuous spins, frame-stepped
+wipes. Blender templates follow the same rule (SINE ease-out keys; `curve=linear` opts out).
+
+## Diagrams
+
+`diagram-draw` (mode timeline | quadrant | flywheel | sequence | nested) draws editorial diagrams
+stroke by stroke: hairlines, one accent on the focus item (falls back to ink + fill + weight when the
+brand accent has no contrast on the tone), everything on a 4 px grid, all items landed by ~45% of the
+shot so the focal read is held.
+
 ## 5a. Sound layers
 
 `audio` renders every layer to its own full-length 48 kHz float stem in `audio/stems/` (import them
@@ -137,11 +180,14 @@ straight into DaVinci as separate tracks) and then sums them into `audio/mix.wav
 | `sfx_ui` | clicks, pops, typing beds, panned with the element | local library or Openverse |
 | `sfx_foley` | per-shot signature sounds: `scene.sound = {"q":"metal screw drop","at":0.4,"gain":-6}` | Openverse |
 | `sfx_accents` | riser + impact into the logo | local library or Openverse |
+| `stingers` | `--stingers`: accent thumps + a logo sting composed in code in the music's detected key | audio-as-code (uv) |
 
 - `--sfx-source openverse` swaps the curated library for a fresh palette per film. Every Openverse
   pick is: safe license only (CC0, PDM, CC-BY; never NC, ND, SA), silence trimmed, loudness matched
   to the library file of the same role, scored on length and peak position for its role, and the top
   4 are played to Gemini, which picks the most tasteful one. Picks and files cache in `.cache/openverse`.
+- No ElevenLabs music (no key or it failed)? A plain bed is composed in code (`audio/music-code.wav`,
+  same level as the real bed) so drafts are never silent; generate real music for a final.
 - CC-BY sounds are listed in `audio/CREDITS.md` and must go into the description or end credits.
 - `remix <slug> --music -3 --sfx-foley -4 --ambience off` rebuilds only the mix from stems (gains
   persist in `audio/mix.json`; `--sfx` moves all four SFX layers). Music ducks under the VO here.

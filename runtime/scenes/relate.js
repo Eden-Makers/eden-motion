@@ -27,11 +27,13 @@
   const SLOW = () => window.EM_SLOW || 1;
 
   // One proxy tween drives a draw function. step=true quantises progress to film frames.
-  function prox(tl, start, dur, fn, step) {
+  // ease shapes the progress (default linear for drivers that ease inside fn); quantising happens
+  // after easing so stepped elements still land on whole film frames.
+  function prox(tl, start, dur, fn, step, ease) {
     const p = { t: 0 };
     const n = Math.max(1, Math.round(dur * FPS()));
     const q = (v) => (step ? Math.min(1, Math.floor(v * n + 1e-6) / n) : v);
-    tl.to(p, { t: 1, duration: dur, ease: "none", onUpdate: () => fn(q(p.t)) }, start);
+    tl.to(p, { t: 1, duration: dur, ease: ease || "none", onUpdate: () => fn(q(p.t)) }, start);
     fn(0);
   }
   const fmt = (n, dec = 0) => Number(n).toLocaleString("en-US", { minimumFractionDigits: dec, maximumFractionDigits: dec });
@@ -90,7 +92,7 @@
           sharp.textContent = str.slice(0, nSharp);
           main.textContent = str.slice(nSharp);
           ghosts.forEach((g, k) => (g.textContent = (pre + fmt(v + (to - from) * 0.018 * (k + 1), dec) + suf).slice(nSharp)));
-        }, true);
+        }, true, "power1.out");
       });
     },
   });

@@ -22,4 +22,4 @@ mkdir -p "$HOME/.local/bin"
 ln -sfn "$REPO/bin/eden-motion.mjs" "$HOME/.local/bin/eden-motion"
 chmod +x "$REPO/bin/eden-motion.mjs"
 echo "linked ~/.local/bin/eden-motion (make sure ~/.local/bin is on PATH)"
-node "$REPO/bin/eden-motion.mjs" doctor
+node "$REPO/bin/eden-motion.mjs" doctor || echo "next: eden-motion setup (asks for the missing keys, masked)"

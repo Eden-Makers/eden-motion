@@ -547,7 +547,7 @@
         if (c.src) {
           const m = mediaEl(ctx, c, "hf-media");
           el.appendChild(m);
-          tl.fromTo(m, { scale: 1.1 }, { scale: 1, duration: dur + 0.6, ease: "none" }, start - 0.3);
+          tl.fromTo(m, { scale: 1.1 }, { scale: 1, duration: dur + 0.6, ease: "power2.out" }, start - 0.3);
           const tEnd = blockReveal(tl, el, t, { P, seed: index * 10 + i, cols: 10, rows: 6, dur: 0.32, origin: [0.3 + 0.4 * ((i * 37) % 10) / 10, 0.5] });
           duoSettle(tl, m, tEnd - 0.12);
         } else if (c.fill) {
@@ -642,7 +642,7 @@
         fast(tR, tR + RD);
       }
       // the grid itself never moves; only a very slow push keeps it alive
-      tl.fromTo(root, { scale: 1 }, { scale: 1.018, duration: dur + 0.6, ease: "none" }, start - 0.3);
+      tl.fromTo(root, { scale: 1 }, { scale: 1.018, duration: dur + 0.6, ease: "sine.out" }, start - 0.3);
     },
   });
 
@@ -848,7 +848,7 @@
       }
 
       // slow drift so the hold is never dead still
-      tl.fromTo(wrap, { scale: 1 }, { scale: 1.025, duration: ctx.dur + 0.5, ease: "none" }, start);
+      tl.fromTo(wrap, { scale: 1 }, { scale: 1.025, duration: ctx.dur + 0.5, ease: "sine.out" }, start);
       // mid-hold glitch hit
       const tg = Math.min(end - 0.6, tNext + 0.55);
       if (tg > tNext) {
@@ -952,8 +952,8 @@
       card.appendChild(m);
       const t = start + 0.05;
       tl.fromTo(card, { x: 1150, z: -900, rotationY: rotY + 40, opacity: 1 }, { x: -30, z: 0, rotationY: rotY, duration: 0.62, ease: "expo.out" }, t);
-      tl.to(card, { x: -80, rotationY: rotY - 7, duration: Math.max(0.5, dur - 0.4), ease: "none" }, t + 0.62);
-      tl.fromTo(m, { scale: 1.12 }, { scale: 1, duration: dur + 0.6, ease: "none" }, start - 0.3);
+      tl.to(card, { x: -80, rotationY: rotY - 7, duration: Math.max(0.5, dur - 0.4), ease: "power1.inOut" }, t + 0.62);
+      tl.fromTo(m, { scale: 1.12 }, { scale: 1, duration: dur + 0.6, ease: "power2.out" }, start - 0.3);
       fast(t - 0.02, t + 0.3);
       cue(t, "whoosh");
       const tRev = blockReveal(tl, card, t + 0.2, { P: { ...P, paper: "#f4f4ef" }, seed: index * 5, cols: 14, rows: 8, dur: 0.36 });

@@ -110,7 +110,7 @@
       // at a fixed size instead of the fit-to-width zoom.
       if (maxW / Wf < 0.6) {
         Object.assign(line.style, { whiteSpace: "normal", width: "1500px", fontSize: Math.round(fs * 0.72) + "px", lineHeight: "1.08" });
-        tl.fromTo(line, { scale: 1.04 }, { scale: 1, duration: ctx.dur, ease: "none" }, start);
+        tl.fromTo(line, { scale: 1.04 }, { scale: 1, duration: ctx.dur, ease: "power2.out" }, start);
       } else wEls.forEach((w, i) => {
         const Wi = w.offsetLeft + w.offsetWidth - x0;
         const s = Math.min(1, maxW / Wi);

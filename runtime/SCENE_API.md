@@ -70,6 +70,12 @@ Tone classes on the scene (`tone-light|dark|cream|black`) re-define the tokens, 
 11. Never put `will-change` on anything the camera scales (text and images rasterise at the initial scale and render blurry).
 12. Text that swaps inside a morphing container gets its own enter and exit timing (exit ~0.12 s before enter) or the two overlap.
 13. For values that change target many times (a morphing container), use `EM.spring.track` (sum of closed-form spring responses, pure function of time) instead of chained tweens.
+14. No linear motion by default. Every move gets a curve: arrivals `power3.out`/`expo.out`, settles
+    `power2.out`, push-ins and drifts over a shot `sine.out` (energy first, settles into the cut),
+    camera moves that cross a cut `sine.inOut`, two-point moves `power2.inOut`. `ease: "none"` only
+    for: constant typing, time remaps, continuous spins/orbits/loops, frame-stepped wipes, and proxy
+    drivers whose `fn` applies its own easing. A subtle `back.out(1.2)` or `EM.spring` is allowed for
+    one small accent per film (a chip, a cursor click), never for type or cameras.
 
 ## Springs and cuts
 - `EM.spring.response(t, preset | {freq, damping})`, presets in `EM.spring.PRESETS`: `ui`, `snappy`, `default`, `heavy`, `playful`, `glide`.

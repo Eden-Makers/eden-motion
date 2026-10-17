@@ -61,3 +61,9 @@ Every scene type the engine ships, with props (as given to the storyboard model)
 
 ## Scene-level fields
 `tone`: light | dark | cream | black | grid (Higgsfield paper grid) | paper (#fcfcfc flat) | stage (#d9d9d9 flat, UI cards). `camera`: omit (auto drift, alternating push/pull), push, pull, static. `transition`: {type, duration, ...opts}. Film-level: `flat: true` (no bloom, no exposure ramp between tones), `fps: 24`, `shutterPhase: "forward"` (motion blur window opens at the frame, hard cuts stay clean), `background: "hf-grid"`, `palette: "higgsfield"` forces magenta #df167f + lime #d4ff19.
+
+## diagram-draw (editorial diagrams, any style)
+`{ mode: timeline|quadrant|flywheel|sequence|nested, title?, focus?: [i], items: [...] }` with
+`axes {x,y}` + `corners` for quadrant, `hub` for flywheel, `actors` for sequence. Strokes draw on,
+labels focus-pull in, one accent on the focus item, slow sine.out push. Taxonomy and taste from
+cathrynlavery/diagram-design (MIT).

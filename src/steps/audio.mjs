@@ -8,7 +8,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { music as elMusic } from "../lib/eleven.mjs";
 import { readCues } from "../lib/browser.mjs";
-import { beatGrid, peakTime } from "../lib/audiofx.mjs";
+import { beatGrid, peakTime, estimateKey } from "../lib/audiofx.mjs";
 import { build } from "./build.mjs";
 import { REPO } from "../lib/env.mjs";
 import { log, warn, readJSON, writeJSON, run, probeDuration } from "../lib/util.mjs";
@@ -24,14 +24,33 @@ function thin(cues, type, minGap) {
 // or replace any of them, and `remix` rebuilds mix.wav from stems in seconds):
 //   vo, music, ambience, sfx_transitions (whooshes), sfx_ui (clicks, pops, typing),
 //   sfx_foley (per-scene signature sounds from Openverse), sfx_accents (riser + impact on the logo)
-export const LAYERS = ["vo", "music", "ambience", "sfx_transitions", "sfx_ui", "sfx_foley", "sfx_accents"];
+//   stingers (opt-in, --stingers): accent thumps + a logo sting composed in code (audio-as-code),
+//   in the music's detected key, landing on exact cue frames
+export const LAYERS = ["vo", "music", "ambience", "sfx_transitions", "sfx_ui", "sfx_foley", "sfx_accents", "stingers"];
 
-export async function audio(projectDir, { musicPrompt, noMusic = false, sfxSource, ambience, openverse = true } = {}) {
+// Out-of-process audio-as-code (tools/stingers.py), pinned. Returns a wav path or null.
+function composeCode(job, out) {
+  if (run("which", ["uv"], { allowFail: true }).status !== 0) {
+    warn("uv not found: skipping code-composed audio (brew install uv)");
+    return null;
+  }
+  const jobFile = out.replace(/\.wav$/, ".job.json");
+  writeJSON(jobFile, { ...job, out });
+  const r = run("uv", ["run", "--quiet", "--no-project", "--with", "audio-as-code==0.5.0", "python", path.join(REPO, "tools", "stingers.py"), jobFile], { allowFail: true });
+  if (r.status !== 0 || !fs.existsSync(out)) {
+    warn("audio-as-code failed: " + String(r.stderr || r.stdout).slice(-200));
+    return null;
+  }
+  return out;
+}
+
+export async function audio(projectDir, { musicPrompt, noMusic = false, sfxSource, ambience, openverse = true, stingers } = {}) {
   const sb = readJSON(path.join(projectDir, "storyboard.json"));
   const sc = readJSON(path.join(projectDir, "script.json"), {});
   const brief = readJSON(path.join(projectDir, "brief.json"), {});
   const vo = readJSON(path.join(projectDir, "vo.json"), null);
   sfxSource = sfxSource || brief.sfxSource || "local";
+  stingers = stingers ?? !!brief.stingers;
   const D = sb.duration;
   const aDir = path.join(projectDir, "audio");
   const stemDir = path.join(aDir, "stems");
@@ -57,6 +76,15 @@ export async function audio(projectDir, { musicPrompt, noMusic = false, sfxSourc
       fs.writeFileSync(path.join(aDir, "music.prompt.txt"), prompt);
     } catch (e) {
       warn("music generation failed: " + e.message.slice(0, 200));
+    }
+  }
+
+  const reveal0 = sb.scenes.find((s) => s.type === "logo-reveal" || s.type === "logo-bars");
+  const codeBed = path.join(aDir, "music-code.wav");
+  if (!noMusic && !fs.existsSync(musicFile)) {
+    // no ElevenLabs music (no key or it failed): a plain bed composed in code beats silence
+    if (fs.existsSync(codeBed) || composeCode({ mode: "bed", duration: D, bpm: 120, logo: reveal0 ? reveal0.start + 0.2 : null, key: brief.key || "D", scale: brief.keyScale || "major" }, codeBed)) {
+      warn("music: using the code-composed fallback bed (audio/music-code.wav); generate real music for a final");
     }
   }
 
@@ -119,11 +147,12 @@ export async function audio(projectDir, { musicPrompt, noMusic = false, sfxSourc
   // Beat grid + drop alignment: shift the music so its strongest hit just after the reveal lands
   // exactly on the logo (the only thing the references lock to the music besides drops).
   let trimStart = 0;
-  if (fs.existsSync(musicFile)) {
+  const musicIn = fs.existsSync(musicFile) ? musicFile : !noMusic && fs.existsSync(codeBed) ? codeBed : null;
+  if (musicIn) {
     try {
-      const g = beatGrid(musicFile);
+      const g = beatGrid(musicIn);
       const T = reveal ? reveal.start + 0.2 : null;
-      if (T != null) {
+      if (T != null && musicIn !== codeBed) { // the code bed is composed onto the logo already
         const cands = g.onsets.filter((o) => o.t >= T && o.t <= T + 1.6);
         const hit = cands.sort((a, b) => b.v - a.v)[0];
         if (hit) trimStart = +(hit.t - T).toFixed(3);
@@ -133,7 +162,7 @@ export async function audio(projectDir, { musicPrompt, noMusic = false, sfxSourc
     } catch (e) {
       warn("beat analysis failed: " + e.message.slice(0, 120));
     }
-    const mk = add(musicFile);
+    const mk = add(musicIn);
     // music out 1.2 s before the end, fade in 0.4 s
     const fadeOut = Math.max(0, D - 2.6);
     // Music dips (the main dynamic device of the references): under the TURN/pivot line and
@@ -142,7 +171,7 @@ export async function audio(projectDir, { musicPrompt, noMusic = false, sfxSourc
       .map((s, i) => ({ s, beat: (sc.lines?.[i]?.beat || "").toUpperCase() }))
       .filter(({ s, beat }) => beat === "TURN" || s.type === "prompt-box")
       .map(({ s }) => `volume=enable='between(t,${(s.start + 0.1).toFixed(2)},${(s.start + s.duration - 0.35).toFixed(2)})':volume=0.4`);
-    filters.push(`[${mk}:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=start=${trimStart},asetpts=PTS-STARTPTS,atrim=0:${D.toFixed(2)},afade=t=in:d=0.4,afade=t=out:st=${fadeOut.toFixed(2)}:d=1.4,volume=-9dB${dips.length ? "," + dips.join(",") : ""}[music]`);
+    filters.push(`[${mk}:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=start=${trimStart},asetpts=PTS-STARTPTS,atrim=0:${D.toFixed(2)},afade=t=in:d=0.4,afade=t=out:st=${fadeOut.toFixed(2)}:d=1.4,volume=${musicIn === codeBed ? 0 : -9}dB${dips.length ? "," + dips.join(",") : ""}[music]`);
     byLayer.music.push("[music]");
   }
   // ambience bed (storyboard "ambience" or --ambience): looped, faded, far under everything
@@ -180,6 +209,25 @@ export async function audio(projectDir, { musicPrompt, noMusic = false, sfxSourc
   if (reveal) {
     place(lib.riser[0], reveal.start + 0.1, -9, "riser", "sfx_accents");
     place(lib.hit[0], reveal.start + 0.2, -10, "impact", "sfx_accents");
+  }
+
+  if (stingers) {
+    // accents: tone flips into a light shot after a dark one and every scene with a "proof" read
+    // are where the film turns; the sting lands with the logo, in the music's key
+    let key = { key: brief.key || "D", mode: brief.keyScale || "major" };
+    if (musicIn && !brief.key) {
+      try {
+        key = estimateKey(musicIn);
+        log(`music key: ${key.key} ${key.mode} (confidence ${key.confidence})`);
+      } catch {}
+    }
+    const accents = sb.scenes.filter((s, i) => i && s.tone !== sb.scenes[i - 1].tone && /light|paper|cream/.test(s.tone || "") && s !== reveal).map((s) => s.start).filter((t, i, a) => !i || t - a[i - 1] >= 2.5).slice(0, 6);
+    const st = composeCode({ mode: "stingers", duration: D, bpm: 120, cuts: sb.scenes.map((s) => s.start), accents, logo: reveal ? reveal.start + 0.2 : null, key: key.key, scale: key.mode }, path.join(aDir, "stingers.wav"));
+    if (st) {
+      const k = add(st);
+      filters.push(`[${k}:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=0:${D.toFixed(3)},volume=-6dB[sting]`);
+      byLayer.stingers.push("[sting]");
+    }
   }
 
   const used = LAYERS.filter((l) => byLayer[l].length);

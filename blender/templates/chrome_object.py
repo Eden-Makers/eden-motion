@@ -1,5 +1,6 @@
 """chrome-object: polished aluminium hero object tumbling on a transparent background.
 params: object = block | screw | ring | rodblock | screws3 ; frames ; fps ; spin (deg over the shot) ; gain (env brightness)
+        curve = out (default: energy first, settles into the cut) | inout | linear (constant turntable)
 Look: near emissive studio dome with vertical softbox strips (flat chrome faces need parallax gradients),
 camera inside the dome, Cycles Metal, film transparent. Proven on the Relate Frontier Traders rebuild.
 """
@@ -25,7 +26,13 @@ def tumble(ob, r0, r1, mode="ZXY"):
     ob.rotation_mode = mode
     ob.rotation_euler = tuple(math.radians(v) for v in r0); ob.keyframe_insert("rotation_euler", frame=1)
     ob.rotation_euler = tuple(math.radians(v) for v in r1); ob.keyframe_insert("rotation_euler", frame=F)
-    linear_all(ob)
+    curve = P.get("curve", "out")
+    if curve == "linear":
+        linear_all(ob)
+    else:
+        for fc in _fcurves(ob.animation_data.action):
+            for kp in fc.keyframe_points:
+                kp.interpolation = "SINE"; kp.easing = "EASE_OUT" if curve == "out" else "EASE_IN_OUT"
 
 if obj == "block":
     b = machined_block("Block", 1.0, alu, "cube")
