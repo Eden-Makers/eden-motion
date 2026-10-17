@@ -1,12 +1,13 @@
-// soundpick: find the best-fitting sound for a role on Openverse, the way a sound designer would.
-// 1. search (safe licenses only), keep candidates whose length can fit the role
-// 2. download, trim silence, cap length, peak-normalise to -1 dBFS -> 48 kHz stereo wav
-// 3. measure: trimmed length, where the peak sits, how steady the level is
-// 4. heuristic score per role (a whoosh peaks mid-sound, a hit peaks in the first 80 ms,
-//    a riser peaks at the end, an ambience bed is steady), CC0 preferred over CC-BY
-// 5. Gemini listens to the top 4 and picks the most tasteful one for the film (skipped without
-//    GEMINI_API_KEY or with judge:false); its reason is kept next to the pick.
-// Picks are cached by role + query, so a project re-run never re-downloads or re-judges.
+// soundpick: find the best-fitting sound for a role on Openverse, scored in code (no LLM calls).
+// 1. search (safe licenses only), broaden over-specific queries, keep lengths that can fit the role
+// 2. download, trim silence, cap length, loudness-match to the curated library -> 48 kHz stereo wav
+// 3. measure: trimmed length, where the peak sits, how steady the level is, noise floor, clipping
+// 4. score per role: a whoosh peaks mid-sound, a hit peaks in the first 80 ms, a riser peaks at
+//    the end, an ambience bed is steady; query words in title/tags count, speech/music/loops and
+//    hiss/clipping are penalised, CC0 beats CC-BY, Openverse relevance breaks ties
+// 5. optional (judge:true, `audio --judge-sfx`): Gemini listens to the top 4. Off by default:
+//    editors swap sounds anyway, and the code score picks well enough for drafts.
+// Picks are cached by role + query, so a project re-run never re-downloads or re-scores.
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
@@ -52,8 +53,19 @@ function measure(file) {
   }
   const mean = rms.reduce((a, b) => a + b, 0) / (rms.length || 1);
   const sd = Math.sqrt(rms.reduce((a, b) => a + (b - mean) ** 2, 0) / (rms.length || 1));
+  // noise floor: quietest 10% of 50 ms windows against the loudest, in dB (one-shots should
+  // decay into silence; a high floor means hiss, room tone or a busy recording)
+  const w = Math.floor(SR / 20), short = [];
+  for (let i = 0; i + w <= x.length; i += w) {
+    let s2 = 0;
+    for (let j = i; j < i + w; j++) s2 += x[j] * x[j];
+    short.push(Math.sqrt(s2 / w));
+  }
+  short.sort((a, b) => a - b);
+  const top = short[short.length - 1] || 1e-9, low = short[Math.floor(short.length * 0.1)] || 1e-9;
+  const floorDb = short.length >= 6 ? 20 * Math.log10(Math.max(1e-9, low) / top) : -60;
   const dur = x.length / SR;
-  return { dur, peakT: at / SR, peakR: dur ? at / SR / dur : 0, cv: mean ? sd / mean : 9 };
+  return { dur, peakT: at / SR, peakR: dur ? at / SR / dur : 0, cv: mean ? sd / mean : 9, floorDb };
 }
 
 // Trim leading/trailing silence, cap, fade the tail, peak-normalise to -1 dBFS.
@@ -71,17 +83,28 @@ function prepare(src, role, out) {
   const fade = Math.min(0.15, d / 4);
   run("ffmpeg", ["-v", "error", "-y", "-i", tmp, "-af", `volume=${gain.toFixed(2)}dB,afade=t=out:st=${Math.max(0, d - fade).toFixed(3)}:d=${fade.toFixed(3)}`, "-c:a", "pcm_f32le", out]);
   fs.rmSync(tmp, { force: true });
-  return out;
+  return { file: out, clipped: max >= -0.05 };
 }
 
-function score(m, role, r, rank, n) {
+const BANNED = {
+  one: /\b(voice|vocal|speech|speak|talk|singing|sing|song|music|melody|loop|laugh|count(ing)?|narrat)/i,
+  bed: /\b(voice|vocal|speech|talk|singing|song|music|melody|crowd cheer|announcement)/i,
+};
+
+function score(m, role, r, rank, n, query = "", clipped = false) {
   const R = ROLES[role] || ROLES.foley;
+  const text = `${r.title} ${(r.tags || []).join(" ")}`.toLowerCase();
   const [lo, hi] = R.dur;
   let s = m.dur >= lo && m.dur <= hi ? 1 : Math.exp(-Math.abs(Math.log((m.dur < lo ? lo : hi) / Math.max(0.01, m.dur))) * 2);
   if (R.peak === "mid") s *= m.peakR > 0.2 && m.peakR < 0.8 ? 1 : 0.55;
   if (R.peak === "start") s *= m.peakT < 0.08 ? 1 : m.peakT < 0.2 ? 0.7 : 0.35;
   if (R.peak === "end") s *= m.peakR > 0.65 ? 1 : 0.5;
   if (R.peak === "flat") s *= m.cv < 0.45 ? 1 : m.cv < 0.8 ? 0.7 : 0.35;
+  if (role !== "music" && BANNED[role === "ambience" ? "bed" : "one"].test(text)) s *= 0.5;
+  if (role !== "ambience" && role !== "music" && m.floorDb > -32) s *= m.floorDb > -22 ? 0.55 : 0.8;
+  if (clipped) s *= 0.85;
+  const words = query.toLowerCase().split(/\s+/).filter((w) => w.length > 2);
+  s += Math.min(0.3, 0.1 * words.filter((w) => text.includes(w)).length);
   s += r.license === "by" ? 0 : 0.15;
   s += 0.1 * (1 - rank / Math.max(1, n));
   return +s.toFixed(3);
@@ -107,7 +130,7 @@ Return JSON {"best": <candidate index>, "why": "<one short sentence>", "ranking"
 }
 
 // Returns up to n picks [{file (prepared wav), id, title, creator, license, attribution, landing, why}].
-export async function pick(query, { role = "foley", n = 1, context = "", judge: useJudge = true, exclude = [], category } = {}) {
+export async function pick(query, { role = "foley", n = 1, context = "", judge: useJudge = false, exclude = [], category } = {}) {
   const R = ROLES[role] || ROLES.foley;
   const ck = crypto.createHash("sha1").update(JSON.stringify([role, query.toLowerCase().trim(), n, exclude])).digest("hex").slice(0, 12);
   const cacheFile = path.join(CACHE, "picks", `${ck}.json`);
@@ -134,9 +157,9 @@ export async function pick(query, { role = "foley", n = 1, context = "", judge: 
   for (const [rank, r] of pool.entries()) {
     try {
       const src = await fetchAudio(r);
-      const file = prepare(src, role, path.join(CACHE, "prepared", `${r.id}.${role}.wav`));
+      const { file, clipped } = prepare(src, role, path.join(CACHE, "prepared", `${r.id}.${role}.wav`));
       const m = measure(file);
-      cands.push({ ...r, file, m, score: score(m, role, r, rank, pool.length) });
+      cands.push({ ...r, file, m, score: score(m, role, r, rank, pool.length, query, clipped) });
     } catch (e) {
       warn(`openverse: skip "${r.title}": ${String(e.message).slice(0, 80)}`);
     }
@@ -146,7 +169,7 @@ export async function pick(query, { role = "foley", n = 1, context = "", judge: 
     return [];
   }
   cands.sort((a, b) => b.score - a.score);
-  let order = cands.map((_, i) => i), why = "heuristic";
+  let order = cands.map((_, i) => i), why = "code score";
   if (useJudge && cands.length > 1 && key("GEMINI_API_KEY", { required: false })) {
     try {
       const top = cands.slice(0, 4);
@@ -155,7 +178,7 @@ export async function pick(query, { role = "foley", n = 1, context = "", judge: 
       order = [j.best, ...order.filter((i) => i !== j.best)];
       why = j.why;
     } catch (e) {
-      warn("sound judge failed, using heuristic: " + String(e.message).slice(0, 100));
+      warn("sound judge failed, using the code score: " + String(e.message).slice(0, 100));
     }
   }
   const picks = order.slice(0, n).map((i, k) => {
@@ -164,6 +187,6 @@ export async function pick(query, { role = "foley", n = 1, context = "", judge: 
   });
   fs.mkdirSync(path.dirname(cacheFile), { recursive: true });
   fs.writeFileSync(cacheFile, JSON.stringify(picks, null, 1));
-  log(`openverse ${role} "${query}": ${picks.map((p) => `"${p.title}" (${p.license})`).join(", ")}${why !== "heuristic" ? ` - ${why}` : ""}`);
+  log(`openverse ${role} "${query}": ${picks.map((p) => `"${p.title}" (${p.license})`).join(", ")}${why !== "code score" ? ` - ${why}` : ` (code score ${cands[order[0]].score})`}`);
   return picks;
 }

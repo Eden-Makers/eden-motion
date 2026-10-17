@@ -1,6 +1,6 @@
 ---
 name: eden-motion
-description: Company name in, finished motion-graphics brand film out (Burnwe / Lovable / Google launch-film quality). Researches the brand from its website, writes the script, records an ElevenLabs voiceover with word timings, storyboards 15-20 shots from a library of premium scenes (hot-tail kinetic type, product UI with camera and cursor, prompt box, orbit, stat counters, card chaos, flow lines, glass media frames, logo resolve), generates images with Nano Banana Pro and AI clips via Higgsfield (Seedance 2.0 / Kling 3 / Veo 3.1), offers burnwe / launch / higgsfield / relate visual styles, renders 3D plates headless in Blender (chrome hardware, acrylic card stacks, product CG), mixes layered stems (VO, music, ambience, transition / UI / foley / accent SFX) on exact frames with free CC0 / CC-BY sounds from Openverse picked by ear, renders with HyperFrames and true shutter motion blur, then self-reviews with Gemini and iterates. Also rebuilds a reference film 1:1 (compare + calibrated critique). Use for "make a motion graphics video for <company>", "explainer video", "SaaS promo", "launch video", "brand film from a website", "motion design like Burnwe/Lovable/Google/Relate", "crypto / fintech promo", "napodob tohle video 1:1", "udělej motion graphic video", "explainer pro firmu".
+description: Company name in, finished motion-graphics brand film out (Burnwe / Lovable / Google launch-film quality). Researches the brand from its website, writes the script, records an ElevenLabs voiceover with word timings, storyboards 15-20 shots from a library of premium scenes (hot-tail kinetic type, product UI with camera and cursor, prompt box, orbit, stat counters, card chaos, flow lines, glass media frames, logo resolve), generates images with Nano Banana Pro and AI clips via Higgsfield (Seedance 2.0 / Kling 3 / Veo 3.1), offers burnwe / launch / higgsfield / relate visual styles, renders 3D plates headless in Blender (chrome hardware, acrylic card stacks, product CG), mixes layered stems (VO, music, ambience, transition / UI / foley / accent SFX) on exact frames with free CC0 / CC-BY sounds from Openverse picked by a code score, renders with HyperFrames and true shutter motion blur, then self-reviews with Gemini and iterates. Also rebuilds a reference film 1:1 (compare + calibrated critique). Use for "make a motion graphics video for <company>", "explainer video", "SaaS promo", "launch video", "brand film from a website", "motion design like Burnwe/Lovable/Google/Relate", "crypto / fintech promo", "napodob tohle video 1:1", "udělej motion graphic video", "explainer pro firmu".
 ---
 
 # eden-motion
@@ -184,8 +184,10 @@ straight into DaVinci as separate tracks) and then sums them into `audio/mix.wav
 
 - `--sfx-source openverse` swaps the curated library for a fresh palette per film. Every Openverse
   pick is: safe license only (CC0, PDM, CC-BY; never NC, ND, SA), silence trimmed, loudness matched
-  to the library file of the same role, scored on length and peak position for its role, and the top
-  4 are played to Gemini, which picks the most tasteful one. Picks and files cache in `.cache/openverse`.
+  to the library file of the same role, and scored in code: length and peak position for its role,
+  query words in title/tags, penalties for speech/music/loops, hiss and clipping, CC0 over CC-BY.
+  No LLM calls by default (editors replace sounds anyway); `--judge-sfx` lets Gemini listen to the
+  top 4 when a film needs it. Picks and files cache in `.cache/openverse`.
 - No ElevenLabs music (no key or it failed)? A plain bed is composed in code (`audio/music-code.wav`,
   same level as the real bed) so drafts are never silent; generate real music for a final.
 - CC-BY sounds are listed in `audio/CREDITS.md` and must go into the description or end credits.

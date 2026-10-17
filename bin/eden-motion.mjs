@@ -32,7 +32,8 @@ STEPS (in order)
                layers-3d (images=a.png,b.mp4 layout=stack|row|fan|floor move=dolly|orbit|tilt|float fstop=2.8 focus=i)
   audio        VO + music + ambience + layered SFX -> audio/stems/<layer>.wav + audio/mix.wav
                layers: vo, music, ambience, sfx_transitions, sfx_ui, sfx_foley, sfx_accents
-               [--sfx-source local|openverse (fresh CC0/CC-BY palette per film, Gemini picks by ear)]
+               [--sfx-source local|openverse (fresh CC0/CC-BY palette per film, picked by a code score)]
+               [--judge-sfx (optional: Gemini listens to the top 4 candidates per sound; extra API calls)]
                [--ambience "rain on window"] [--no-openverse] [--no-music]
                [--stingers (accent thumps + logo sting composed in code in the music's key; needs uv)]
                no ElevenLabs music? a bed is composed in code as a fallback (audio/music-code.wav)
@@ -128,7 +129,7 @@ async function step(name, dir, args) {
       await (await import("../src/steps/compare.mjs")).compare(dir, args._[2], { file: args.file });
       break;
     case "audio":
-      await (await import("../src/steps/audio.mjs")).audio(dir, { noMusic: !!args["no-music"], sfxSource: args["sfx-source"], ambience: args.ambience, openverse: !args["no-openverse"], stingers: args.stingers ? true : undefined });
+      await (await import("../src/steps/audio.mjs")).audio(dir, { noMusic: !!args["no-music"], sfxSource: args["sfx-source"], ambience: args.ambience, openverse: !args["no-openverse"], stingers: args.stingers ? true : undefined, judgeSfx: args["judge-sfx"] ? true : undefined });
       break;
     case "remix": {
       const { remix, LAYERS } = await import("../src/steps/audio.mjs");

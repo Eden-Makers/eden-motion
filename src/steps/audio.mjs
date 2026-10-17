@@ -44,13 +44,15 @@ function composeCode(job, out) {
   return out;
 }
 
-export async function audio(projectDir, { musicPrompt, noMusic = false, sfxSource, ambience, openverse = true, stingers } = {}) {
+export async function audio(projectDir, { musicPrompt, noMusic = false, sfxSource, ambience, openverse = true, stingers, judgeSfx } = {}) {
   const sb = readJSON(path.join(projectDir, "storyboard.json"));
   const sc = readJSON(path.join(projectDir, "script.json"), {});
   const brief = readJSON(path.join(projectDir, "brief.json"), {});
   const vo = readJSON(path.join(projectDir, "vo.json"), null);
   sfxSource = sfxSource || brief.sfxSource || "local";
   stingers = stingers ?? !!brief.stingers;
+  // SFX are picked by a code score; Gemini listening is opt-in (costs calls, editors swap sounds anyway)
+  judgeSfx = judgeSfx ?? (!!brief.sfxJudge || process.env.EM_SFX_JUDGE === "1");
   const D = sb.duration;
   const aDir = path.join(projectDir, "audio");
   const stemDir = path.join(aDir, "stems");
@@ -61,7 +63,7 @@ export async function audio(projectDir, { musicPrompt, noMusic = false, sfxSourc
   const ov = async (q, role, opts = {}) => {
     if (!openverse) return [];
     const { pick } = await import("../lib/soundpick.mjs");
-    const got = await pick(q, { role, context, ...opts });
+    const got = await pick(q, { role, context, judge: judgeSfx, ...opts });
     got.forEach((g) => credits.push(g));
     return got;
   };
