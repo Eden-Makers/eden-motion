@@ -19,6 +19,19 @@ function fetchRef(src, dir, n) {
   return out;
 }
 
+// A metronome edit (Relate: one cut every 24 frames) shows as cut gaps that are near-integer
+// multiples of one base interval. Returns that interval in seconds or null.
+export function metronome(times) {
+  const gaps = times.slice(1).map((t, i) => t - times[i]).filter((g) => g > 0.2);
+  if (gaps.length < 5) return null;
+  for (const base of [...new Set(gaps.map((g) => +g.toFixed(3)))].sort((a, b) => a - b)) {
+    if (base < 0.3) continue;
+    const fit = gaps.filter((g) => Math.abs(g / base - Math.round(g / base)) < 0.08).length / gaps.length;
+    if (fit > 0.8) return base;
+  }
+  return null;
+}
+
 export async function ref(projectDir, sources = []) {
   if (!sources.length) throw new Error("usage: eden-motion ref <slug> <url-or-file> [more...]");
   const dir = path.join(projectDir, "research");
@@ -29,10 +42,12 @@ export async function ref(projectDir, sources = []) {
     n++;
     const file = fetchRef(src, dir, n);
     const dur = parseFloat(run("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file]).stdout);
-    const cuts = (run("ffmpeg", ["-i", file, "-vf", "select='gt(scene,0.25)',showinfo", "-f", "null", "-"], { allowFail: true }).stderr.match(/pts_time:[\d.]+/g) || []).length;
+    const cutTimes = (run("ffmpeg", ["-i", file, "-vf", "select='gt(scene,0.25)',showinfo", "-f", "null", "-"], { allowFail: true }).stderr.match(/pts_time:[\d.]+/g) || []).map((x) => +x.split(":")[1]);
+    const cuts = cutTimes.length;
+    const grid = metronome(cutTimes);
     const notes = await analyzeMedia(
       file,
-      `You are reverse-engineering this reference film so a motion designer can match its STYLE (not its content) in an HTML/GSAP engine. Measured facts: duration ${dur.toFixed(1)} s, ${cuts} hard cuts (average shot ${(dur / Math.max(1, cuts + 1)).toFixed(2)} s).
+      `You are reverse-engineering this reference film so a motion designer can match its STYLE (not its content) in an HTML/GSAP engine. Measured facts: duration ${dur.toFixed(1)} s, ${cuts} hard cuts (average shot ${(dur / Math.max(1, cuts + 1)).toFixed(2)} s)${grid ? `, cuts lock to a ${grid.toFixed(3)} s grid (metronome edit)` : ""}. Cut times: ${cutTimes.slice(0, 40).map((t) => t.toFixed(2)).join(", ")}.
 Write compact markdown with concrete numbers, no fluff:
 ## Pacing (shot lengths, where it speeds up and slows down, how long holds are)
 ## Typography (font style, weight, size relative to frame, how words appear: typed/masked/word swap/blur, accent usage)
@@ -44,7 +59,8 @@ Write compact markdown with concrete numbers, no fluff:
 ## Rules to copy (8-12 imperative rules a storyboard must follow to feel like this film)
 No em dashes or en dashes.`
     );
-    const block = `\n\n# Reference ${n}: ${src}\n\n${notes.replace(/[—–]/g, "-")}\n`;
+    const measured = `Measured: ${dur.toFixed(1)} s, ${cuts} cuts at ${cutTimes.map((t) => t.toFixed(2)).join(", ")}${grid ? `\nMETRONOME: cuts lock to a ${grid.toFixed(3)} s grid. Use brief.cutGrid = ${grid.toFixed(3)} (or --style relate).` : ""}`;
+    const block = `\n\n# Reference ${n}: ${src}\n\n${measured}\n\n${notes.replace(/[—–]/g, "-")}\n`;
     fs.appendFileSync(notesFile, block);
     log(`reference ${n} analysed (${dur.toFixed(0)} s, ${cuts} cuts) -> research/ref-style.md`);
   }

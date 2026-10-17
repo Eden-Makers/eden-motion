@@ -24,6 +24,15 @@ export const SCENES = {
   "pixel-type": `{ text: "2-6 words", keyword?, sub?, align?: "left"|"center" } headline whose words arrive through a bitmap/pixel state then resolve; 1 char per frame energy.`,
   "endcard-caps": `{ lines: ["SMALL CAPS LINE", "..."] (1-3), url?: "domain.com", flash?: "accent"|"lime"|"white"|false } plain Higgsfield end card.`,
   "persp-card": `{ src: "gen:<prompt>"|"assets/...", kind?: "image"|"video", caption?: "CAPS CAPTION BAR", rotY?: 24 } AI footage or screenshot on a tilted 3D card with a caption bar; "AI output as proof".`,
+
+  // Relate pack (research/analysis/relate.md): editorial metronome films, tones "paper"/"black"/"stage"
+  "ghost-counter": `{ rows: [{label: "Trades", from: number, to: number, prefix?: "$", suffix?, decimals?}] (1-2) } giant cropped numbers rolling with horizontal ghost copies; finance/volume/scale proof. Use real numbers from BRAND.proof only.`,
+  "editorial-headline": `{ lines: ["3 short", "staggered", "lines"] (1-4, 1-3 words each, from the VO), indent?: [0,0.36,0.12], strike?: true } editorial type, each line pops in hard; strike drops thin rods across the words (a twist or negation).`,
+  "dash-field": `{ mode: "swirl"|"vortex"|"burst", density?: "low"|"mid"|"high" } abstract flow field of short dashes; a 1 s rhythm beat between information shots, black on paper or white on black.`,
+  "glass-letters": `{ word: "brand or idea word, giant", plate: "stack"|"swap"|"icons", items: [6-12 words | short labels | lucide icon names] } giant frosted glass letters drifting over a fast word stack, swapping labels or icon badges; dark tones.`,
+  "rank-list": `{ rows: [{label: "Tier 1", value: "140,000 Pts"}] (3-4), move?: row index that climbs to first place } phone list where the highlighted dark row rises to the top; rankings, tiers, plans.`,
+  "logo-bars": `{ bars?: [[x,y,w,h]...] unit-box rectangles of the mark, name?: "Brand Name" } end lockup: mark built from bars shrinks into place, wordmark whips in with motion blur, lockup steps down once. Uses the brand mark image when no bars are given.`,
+  "clip-3d": `{ src: "blender:<template>?key=value&..." | "assets/x.webm", fit?: "cover"|"contain" } a transparent 3D plate rendered headless in Blender (templates: chrome-object object=block|screw|ring, card-stack). Hero objects, product CG, chrome hardware metaphors.`,
 };
 
 export const TRANSITIONS = {

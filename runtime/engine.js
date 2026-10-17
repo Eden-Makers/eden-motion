@@ -81,6 +81,7 @@
     const root = $("#root");
     const stage = $("#stage");
     document.documentElement.dataset.theme = sb.theme || "saas-light";
+    if (sb.flat) document.documentElement.dataset.flat = "1";
 
     const tl = gsap.timeline({ paused: true });
     const scenes = sb.scenes;
@@ -166,7 +167,8 @@
       // Hard cut into a different world: exposure ramp so it reads as a camera adjusting.
       if (type === "cut") {
         const prevTone = scenes[i - 1].tone, tone = s.tone;
-        if (prevTone && tone && prevTone !== tone) {
+        // flat (Relate) films flip polarity on purpose: a clean cut, no ramp
+        if (prevTone && tone && prevTone !== tone && !sb.flat) {
           const flash = EM.h("div", { class: "em-exposure tone-" + prevTone });
           document.getElementById(`scene-${i}`).appendChild(flash);
           tl.fromTo(flash, { opacity: 0.4 }, { opacity: 0, duration: 0.44, ease: "power2.out" }, s.start);

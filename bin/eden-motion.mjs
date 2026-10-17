@@ -11,7 +11,8 @@ const HELP = `eden-motion - company name in, finished motion-graphics brand film
 USAGE
   eden-motion new "<Company>" [--url https://...] [--duration 60] [--lang en] [--theme saas-light|saas-dark|glow|cinematic]
                   [--voice brian|george|sarah|alice|matilda|daniel|<id>] [--structure problem-solution|launch|manifesto]
-                  [--notes "client notes"] [--video (allow Seedance 2.0 AI clips)] [--style burnwe|launch|higgsfield]
+                  [--notes "client notes"] [--video (allow Seedance 2.0 AI clips)] [--style burnwe|launch|higgsfield|relate]
+                  [--cut-grid 1.0 (metronome cuts every N s; relate default 1.0)] [--fps 24|30]
                   [--dir <projects root>]
   eden-motion run <project> [--from <step>] [--to <step>] [--draft]   full pipeline (research -> qc)
   eden-motion <step> <project> [options]
@@ -26,19 +27,23 @@ STEPS (in order)
   pick         <slug> <n>  make storyboard.v<n>.json the storyboard
   note         <slug> "slow every zoom to 0.7x; hard cut into s5; push in on the button"  director notes
   assets       generate images for "gen:" props (Nano Banana Pro 2K)
+  blender      render "blender:<template>?k=v" props headless into transparent webm plates [--preview] [--force]
+               templates: chrome-object (object=block|screw|screws3|ring|rodblock), card-stack (action=collapse|flyoff|fan)
   audio        music + SFX on engine cues + VO mix -> audio/mix.wav
   preview      build comp/ and open HyperFrames Studio preview
-  render       --draft (fast, no blur) or final (true shutter motion blur, --slow 4..8)
+  render       --draft (fast, no blur) or final (true shutter motion blur, --slow 4..8) [--shutter-phase center|forward]
   qc           Gemini creative-director review -> renders/qc.json
   critique     watch-your-own-frames loop: contact/phone/strip sheets + measured pops, dead air,
                variety gaps, hook; harsh 1-10 rubric; appends renders/review_log.md [--no-ai] [--file]
+               [--against ref.mp4] scores the reference with the same rubric and prints the delta
+  compare      <slug> <ref.mp4> side by side + frame pairs + SSIM vs a reference film [--file]
   review       HTML review sheet (frames per shot, VO, props, prompts, QC) [--deliver <drive folder>]
   build        only build comp/index.html from storyboard.json
   doctor       check keys and tools
 
 ENV / KEYS: GEMINI_API_KEY, ELEVENLABS_API_KEY (read from env, repo .env or ~/.zshrc)`;
 
-const STEPS = ["research", "script", "vo", "storyboard", "assets", "audio", "render", "qc", "review"];
+const STEPS = ["research", "script", "vo", "storyboard", "assets", "blender", "audio", "render", "qc", "review"];
 
 function parseArgs(argv) {
   const out = { _: [] };
@@ -107,6 +112,12 @@ async function step(name, dir, args) {
     case "assets":
       await (await import("../src/steps/assets.mjs")).assets(dir);
       break;
+    case "blender":
+      await (await import("../src/steps/blender.mjs")).blender(dir, { preview: !!args.preview, force: !!args.force });
+      break;
+    case "compare":
+      await (await import("../src/steps/compare.mjs")).compare(dir, args._[2], { file: args.file });
+      break;
     case "audio":
       await (await import("../src/steps/audio.mjs")).audio(dir, { noMusic: !!args["no-music"] });
       break;
@@ -114,13 +125,14 @@ async function step(name, dir, args) {
       await (await import("../src/steps/build.mjs")).build(dir, { slow: +args.slow || 1 });
       break;
     case "render":
-      await (await import("../src/steps/render.mjs")).render(dir, { quality: args.draft ? "draft" : "final", slow: args.slow && +args.slow, fps: args.fps && +args.fps, workers: args.workers, uniform: !!args.uniform, hi: args.hi && +args.hi, resolution: args.resolution });
+      await (await import("../src/steps/render.mjs")).render(dir, { quality: args.draft ? "draft" : "final", slow: args.slow && +args.slow, fps: args.fps && +args.fps, workers: args.workers, uniform: !!args.uniform, hi: args.hi && +args.hi, resolution: args.resolution, shutterPhase: args["shutter-phase"] });
       break;
     case "qc":
       await (await import("../src/steps/qc.mjs")).qc(dir, { file: args.file });
       break;
     case "critique":
-      await (await import("../src/steps/critique.mjs")).critique(dir, { file: args.file, noAi: !!args["no-ai"] });
+      if (args.against) await (await import("../src/steps/critique.mjs")).critiqueAgainst(dir, args.against, { file: args.file, noAi: !!args["no-ai"] });
+      else await (await import("../src/steps/critique.mjs")).critique(dir, { file: args.file, noAi: !!args["no-ai"] });
       break;
     case "review":
       await (await import("../src/steps/review.mjs")).review(dir, { deliver: args.deliver || process.env.EDEN_MOTION_DELIVER });
@@ -165,6 +177,8 @@ async function main() {
       notes: args.notes || null,
       video: !!args.video,
       style: args.style || null,
+      cutGrid: args["cut-grid"] ? +args["cut-grid"] : null,
+      fps: args.fps ? +args.fps : null,
       created: new Date().toISOString(),
     };
     writeJSON(path.join(dir, "brief.json"), brief);

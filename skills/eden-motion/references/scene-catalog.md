@@ -48,5 +48,16 @@ Every scene type the engine ships, with props (as given to the storyboard model)
 | `pixel-dissolve` | Higgsfield: next shot revealed through a grid of pixel blocks in accent/lime. duration 0.5. |
 | `grid-reflow` | Higgsfield: cells slide along grid lines into the next layout. duration 0.55. |
 
+## Relate pack (`--style relate`, research/analysis/relate.md)
+| type | props / use |
+|---|---|
+| `ghost-counter` | { rows: [{label, from, to, prefix?, suffix?, decimals?}] (1-2) } giant cropped numbers rolling, trailing digits smeared into horizontal ghost copies. Real numbers only. |
+| `editorial-headline` | { lines: ["The Frontier","is the edge","of opportunity"] (1-4), indent?: [0,0.36,0.12], strike?: true } staggered lines pop in hard; strike drops thin rods across them. |
+| `dash-field` | { mode: "swirl"\|"vortex"\|"burst", density? } abstract dash flow field, 1 s rhythm beat. |
+| `glass-letters` | { word, plate: "stack"\|"swap"\|"icons", items, swapFrames?: 4, drift? } giant frosted glass letters over a fast word stack, label swaps or icon badges. |
+| `rank-list` | { rows: [{label, value}] (3-4), move?: index } phone list, highlighted dark row climbs to first place. |
+| `logo-bars` | { bars?: [[x,y,w,h]...] unit box, name? } logo built from bars flies into the lockup, wordmark whips in with motion blur, lockup steps down. Uses brand mark image without bars. |
+| `clip-3d` | { src: "blender:<template>?k=v" \| "assets/x.webm", fit? } transparent 3D plate (run `eden-motion blender <slug>`). |
+
 ## Scene-level fields
-`tone`: light | dark | cream | black | grid (Higgsfield paper grid). `camera`: omit (auto drift, alternating push/pull), push, pull, static. `transition`: {type, duration, ...opts}. Film-level: `background: "hf-grid"`, `palette: "higgsfield"` forces magenta #df167f + lime #d4ff19.
+`tone`: light | dark | cream | black | grid (Higgsfield paper grid) | paper (#fcfcfc flat) | stage (#d9d9d9 flat, UI cards). `camera`: omit (auto drift, alternating push/pull), push, pull, static. `transition`: {type, duration, ...opts}. Film-level: `flat: true` (no bloom, no exposure ramp between tones), `fps: 24`, `shutterPhase: "forward"` (motion blur window opens at the frame, hard cuts stay clean), `background: "hf-grid"`, `palette: "higgsfield"` forces magenta #df167f + lime #d4ff19.

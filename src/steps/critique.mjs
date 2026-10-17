@@ -150,3 +150,22 @@ Return ONLY JSON: {"scores":{${RUBRIC.map((k) => `"${k}":1-10`).join(",")}},"pro
   log(`critique round ${round}: ${pass ? "PASS" : "FIX"}${low.length ? ` (below 8: ${low.join(", ")})` : ""} -> ${path.relative(projectDir, logFile)}`);
   return { round, pass, metrics: m, ai };
 }
+
+// critique --against <reference>: score the reference with the same rubric and storyboard, so the
+// numbers mean something (the harsh judge rarely gives 8+ even to award-level films). Used on the
+// Relate rebuilds: a recreation within 1 point of its reference on every axis is on par.
+export async function critiqueAgainst(projectDir, refFile, { file, noAi = false } = {}) {
+  const ours = await critique(projectDir, { file, noAi });
+  const refDir = path.join(projectDir, "renders", "ref-critique");
+  fs.mkdirSync(path.join(refDir, "renders"), { recursive: true });
+  for (const f of ["storyboard.json", "brand.json"]) if (fs.existsSync(path.join(projectDir, f))) fs.copyFileSync(path.join(projectDir, f), path.join(refDir, f));
+  const ref = await critique(refDir, { file: path.resolve(refFile), noAi });
+  const last = (dir) => (fs.readFileSync(path.join(dir, "renders", "review_log.md"), "utf8").match(/Scores: .*/g) || []).pop() || "";
+  const parse = (line) => Object.fromEntries([...line.matchAll(/(\w+) (\d+)/g)].map((m) => [m[1], +m[2]]));
+  const a = parse(last(projectDir)), b = parse(last(refDir));
+  const rows = RUBRIC.map((k) => `| ${k} | ${b[k] ?? "-"} | ${a[k] ?? "-"} | ${a[k] != null && b[k] != null ? (a[k] - b[k] > 0 ? "+" : "") + (a[k] - b[k]) : "-"} |`);
+  const table = `\n### Calibrated against ${path.basename(refFile)}\n| axis | reference | ours | delta |\n|---|---|---|---|\n${rows.join("\n")}\n`;
+  fs.appendFileSync(path.join(projectDir, "renders", "review_log.md"), table);
+  log(`critique vs reference:${table}`);
+  return { ours, ref, table };
+}

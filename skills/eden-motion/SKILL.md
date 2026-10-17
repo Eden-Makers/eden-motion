@@ -1,6 +1,6 @@
 ---
 name: eden-motion
-description: Company name in, finished motion-graphics brand film out (Burnwe / Lovable / Google launch-film quality). Researches the brand from its website, writes the script, records an ElevenLabs voiceover with word timings, storyboards 15-20 shots from a library of premium scenes (hot-tail kinetic type, product UI with camera and cursor, prompt box, orbit, stat counters, card chaos, flow lines, glass media frames, logo resolve), generates images with Nano Banana Pro and AI clips via Higgsfield (Seedance 2.0 / Kling 3 / Veo 3.1), offers burnwe / launch / higgsfield visual styles, mixes music + SFX on exact frames, renders with HyperFrames and true shutter motion blur, then self-reviews with Gemini and iterates. Use for "make a motion graphics video for <company>", "explainer video", "SaaS promo", "launch video", "brand film from a website", "motion design like Burnwe/Lovable/Google", "udělej motion graphic video", "explainer pro firmu".
+description: Company name in, finished motion-graphics brand film out (Burnwe / Lovable / Google launch-film quality). Researches the brand from its website, writes the script, records an ElevenLabs voiceover with word timings, storyboards 15-20 shots from a library of premium scenes (hot-tail kinetic type, product UI with camera and cursor, prompt box, orbit, stat counters, card chaos, flow lines, glass media frames, logo resolve), generates images with Nano Banana Pro and AI clips via Higgsfield (Seedance 2.0 / Kling 3 / Veo 3.1), offers burnwe / launch / higgsfield / relate visual styles, renders 3D plates headless in Blender (chrome hardware, acrylic card stacks, product CG), mixes music + SFX on exact frames, renders with HyperFrames and true shutter motion blur, then self-reviews with Gemini and iterates. Also rebuilds a reference film 1:1 (compare + calibrated critique). Use for "make a motion graphics video for <company>", "explainer video", "SaaS promo", "launch video", "brand film from a website", "motion design like Burnwe/Lovable/Google/Relate", "crypto / fintech promo", "napodob tohle video 1:1", "udělej motion graphic video", "explainer pro firmu".
 ---
 
 # eden-motion
@@ -101,6 +101,17 @@ promote it into `runtime/scenes/` and add it to `src/lib/catalog.mjs`.
 - `--style burnwe` (default SaaS explainer), `--style launch` (Google/Lovable launch film), `--style higgsfield`
   (white grid canvas, magenta + lime accents, flash frames, punch-ins, pixel reveals, AI footage as proof in
   grid cells; see `research/analysis/higgsfield.md`). The style steers storyboard scene and transition choice.
+- `--style relate` (Relate Studio crypto/fintech editorial, `research/analysis/relate.md`): metronome hard cuts
+  on a fixed grid (`--cut-grid 1.0` = one cut every 24 frames at 24 fps; several shots share one VO line),
+  polarity flip paper/black every shot, flat worlds (no bloom, no exposure ramp), forward-shutter motion blur,
+  Relate scene pack (ghost-counter, editorial-headline, dash-field, glass-letters, rank-list, clip-3d, logo-bars).
+  Elements that the originals change per frame (counters, word stacks, swaps) are quantised to the film fps so
+  the true-shutter blur keeps them crisp.
+- 3D plates: any prop `src: "blender:<template>?k=v"` is rendered headless by `eden-motion blender <slug>` into
+  a transparent VP9 webm in `assets/3d/` (cached by params). Templates: `chrome-object` (object=block|screw|screws3|ring|rodblock,
+  spin, gain; Cycles Metal in a near emissive studio dome), `card-stack` (action=collapse|flyoff|fan, colors; EEVEE).
+  `blender:./custom/shot.py` runs your own script (args: `-- --out DIR --params JSON [--preview]`, write `f_0001.png`...).
+  Libraries: `blender/lib/chrome.py`, `product.py`, `mglib.py`. Lessons: `references/relate-and-1to1.md`.
 - `--video` allows up to 2 AI clips: storyboard props `{kind:"video", src:"genvideo:<still prompt> || <motion prompt>"}`.
   The assets step makes the still with Nano Banana Pro, then image-to-video through the **Higgsfield CLI**
   (`higgsfield generate create seedance_2_0 --start-image ...`, default when `higgsfield account status` works;
@@ -110,6 +121,16 @@ promote it into `runtime/scenes/` and add it to `src/lib/catalog.mjs`.
 - Harness agents with the Higgsfield MCP can also browse effect presets (Bullet time, Earth zoom, Lidar
   transition, World morphing, Overexposed, Break Typography, Slot Roll ...) and generate hero shots there,
   then drop the mp4 into `assets/` and reference it from storyboard.json.
+
+## 5b. Rebuild a reference film 1:1 (or match a client's favourite)
+Read `references/relate-and-1to1.md` first. Short loop:
+1. `eden-motion ref <slug> <ref.mp4>`: measured cut list, metronome detection, style notes.
+2. Per-second strips: `ffmpeg -i ref.mp4 -vf "fps=6,scale=320:-1" f_%04d.jpg` then tile 6x4; LOOK at every second.
+3. Write storyboard.json by hand on the measured cut frames (no VO needed), 3D shots as `blender:` props.
+4. `eden-motion blender <slug> --preview` while iterating, then without `--preview`.
+5. `render --draft`, `npx hyperframes snapshot --at t1,t2 --against ref.mp4` inside `comp/` (pairs render | reference).
+6. `render`, `compare <slug> ref.mp4` (side by side + pairs + SSIM), `critique <slug> --against ref.mp4`
+   (same rubric on both; within 1 point on every axis = on par). SSIM is harsh on thin detail and DOF: read pairs.jpg.
 
 ## 6. House rules
 - Stills: Nano Banana Pro (Gemini 3 Pro Image) at 2K, always end prompts with "no text, no letters, no logos". Flux is banned. Log every prompt (done automatically in `prompts.log.jsonl`).
@@ -123,4 +144,5 @@ promote it into `runtime/scenes/` and add it to `src/lib/catalog.mjs`.
 - `references/scene-catalog.md` - every scene type, props, when to use.
 - `references/director-brief.md` - the long-brief template (logline, refs, keys, beat sheet, gates, critique loop, deliverables) and the parallel-chapter subagent pattern.
 - `references/pipeline.md` - file formats (brief, brand, script, vo, storyboard), rendering and motion blur internals, troubleshooting.
-- Repo research: `~/Dev/eden-motion/research/analysis/{burnwe,launch-films,higgsfield,tooling-and-workflows}.md` (full forensic breakdowns, 90+ techniques with parameters, Higgsfield preset map).
+- `references/relate-and-1to1.md` - Relate grammar, the 1:1 rebuild loop, Blender 5.2 headless + HyperFrames gotchas.
+- Repo research: `~/Dev/eden-motion/research/analysis/{burnwe,launch-films,higgsfield,relate,tooling-and-workflows}.md` (full forensic breakdowns, 90+ techniques with parameters, Higgsfield preset map), `research/relate/*.md` (26 per-film shot lists), `research/blender/{PLAYBOOK,tutorials}.md` (12 Blender tutorials distilled).
