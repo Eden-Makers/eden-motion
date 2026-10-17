@@ -49,6 +49,7 @@ VIDEO = (".mp4", ".mov", ".webm", ".m4v")
 
 reset()
 sc = setup(engine="CYCLES" if P.get("engine") == "cycles" else "EEVEE", frames=(1, F), fps=FPS, preview=PREVIEW, samples=64, mb=True)
+sc.render.resolution_x, sc.render.resolution_y = int(P.get("width", 1920)), int(P.get("height", 1080))
 if hasattr(sc.eevee, "use_bokeh_jittered"):
     sc.eevee.use_bokeh_jittered = True  # real bokeh shapes instead of the fast blur
 # Built in 4-unit planes, then the whole rig is scaled to tabletop size (a 40 cm screen): depth
@@ -132,6 +133,7 @@ else:
     cam = camera((0, -far, 0.35), (0, (n - 1) * gap * 0.5 if layout == "stack" else 0, 0), lens=lens, dof_obj=tgt, fstop=fstop)
 cam.parent = root
 cam.data.clip_start = 0.01
+cam.data.sensor_fit = "HORIZONTAL"  # the framing maths assumes a 36 mm horizontal sensor, portrait too
 cam.location = cam.location  # local to the scaled root from here on
 
 

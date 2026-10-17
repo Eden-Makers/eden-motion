@@ -55,7 +55,7 @@ export async function blender(projectDir, { preview = false, force = false } = {
     const script = template.startsWith(".") || template.endsWith(".py") ? path.resolve(projectDir, template) : path.join(REPO, "blender", "templates", `${template.replace(/-/g, "_")}.py`);
     if (!fs.existsSync(script)) { warn(`scene ${j.scene.id}: no Blender template ${template}`); continue; }
     const frames = Math.ceil(j.scene.duration * fps) + 2;
-    const P = { frames, fps, ...params };
+    const P = { frames, fps, width: sb.width || 1920, height: sb.height || 1080, ...params };
     const hash = crypto.createHash("sha1").update(JSON.stringify([template, P, fs.statSync(script).mtimeMs])).digest("hex").slice(0, 8);
     const name = `${path.basename(template, ".py")}-${hash}`;
     const webm = path.join(outDir, `${name}.webm`);

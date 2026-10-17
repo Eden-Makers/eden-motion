@@ -26,6 +26,11 @@ function thin(cues, type, minGap) {
 //   sfx_foley (per-scene signature sounds from Openverse), sfx_accents (riser + impact on the logo)
 //   stingers (opt-in, --stingers): accent thumps + a logo sting composed in code (audio-as-code),
 //   in the music's detected key, landing on exact cue frames
+// The logo moment: built-in logo scenes, or any custom "*lockup*" / "*logo*" scene; props.at delays
+// the reveal inside the scene (a lockup that lands after a 3D plate has turned).
+const isReveal = (s) => /logo-reveal|logo-bars|lockup|logo/.test(s.type || "");
+const revealTime = (s) => (s ? s.start + (+s.props?.at || 0) : null);
+
 export const LAYERS = ["vo", "music", "ambience", "sfx_transitions", "sfx_ui", "sfx_foley", "sfx_accents", "stingers"];
 
 // Out-of-process audio-as-code (tools/stingers.py), pinned. Returns a wav path or null.
@@ -81,11 +86,11 @@ export async function audio(projectDir, { musicPrompt, noMusic = false, sfxSourc
     }
   }
 
-  const reveal0 = sb.scenes.find((s) => s.type === "logo-reveal" || s.type === "logo-bars");
+  const reveal0 = sb.scenes.find(isReveal);
   const codeBed = path.join(aDir, "music-code.wav");
   if (!noMusic && !fs.existsSync(musicFile)) {
     // no ElevenLabs music (no key or it failed): a plain bed composed in code beats silence
-    if (fs.existsSync(codeBed) || composeCode({ mode: "bed", duration: D, bpm: 120, logo: reveal0 ? reveal0.start + 0.2 : null, key: brief.key || "D", scale: brief.keyScale || "major" }, codeBed)) {
+    if (fs.existsSync(codeBed) || composeCode({ mode: "bed", duration: D, bpm: 120, logo: reveal0 ? revealTime(reveal0) + 0.2 : null, key: brief.key || "D", scale: brief.keyScale || "major" }, codeBed)) {
       warn("music: using the code-composed fallback bed (audio/music-code.wav); generate real music for a final");
     }
   }
@@ -106,7 +111,8 @@ export async function audio(projectDir, { musicPrompt, noMusic = false, sfxSourc
   sb.scenes.forEach((s, i) => {
     if (i && !s.transition && s.tone !== sb.scenes[i - 1].tone) whooshes.push({ t: s.start - 0.15, type: "whoosh", soft: true });
   });
-  const reveal = sb.scenes.find((s) => s.type === "logo-reveal" || s.type === "logo-bars");
+  const reveal = sb.scenes.find(isReveal);
+  const revealT = revealTime(reveal);
   writeJSON(path.join(aDir, "cues.json"), { whooshes, clicks, pops });
 
   // 3. sound palette: the curated local library by default, or a fresh Openverse palette per film
@@ -153,7 +159,7 @@ export async function audio(projectDir, { musicPrompt, noMusic = false, sfxSourc
   if (musicIn) {
     try {
       const g = beatGrid(musicIn);
-      const T = reveal ? reveal.start + 0.2 : null;
+      const T = reveal ? revealT + 0.2 : null;
       if (T != null && musicIn !== codeBed) { // the code bed is composed onto the logo already
         const cands = g.onsets.filter((o) => o.t >= T && o.t <= T + 1.6);
         const hit = cands.sort((a, b) => b.v - a.v)[0];
@@ -201,16 +207,19 @@ export async function audio(projectDir, { musicPrompt, noMusic = false, sfxSourc
   clicks.forEach((c, i) => place(lib.click[0], c.t, 2, `c${i}`, "sfx_ui", { x: c.x }));
   pops.forEach((c, i) => place(lib.pop[0], c.t, -7, `p${i}`, "sfx_ui", { x: c.x }));
   // per-scene signature sounds: scene.sound = {q, at (s from shot start), gain (dB)} or a query string
+  // scene.sound may be one sound or a list: [{q, at, gain}, ...]
   for (const [i, s] of sb.scenes.entries()) {
     if (!s.sound) continue;
-    const snd = typeof s.sound === "string" ? { q: s.sound } : s.sound;
-    if (!snd.q) continue;
-    const [f] = await ov(snd.q, "foley");
-    if (f) place(f.file, s.start + (+snd.at || 0.15), +snd.gain || -6, `f${i}`, "sfx_foley", { pitch: 1 });
+    const list = (Array.isArray(s.sound) ? s.sound : [s.sound]).map((x) => (typeof x === "string" ? { q: x } : x));
+    for (const [j, snd] of list.entries()) {
+      if (!snd.q) continue;
+      const [f] = await ov(snd.q, "foley");
+      if (f) place(f.file, s.start + (+snd.at || 0.15), +snd.gain || -6, `f${i}_${j}`, "sfx_foley", { pitch: 1 });
+    }
   }
   if (reveal) {
-    place(lib.riser[0], reveal.start + 0.1, -9, "riser", "sfx_accents");
-    place(lib.hit[0], reveal.start + 0.2, -10, "impact", "sfx_accents");
+    place(lib.riser[0], revealT + 0.1, -9, "riser", "sfx_accents");
+    place(lib.hit[0], revealT + 0.2, -10, "impact", "sfx_accents");
   }
 
   if (stingers) {
@@ -224,7 +233,7 @@ export async function audio(projectDir, { musicPrompt, noMusic = false, sfxSourc
       } catch {}
     }
     const accents = sb.scenes.filter((s, i) => i && s.tone !== sb.scenes[i - 1].tone && /light|paper|cream/.test(s.tone || "") && s !== reveal).map((s) => s.start).filter((t, i, a) => !i || t - a[i - 1] >= 2.5).slice(0, 6);
-    const st = composeCode({ mode: "stingers", duration: D, bpm: 120, cuts: sb.scenes.map((s) => s.start), accents, logo: reveal ? reveal.start + 0.2 : null, key: key.key, scale: key.mode }, path.join(aDir, "stingers.wav"));
+    const st = composeCode({ mode: "stingers", duration: D, bpm: 120, cuts: sb.scenes.map((s) => s.start), accents, logo: reveal ? revealT + 0.2 : null, key: key.key, scale: key.mode }, path.join(aDir, "stingers.wav"));
     if (st) {
       const k = add(st);
       filters.push(`[${k}:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=0:${D.toFixed(3)},volume=-6dB[sting]`);

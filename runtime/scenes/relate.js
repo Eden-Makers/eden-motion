@@ -327,7 +327,7 @@
       }
       const S = SLOW();
       const v = EM.video({ id: `em-clip3d-${ctx.index}-${clipN++}`, src: p.src, muted: "", playsinline: "", "data-start": (ctx.start * S).toFixed(3), "data-duration": (ctx.dur * S).toFixed(3), "data-media-start": String(p.mediaStart || 0), "data-playback-rate": (1 / S).toFixed(4) });
-      Object.assign(v.style, { position: "absolute", inset: 0, width: "1920px", height: "1080px", objectFit: p.fit || "cover" });
+      Object.assign(v.style, { position: "absolute", inset: 0, width: "var(--W)", height: "var(--H)", objectFit: p.fit || "cover" });
       ctx.cam.appendChild(v);
     },
   });
