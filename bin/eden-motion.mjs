@@ -29,7 +29,11 @@ STEPS (in order)
   assets       generate images for "gen:" props (Nano Banana Pro 2K)
   blender      render "blender:<template>?k=v" props headless into transparent webm plates [--preview] [--force]
                templates: chrome-object (object=block|screw|screws3|ring|rodblock), card-stack (action=collapse|flyoff|fan)
-  audio        music + SFX on engine cues + VO mix -> audio/mix.wav
+  audio        VO + music + ambience + layered SFX -> audio/stems/<layer>.wav + audio/mix.wav
+               layers: vo, music, ambience, sfx_transitions, sfx_ui, sfx_foley, sfx_accents
+               [--sfx-source local|openverse (fresh CC0/CC-BY palette per film, Gemini picks by ear)]
+               [--ambience "rain on window"] [--no-openverse] [--no-music]
+  remix        <slug> --music -3 --sfx +2 --ambience off --sfx-foley -4   rebalance stems -> mix.wav (no regeneration)
   preview      build comp/ and open HyperFrames Studio preview
   render       --draft (fast, no blur) or final (true shutter motion blur, --slow 4..8) [--shutter-phase center|forward]
   qc           Gemini creative-director review -> renders/qc.json
@@ -119,8 +123,15 @@ async function step(name, dir, args) {
       await (await import("../src/steps/compare.mjs")).compare(dir, args._[2], { file: args.file });
       break;
     case "audio":
-      await (await import("../src/steps/audio.mjs")).audio(dir, { noMusic: !!args["no-music"] });
+      await (await import("../src/steps/audio.mjs")).audio(dir, { noMusic: !!args["no-music"], sfxSource: args["sfx-source"], ambience: args.ambience, openverse: !args["no-openverse"] });
       break;
+    case "remix": {
+      const { remix, LAYERS } = await import("../src/steps/audio.mjs");
+      const gains = Object.fromEntries(Object.entries(args).filter(([k]) => k === "sfx" || LAYERS.includes(k.replace(/-/g, "_"))).map(([k, v]) => [k, v === "off" ? "off" : +v]));
+      remix(dir, gains);
+      log(`remix: audio/mix.wav rebuilt from stems (${JSON.stringify(gains)}). Next: render (audio is muxed at the end, a --draft re-render is enough)`);
+      break;
+    }
     case "build":
       await (await import("../src/steps/build.mjs")).build(dir, { slow: +args.slow || 1 });
       break;
@@ -179,6 +190,8 @@ async function main() {
       style: args.style || null,
       cutGrid: args["cut-grid"] ? +args["cut-grid"] : null,
       fps: args.fps ? +args.fps : null,
+      sfxSource: args["sfx-source"] || null,
+      ambience: typeof args.ambience === "string" ? args.ambience : null,
       created: new Date().toISOString(),
     };
     writeJSON(path.join(dir, "brief.json"), brief);

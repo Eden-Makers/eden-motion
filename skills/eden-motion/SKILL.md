@@ -1,6 +1,6 @@
 ---
 name: eden-motion
-description: Company name in, finished motion-graphics brand film out (Burnwe / Lovable / Google launch-film quality). Researches the brand from its website, writes the script, records an ElevenLabs voiceover with word timings, storyboards 15-20 shots from a library of premium scenes (hot-tail kinetic type, product UI with camera and cursor, prompt box, orbit, stat counters, card chaos, flow lines, glass media frames, logo resolve), generates images with Nano Banana Pro and AI clips via Higgsfield (Seedance 2.0 / Kling 3 / Veo 3.1), offers burnwe / launch / higgsfield / relate visual styles, renders 3D plates headless in Blender (chrome hardware, acrylic card stacks, product CG), mixes music + SFX on exact frames, renders with HyperFrames and true shutter motion blur, then self-reviews with Gemini and iterates. Also rebuilds a reference film 1:1 (compare + calibrated critique). Use for "make a motion graphics video for <company>", "explainer video", "SaaS promo", "launch video", "brand film from a website", "motion design like Burnwe/Lovable/Google/Relate", "crypto / fintech promo", "napodob tohle video 1:1", "udělej motion graphic video", "explainer pro firmu".
+description: Company name in, finished motion-graphics brand film out (Burnwe / Lovable / Google launch-film quality). Researches the brand from its website, writes the script, records an ElevenLabs voiceover with word timings, storyboards 15-20 shots from a library of premium scenes (hot-tail kinetic type, product UI with camera and cursor, prompt box, orbit, stat counters, card chaos, flow lines, glass media frames, logo resolve), generates images with Nano Banana Pro and AI clips via Higgsfield (Seedance 2.0 / Kling 3 / Veo 3.1), offers burnwe / launch / higgsfield / relate visual styles, renders 3D plates headless in Blender (chrome hardware, acrylic card stacks, product CG), mixes layered stems (VO, music, ambience, transition / UI / foley / accent SFX) on exact frames with free CC0 / CC-BY sounds from Openverse picked by ear, renders with HyperFrames and true shutter motion blur, then self-reviews with Gemini and iterates. Also rebuilds a reference film 1:1 (compare + calibrated critique). Use for "make a motion graphics video for <company>", "explainer video", "SaaS promo", "launch video", "brand film from a website", "motion design like Burnwe/Lovable/Google/Relate", "crypto / fintech promo", "napodob tohle video 1:1", "udělej motion graphic video", "explainer pro firmu".
 ---
 
 # eden-motion
@@ -33,7 +33,8 @@ node bin/eden-motion.mjs script <slug>                 # script.json  <- READ AN
 node bin/eden-motion.mjs vo <slug>                     # audio/vo.mp3, vo.json (word timings)
 node bin/eden-motion.mjs storyboard <slug>             # storyboard.json  <- READ AND IMPROVE IT
 node bin/eden-motion.mjs assets <slug>                 # resolves "gen:<prompt>" images (Nano Banana Pro 2K)
-node bin/eden-motion.mjs audio <slug>                  # music + SFX on engine cues + VO -> audio/mix.wav
+node bin/eden-motion.mjs audio <slug>                  # VO + music + ambience + layered SFX -> audio/stems/*.wav + audio/mix.wav
+node bin/eden-motion.mjs remix <slug> --music -3 --sfx +2   # rebalance stems -> mix.wav in seconds
 node bin/eden-motion.mjs render <slug> --draft         # ~1-2 min, no motion blur, for review
 node bin/eden-motion.mjs render <slug>                 # final: adaptive true shutter motion blur (~7 min / 60 s)
 node bin/eden-motion.mjs qc <slug>                     # Gemini creative-director review
@@ -121,6 +122,31 @@ promote it into `runtime/scenes/` and add it to `src/lib/catalog.mjs`.
 - Harness agents with the Higgsfield MCP can also browse effect presets (Bullet time, Earth zoom, Lidar
   transition, World morphing, Overexposed, Break Typography, Slot Roll ...) and generate hero shots there,
   then drop the mp4 into `assets/` and reference it from storyboard.json.
+
+## 5a. Sound layers
+
+`audio` renders every layer to its own full-length 48 kHz float stem in `audio/stems/` (import them
+straight into DaVinci as separate tracks) and then sums them into `audio/mix.wav`:
+
+| layer | what lands there | source |
+|---|---|---|
+| `vo` | narrator, compressed | ElevenLabs |
+| `music` | bed with fades, TURN dips, strongest hit shifted onto the logo (clean, not ducked) | ElevenLabs music |
+| `ambience` | optional steady bed far under everything (`storyboard.ambience` or `--ambience "..."`) | Openverse |
+| `sfx_transitions` | whoosh on transitions and tone-change cuts | local library or Openverse |
+| `sfx_ui` | clicks, pops, typing beds, panned with the element | local library or Openverse |
+| `sfx_foley` | per-shot signature sounds: `scene.sound = {"q":"metal screw drop","at":0.4,"gain":-6}` | Openverse |
+| `sfx_accents` | riser + impact into the logo | local library or Openverse |
+
+- `--sfx-source openverse` swaps the curated library for a fresh palette per film. Every Openverse
+  pick is: safe license only (CC0, PDM, CC-BY; never NC, ND, SA), silence trimmed, loudness matched
+  to the library file of the same role, scored on length and peak position for its role, and the top
+  4 are played to Gemini, which picks the most tasteful one. Picks and files cache in `.cache/openverse`.
+- CC-BY sounds are listed in `audio/CREDITS.md` and must go into the description or end credits.
+- `remix <slug> --music -3 --sfx-foley -4 --ambience off` rebuilds only the mix from stems (gains
+  persist in `audio/mix.json`; `--sfx` moves all four SFX layers). Music ducks under the VO here.
+- Foley is for physical events on screen only (objects landing, metal, glass, paper). Text and UI
+  shots already get whooshes, clicks and pops; do not stack foley on them.
 
 ## 5b. Rebuild a reference film 1:1 (or match a client's favourite)
 Read `references/relate-and-1to1.md` first. Short loop:

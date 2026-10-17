@@ -1,4 +1,4 @@
-// audio: music bed + SFX on engine cues + VO -> audio/mix.wav
+// audio: VO + music bed + ambience + layered SFX on engine cues -> audio/stems/*.wav + audio/mix.wav
 // Sound grammar from the reference films: whoosh on every scene change / fast move, click on
 // every cursor click, quiet pops on staggered arrivals, a riser into the reveal, music ducked
 // under VO, music dips under the pivot/prompt and returns on the answer, music out 1-2 s before
@@ -20,13 +20,32 @@ function thin(cues, type, minGap) {
   return cues.filter((c) => c.type === type).filter((c) => (c.t - last >= minGap ? ((last = c.t), true) : false));
 }
 
-export async function audio(projectDir, { musicPrompt, noMusic = false } = {}) {
+// Layers (each rendered to its own full-length stem in audio/stems/, so an editor can rebalance
+// or replace any of them, and `remix` rebuilds mix.wav from stems in seconds):
+//   vo, music, ambience, sfx_transitions (whooshes), sfx_ui (clicks, pops, typing),
+//   sfx_foley (per-scene signature sounds from Openverse), sfx_accents (riser + impact on the logo)
+export const LAYERS = ["vo", "music", "ambience", "sfx_transitions", "sfx_ui", "sfx_foley", "sfx_accents"];
+
+export async function audio(projectDir, { musicPrompt, noMusic = false, sfxSource, ambience, openverse = true } = {}) {
   const sb = readJSON(path.join(projectDir, "storyboard.json"));
   const sc = readJSON(path.join(projectDir, "script.json"), {});
+  const brief = readJSON(path.join(projectDir, "brief.json"), {});
   const vo = readJSON(path.join(projectDir, "vo.json"), null);
+  sfxSource = sfxSource || brief.sfxSource || "local";
   const D = sb.duration;
   const aDir = path.join(projectDir, "audio");
-  fs.mkdirSync(aDir, { recursive: true });
+  const stemDir = path.join(aDir, "stems");
+  fs.rmSync(stemDir, { recursive: true, force: true });
+  fs.mkdirSync(stemDir, { recursive: true });
+  const credits = [];
+  const context = `${brief.style || "burnwe"} style brand film for ${brief.company || sb.brand?.name || "a brand"}`;
+  const ov = async (q, role, opts = {}) => {
+    if (!openverse) return [];
+    const { pick } = await import("../lib/soundpick.mjs");
+    const got = await pick(q, { role, context, ...opts });
+    got.forEach((g) => credits.push(g));
+    return got;
+  };
 
   // 1. music
   const musicFile = path.join(aDir, "music.mp3");
@@ -57,18 +76,29 @@ export async function audio(projectDir, { musicPrompt, noMusic = false } = {}) {
   sb.scenes.forEach((s, i) => {
     if (i && !s.transition && s.tone !== sb.scenes[i - 1].tone) whooshes.push({ t: s.start - 0.15, type: "whoosh", soft: true });
   });
-  const reveal = sb.scenes.find((s) => s.type === "logo-reveal");
+  const reveal = sb.scenes.find((s) => s.type === "logo-reveal" || s.type === "logo-bars");
   writeJSON(path.join(aDir, "cues.json"), { whooshes, clicks, pops });
 
-  // 3. mix with one ffmpeg graph
+  // 3. sound palette: the curated local library by default, or a fresh Openverse palette per film
+  //    (--sfx-source openverse), each role falling back to the local file when nothing fits.
+  const lib = { whoosh: [path.join(SFX, "whoosh.mp3"), path.join(SFX, "whoosh-short.mp3")], click: [path.join(SFX, "click.mp3")], pop: [path.join(SFX, "pop.mp3")], riser: [path.join(SFX, "riser.mp3")], hit: [path.join(SFX, "impact-bass-1.mp3")] };
+  if (sfxSource === "openverse") {
+    const Q = { whoosh: ["soft whoosh transition", 2], click: ["ui click", 1], pop: ["soft pop", 1], riser: ["riser build up", 1], hit: ["deep impact hit", 1] };
+    for (const [role, [q, n]] of Object.entries(Q)) {
+      const got = await ov(q, role, { n });
+      if (got.length) lib[role] = got.map((g) => g.file);
+    }
+  }
+
+  // 4. one ffmpeg graph, one output per layer
   const inputs = [];
   const filters = [];
-  const mixLabels = [];
+  const byLayer = Object.fromEntries(LAYERS.map((l) => [l, []]));
   const add = (file) => (inputs.push("-i", file), inputs.length / 2 - 1);
   // Repeated one-shots get a small deterministic pitch spread (0.92-1.12) so a run of pops or
   // clicks never sounds pasted; an optional screen x (0..1920) pans the sound with its element.
   const hash = (str) => [...str].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
-  const place = (file, t, gainDb, label, { x, pitch } = {}) => {
+  const place = (file, t, gainDb, label, layer, { x, pitch } = {}) => {
     if (t < 0 || t > D) return;
     const k = add(file);
     const rate = pitch ?? (/^w/.test(label) ? 1 : 0.92 + (hash(label) % 1000) / 5000);
@@ -77,15 +107,14 @@ export async function audio(projectDir, { musicPrompt, noMusic = false } = {}) {
     const pan = x != null ? (() => { const p = Math.max(-1, Math.min(1, (x - 960) / 960)) * 0.6; return `,pan=stereo|c0=${(1 - Math.max(0, p)).toFixed(3)}*c0|c1=${(1 + Math.min(0, p)).toFixed(3)}*c1`; })() : "";
     const shift = rate !== 1 ? `,asetrate=${Math.round(48000 * rate)},aresample=48000` : "";
     filters.push(`[${k}:a]aformat=sample_rates=48000:channel_layouts=stereo${shift}${pan},volume=${gainDb}dB,adelay=${Math.round(at * 1000)}:all=1[${label}]`);
-    mixLabels.push(`[${label}]`);
+    byLayer[layer].push(`[${label}]`);
   };
 
   const voFile = vo ? path.join(projectDir, vo.file) : null;
-  let voIdx = -1;
   if (voFile && fs.existsSync(voFile)) {
-    voIdx = add(voFile);
-    filters.push(`[${voIdx}:a]aformat=sample_rates=48000:channel_layouts=stereo,highpass=f=70,acompressor=threshold=-20dB:ratio=3:attack=5:release=120,volume=1.0,asplit=2[vo][vokey]`);
-    mixLabels.push("[vo]");
+    const k = add(voFile);
+    filters.push(`[${k}:a]aformat=sample_rates=48000:channel_layouts=stereo,highpass=f=70,acompressor=threshold=-20dB:ratio=3:attack=5:release=120,volume=1.0[vo]`);
+    byLayer.vo.push("[vo]");
   }
   // Beat grid + drop alignment: shift the music so its strongest hit just after the reveal lands
   // exactly on the logo (the only thing the references lock to the music besides drops).
@@ -104,24 +133,27 @@ export async function audio(projectDir, { musicPrompt, noMusic = false } = {}) {
     } catch (e) {
       warn("beat analysis failed: " + e.message.slice(0, 120));
     }
-  }
-  if (fs.existsSync(musicFile)) {
     const mk = add(musicFile);
     // music out 1.2 s before the end, fade in 0.4 s
     const fadeOut = Math.max(0, D - 2.6);
     // Music dips (the main dynamic device of the references): under the TURN/pivot line and
-    // under prompt typing, returning on the answer.
+    // under prompt typing, returning on the answer. VO ducking happens in remix (sidechain).
     const dips = sb.scenes
       .map((s, i) => ({ s, beat: (sc.lines?.[i]?.beat || "").toUpperCase() }))
       .filter(({ s, beat }) => beat === "TURN" || s.type === "prompt-box")
       .map(({ s }) => `volume=enable='between(t,${(s.start + 0.1).toFixed(2)},${(s.start + s.duration - 0.35).toFixed(2)})':volume=0.4`);
-    filters.push(`[${mk}:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=start=${trimStart},asetpts=PTS-STARTPTS,atrim=0:${D.toFixed(2)},afade=t=in:d=0.4,afade=t=out:st=${fadeOut.toFixed(2)}:d=1.4,volume=-9dB${dips.length ? "," + dips.join(",") : ""}[mraw]`);
-    if (voIdx >= 0) {
-      filters.push(`[mraw][vokey]sidechaincompress=threshold=0.03:ratio=6:attack=40:release=450:makeup=1[music]`);
-    } else filters.push(`[mraw]anull[music]`);
-    mixLabels.push("[music]");
-  } else if (voIdx >= 0) {
-    filters.push(`[vokey]anullsink`);
+    filters.push(`[${mk}:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=start=${trimStart},asetpts=PTS-STARTPTS,atrim=0:${D.toFixed(2)},afade=t=in:d=0.4,afade=t=out:st=${fadeOut.toFixed(2)}:d=1.4,volume=-9dB${dips.length ? "," + dips.join(",") : ""}[music]`);
+    byLayer.music.push("[music]");
+  }
+  // ambience bed (storyboard "ambience" or --ambience): looped, faded, far under everything
+  const ambQ = ambience ?? brief.ambience ?? sb.ambience;
+  if (ambQ) {
+    const [a] = await ov(String(ambQ), "ambience");
+    if (a) {
+      const k = add(a.file);
+      filters.push(`[${k}:a]aformat=sample_rates=48000:channel_layouts=stereo,aloop=loop=-1:size=2e9,atrim=0:${D.toFixed(2)},afade=t=in:d=1.2,afade=t=out:st=${Math.max(0, D - 2).toFixed(2)}:d=1.8,volume=-18dB[amb]`);
+      byLayer.ambience.push("[amb]");
+    }
   }
   // keyboard bed under typed prompts, trimmed to the typing duration
   cues.filter((c) => c.type === "typing").slice(0, 8).forEach((c, i) => {
@@ -129,25 +161,83 @@ export async function audio(projectDir, { musicPrompt, noMusic = false } = {}) {
     const k = add(path.join(SFX, "typing.mp3"));
     const dur = Math.min(c.dur || 1.5, 4);
     filters.push(`[${k}:a]aformat=sample_rates=48000:channel_layouts=stereo,aloop=loop=3:size=2e6,atrim=0:${dur.toFixed(2)},afade=t=out:st=${Math.max(0, dur - 0.15).toFixed(2)}:d=0.15,volume=-10dB,adelay=${Math.round(c.t * 1000)}:all=1[ty${i}]`);
-    mixLabels.push(`[ty${i}]`);
+    byLayer.sfx_ui.push(`[ty${i}]`);
   });
-  const W = [path.join(SFX, "whoosh.mp3"), path.join(SFX, "whoosh-short.mp3")];
-  whooshes.forEach((c, i) => place(W[i % 2], c.t + (c.dur || 0.3) / 2, c.soft ? -6 : -1, `w${i}`));
-  clicks.forEach((c, i) => place(path.join(SFX, "click.mp3"), c.t, 2, `c${i}`, { x: c.x }));
-  pops.forEach((c, i) => place(path.join(SFX, "pop.mp3"), c.t, -7, `p${i}`, { x: c.x }));
+  // metronome films (flat, a cut every second) would turn tone-change whooshes into a wall of air:
+  // keep them a breath under the picture there
+  const softDb = sb.flat ? -13 : -6;
+  whooshes.forEach((c, i) => place(lib.whoosh[i % lib.whoosh.length], c.t + (c.dur || 0.3) / 2, c.soft ? softDb : -1, `w${i}`, "sfx_transitions"));
+  clicks.forEach((c, i) => place(lib.click[0], c.t, 2, `c${i}`, "sfx_ui", { x: c.x }));
+  pops.forEach((c, i) => place(lib.pop[0], c.t, -7, `p${i}`, "sfx_ui", { x: c.x }));
+  // per-scene signature sounds: scene.sound = {q, at (s from shot start), gain (dB)} or a query string
+  for (const [i, s] of sb.scenes.entries()) {
+    if (!s.sound) continue;
+    const snd = typeof s.sound === "string" ? { q: s.sound } : s.sound;
+    if (!snd.q) continue;
+    const [f] = await ov(snd.q, "foley");
+    if (f) place(f.file, s.start + (+snd.at || 0.15), +snd.gain || -6, `f${i}`, "sfx_foley", { pitch: 1 });
+  }
   if (reveal) {
-    place(path.join(SFX, "riser.mp3"), reveal.start + 0.1, -9, "riser");
-    place(path.join(SFX, "impact-bass-1.mp3"), reveal.start + 0.2, -10, "impact");
+    place(lib.riser[0], reveal.start + 0.1, -9, "riser", "sfx_accents");
+    place(lib.hit[0], reveal.start + 0.2, -10, "impact", "sfx_accents");
   }
 
-  const out = path.join(aDir, "mix.wav");
-  const graph = `${filters.join(";")};${mixLabels.join("")}amix=inputs=${mixLabels.length}:normalize=0:dropout_transition=0,atrim=0:${D.toFixed(2)}[out]`;
-  fs.writeFileSync(path.join(aDir, "mix.graph.txt"), graph);
+  const used = LAYERS.filter((l) => byLayer[l].length);
+  const outs = used.map((l) => {
+    const ls = byLayer[l];
+    const sum = ls.length > 1 ? `${ls.join("")}amix=inputs=${ls.length}:normalize=0:dropout_transition=0,` : `${ls[0]}anull,`;
+    return `${sum}apad=whole_dur=${D.toFixed(3)},atrim=0:${D.toFixed(3)}[L_${l}]`;
+  });
+  const graph = [...filters, ...outs].join(";");
+  fs.writeFileSync(path.join(aDir, "stems.graph.txt"), graph);
+  run("ffmpeg", ["-y", "-v", "error", ...inputs, "-filter_complex", graph, ...used.flatMap((l) => ["-map", `[L_${l}]`, "-ar", "48000", "-ac", "2", "-c:a", "pcm_f32le", path.join(stemDir, `${l}.wav`)])]);
+  writeJSON(path.join(stemDir, "stems.json"), { duration: D, layers: used, counts: Object.fromEntries(used.map((l) => [l, byLayer[l].length])), sfxSource });
+
+  // credits for every Openverse sound in the film (CC-BY ones must be credited where it is published)
+  const uniq = [...new Map(credits.map((c) => [c.id, c])).values()];
+  if (uniq.length) {
+    const { creditLine } = await import("../lib/openverse.mjs");
+    fs.writeFileSync(path.join(aDir, "CREDITS.md"), `# Sound credits (Openverse)\n\n${uniq.map(creditLine).join("\n")}\n`);
+    const by = uniq.filter((c) => c.license === "by").length;
+    if (by) warn(`${by} CC-BY sound(s): put audio/CREDITS.md into the video description or end credits`);
+  }
+  const out = remix(projectDir);
+  log(`audio: stems ${used.map((l) => `${l}(${byLayer[l].length})`).join(" ")} -> audio/stems/, mix -> ${probeDuration(out).toFixed(1)}s`);
+  return out;
+}
+
+// remix: rebuild audio/mix.wav from the stems with per-layer gains (dB, or "off"), without
+// regenerating anything. Gains persist in audio/mix.json; "sfx" sets every sfx_* layer at once.
+// Music is ducked under the VO stem here (sidechain), so the music stem itself stays clean.
+export function remix(projectDir, gains = {}) {
+  const aDir = path.join(projectDir, "audio");
+  const stemDir = path.join(aDir, "stems");
+  const meta = readJSON(path.join(stemDir, "stems.json"), null);
+  if (!meta) throw new Error("no audio/stems/stems.json; run the audio step first");
+  const saved = readJSON(path.join(aDir, "mix.json"), { gains: {} }).gains || {};
+  const g = { ...saved };
+  for (const [k, v] of Object.entries(gains)) {
+    const name = k.replace(/-/g, "_");
+    if (name === "sfx") meta.layers.filter((l) => l.startsWith("sfx_")).forEach((l) => (g[l] = v));
+    else if (LAYERS.includes(name)) g[name] = v;
+  }
+  const on = meta.layers.filter((l) => g[l] !== "off" && !(+g[l] <= -60));
+  if (!on.length) throw new Error("every layer is off");
+  const inputs = on.flatMap((l) => ["-i", path.join(stemDir, `${l}.wav`)]);
+  const f = on.map((l, i) => `[${i}:a]volume=${(+g[l] || 0).toFixed(2)}dB[s_${l}]`);
+  const labels = on.map((l) => `[s_${l}]`);
+  if (on.includes("vo") && on.includes("music")) {
+    f.push(`[s_vo]asplit=2[vo_o][vokey]`, `[s_music][vokey]sidechaincompress=threshold=0.03:ratio=6:attack=40:release=450:makeup=1[music_o]`);
+    labels[on.indexOf("vo")] = "[vo_o]";
+    labels[on.indexOf("music")] = "[music_o]";
+  }
+  const graph = `${f.join(";")};${labels.join("")}amix=inputs=${labels.length}:normalize=0:dropout_transition=0,atrim=0:${(+meta.duration).toFixed(2)}[out]`;
   const pre = path.join(aDir, "mix.pre.wav");
+  const out = path.join(aDir, "mix.wav");
   run("ffmpeg", ["-y", "-v", "error", ...inputs, "-filter_complex", graph, "-map", "[out]", "-ar", "48000", "-ac", "2", "-c:a", "pcm_f32le", pre]);
   master(pre, out);
   fs.rmSync(pre, { force: true });
-  log(`audio mix: vo + ${fs.existsSync(musicFile) ? "music" : "no music"} + ${whooshes.length} whooshes, ${clicks.length} clicks, ${pops.length} pops -> ${probeDuration(out).toFixed(1)}s`);
+  writeJSON(path.join(aDir, "mix.json"), { gains: g, layers: on });
   return out;
 }
 

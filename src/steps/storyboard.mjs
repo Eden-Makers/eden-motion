@@ -122,8 +122,10 @@ DIRECTION RULES
 ${brief.video ? `- You MAY use up to 2 AI video clips in media-frame: props {kind:"video", src:"genvideo:<detailed still prompt> || <camera + motion direction, single shot>"}. Use them for the most cinematic human/world moments only.\n` : ""}- tone: keep the line's tone (dark/light); for theme glow you may use "cream", for cinematic use "black"${brief.style === "relate" ? '; RELATE: use "paper" and "black" alternating nearly every shot, "stage" for UI cards' : ""}. The last shot must be ${brief.style === "relate" ? "logo-bars" : "logo-reveal"}.
 - transitions: mostly "cut" (60%+). Use zoom-through into the reveal, push-left between features, at most 1 whip, at most 1 wipe. Transition duration 0.4-0.7.
 - camera: omit (auto drift) or "push" for emphasis shots.
+- sound (optional, at most one shot in three): a signature foley sound for a PHYSICAL event on screen (an object lands, metal clinks, a card slides, paper folds, a coin drops, glass taps). {"q":"2-4 word search, concrete and literal, e.g. metal screw drop","at":seconds from shot start when the event happens,"gain":-8..-3}. Never for text, UI or abstract shots: those already get whooshes, clicks and pops.
+- ambience (film level, optional): a 2-4 word search for a quiet bed that fits the world (e.g. "quiet studio room tone", "soft city ambience"), or null for none. Most graphic films want null.
 
-Return ONLY JSON: {"scenes":[{"i":0,"type":"...","tone":"dark|light|cream|black|grid","transition":{"type":"cut|...","duration":0.5},"camera":null,"props":{...}}]}`,
+Return ONLY JSON: {"ambience":null,"scenes":[{"i":0,"type":"...","tone":"dark|light|cream|black|grid","transition":{"type":"cut|...","duration":0.5},"camera":null,"sound":null,"props":{...}}]}`,
     { temperature: 0.6 }
   );
 
@@ -146,6 +148,7 @@ Return ONLY JSON: {"scenes":[{"i":0,"type":"...","tone":"dark|light|cream|black|
       ...(s.camera ? { camera: s.camera } : {}),
       props: s.props || {},
       ...(Array.isArray(s.reads) && s.reads.length ? { reads: s.reads } : {}),
+      ...(s.sound && (s.sound.q || typeof s.sound === "string") ? { sound: s.sound } : {}),
       vo: l.text,
     };
   });
@@ -177,6 +180,7 @@ Return ONLY JSON: {"scenes":[{"i":0,"type":"...","tone":"dark|light|cream|black|
     ...(brief.style === "higgsfield" ? { background: "hf-grid" } : {}),
     ...(brief.style === "relate" ? { background: "none", flat: true, fps: brief.fps || 24, shutterPhase: "forward" } : {}),
     duration: total,
+    ...(typeof plan.ambience === "string" && plan.ambience.trim() ? { ambience: plan.ambience.trim() } : {}),
     brand: {},
     vo: { file: vo.file, words: vo.words },
     scenes,
