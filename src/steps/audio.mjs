@@ -179,6 +179,8 @@ export async function audio(projectDir, { musicPrompt, noMusic = false, sfxSourc
       .map((s, i) => ({ s, beat: (sc.lines?.[i]?.beat || "").toUpperCase() }))
       .filter(({ s, beat }) => beat === "TURN" || s.type === "prompt-box")
       .map(({ s }) => `volume=enable='between(t,${(s.start + 0.1).toFixed(2)},${(s.start + s.duration - 0.35).toFixed(2)})':volume=0.4`);
+    // explicit dips from the storyboard: musicDips [{from, to, gain (dB)}], e.g. under a voice line
+    (sb.musicDips || []).forEach((d) => dips.push(`volume=enable='between(t,${(+d.from).toFixed(2)},${(+d.to).toFixed(2)})':volume=${Math.pow(10, (+d.gain || -4) / 20).toFixed(3)}`));
     filters.push(`[${mk}:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=start=${trimStart},asetpts=PTS-STARTPTS,atrim=0:${D.toFixed(2)},afade=t=in:d=0.4,afade=t=out:st=${fadeOut.toFixed(2)}:d=1.4,volume=${musicIn === codeBed ? 0 : -9}dB${dips.length ? "," + dips.join(",") : ""}[music]`);
     byLayer.music.push("[music]");
   }
