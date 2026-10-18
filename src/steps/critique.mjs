@@ -104,8 +104,9 @@ function sheets(file, sb, renders, pops) {
 
 export async function critique(projectDir, { file, noAi = false } = {}) {
   const renders = path.join(projectDir, "renders");
+  if (file && !fs.existsSync(file) && fs.existsSync(path.join(projectDir, file))) file = path.join(projectDir, file); // --file relative to the project
   file = file || ["final.mp4", "draft.mp4"].map((f) => path.join(renders, f)).find((f) => fs.existsSync(f));
-  if (!file) throw new Error("No render found. Run render --draft first.");
+  if (!file || !fs.existsSync(file)) throw new Error("No render found. Run render --draft first.");
   const sb = readJSON(path.join(projectDir, "storyboard.json"));
   const brand = readJSON(path.join(projectDir, "brand.json"), {});
   const comp = path.join(projectDir, "comp", "index.html");

@@ -39,6 +39,7 @@ export async function blender(projectDir, { preview = false, force = false } = {
     const walk = (o) => {
       if (!o || typeof o !== "object") return;
       for (const [k, v] of Object.entries(o)) {
+        if (k.endsWith("Spec")) continue; // the original spec kept next to a rendered plate, not a job
         if (typeof v === "string" && v.startsWith("blender:")) jobs.push({ scene: s, i, holder: o, key: k, spec: parseBlenderSrc(v) });
         else if (typeof v === "object") walk(v);
       }

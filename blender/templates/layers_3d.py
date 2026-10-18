@@ -105,8 +105,16 @@ for i, path in enumerate(imgs):
     planes.append(ob)
 
 mid = (n - 1) / 2
+PORTRAIT = int(P.get("height", 1080)) > int(P.get("width", 1920))
+if PORTRAIT and layout == "stack":
+    layout = "tower"  # landscape screens side by side waste a vertical frame; stack them upward
+heights = [W * (ob.dimensions.z if ob.dimensions.z > 0.01 else ob.dimensions.y) / max(1e-6, ob.dimensions.x) for ob in planes]
 for i, ob in enumerate(planes):
-    if layout == "row":
+    if layout == "tower":
+        hh = heights[i]
+        ob.location = ((i - mid) * 0.35, i * gap * 0.6, -(i - mid) * hh * 0.82)
+        ob.rotation_euler = (math.radians(90), 0, math.radians(-8 + 4 * (i - mid)))
+    elif layout == "row":
         ang = (i - mid) * 0.32
         ob.location = (math.sin(ang) * 5.2, -math.cos(ang) * 5.2 + 5.2, 0)
         ob.rotation_euler = (math.radians(90), 0, ang)
@@ -127,13 +135,19 @@ tgt.location = planes[focus].location.copy()
 # frame the whole arrangement: horizontal FOV from the lens on a 36 mm sensor
 span = W + (n - 1) * (1.15 if layout in ("stack", "floor") else W * 0.9) + 1.6
 far = span / (2 * math.tan(math.atan(18 / lens)))
+if layout == "tower":
+    # frame the column vertically: 36 mm sensor on the long (vertical) axis
+    span_v = sum(heights) * 0.82 + heights[0] * 0.3 + 1.0
+    far = max(span_v / (2 * math.tan(math.atan(18 / lens))), (W + 1.4) / (2 * math.tan(math.atan(18 * 0.5625 / lens))))
 if layout == "floor":
     cam = camera((0, -far * 0.75, far * 0.85), (0, 0, 0), lens=lens, dof_obj=tgt, fstop=fstop)
 else:
-    cam = camera((0, -far, 0.35), (0, (n - 1) * gap * 0.5 if layout == "stack" else 0, 0), lens=lens, dof_obj=tgt, fstop=fstop)
+    cam = camera((0, -far, 0.35), (0, (n - 1) * gap * (0.5 if layout == "stack" else 0.3 if layout == "tower" else 0), 0), lens=lens, dof_obj=tgt, fstop=fstop)
 cam.parent = root
 cam.data.clip_start = 0.01
-cam.data.sensor_fit = "HORIZONTAL"  # the framing maths assumes a 36 mm horizontal sensor, portrait too
+# framing maths assumes a 36 mm sensor on the axis being framed
+cam.data.sensor_fit = "VERTICAL" if layout == "tower" else "HORIZONTAL"
+cam.data.sensor_height = 36.0; cam.data.sensor_width = 36.0  # VERTICAL fit reads sensor_height (24 mm by default)
 cam.location = cam.location  # local to the scaled root from here on
 
 
@@ -180,4 +194,4 @@ else:  # dolly: push in, focus racks from the first layer to the focus layer
     cam.keyframe_insert("location", frame=F)
     ease(cam)
 
-render({"out": OUT, "preview": PREVIEW, "frames": None}, "f")
+render({"out": OUT, "preview": PREVIEW, "frames": P.get("only")}, "f")
