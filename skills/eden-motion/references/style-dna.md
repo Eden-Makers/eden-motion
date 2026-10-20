@@ -2,7 +2,7 @@
 
 Sources: 4 Burnwe SaaS explainers (1Deploy, Foyr, EyeQ, Ramp), Google "Meet Gemini Omni", Google
 "Welcome to the Gemini era", Lovable 2.0, Lovable "Design" + "Lovable x Google" (Anyway Studio).
-Full forensic notes: `~/Dev/eden-motion/research/analysis/`.
+Full forensic notes: `research/analysis/` in the repo.
 
 ## Story and pacing
 | rule | value |

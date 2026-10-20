@@ -5,12 +5,12 @@ description: Company name in, finished motion-graphics brand film out (Burnwe / 
 
 # eden-motion
 
-Repo: `~/Dev/eden-motion` (path also in `.repo-path` next to this file). CLI: `eden-motion` (global) or `node <repo>/bin/eden-motion.mjs`. Engine = HyperFrames (HTML + GSAP, seek-deterministic).
+Repo: the clone this skill was installed from (its path is in `.repo-path` next to this file, written by `install.sh`). CLI: `eden-motion` (global) or `node <repo>/bin/eden-motion.mjs`. Engine = HyperFrames (HTML + GSAP, seek-deterministic).
 Everything is plain JSON in a project folder, so any harness can run steps, read results and edit them.
 
 ## 0. Setup check (first thing, every new machine)
 ```bash
-cd ~/Dev/eden-motion && node bin/eden-motion.mjs doctor --json
+cd "$(cat <this skill dir>/.repo-path)" && node bin/eden-motion.mjs doctor --json
 ```
 Each check has `level` (required | recommended | optional), `status`, `why` and `fix`. If `ready` is
 false or a recommended item is missing, onboard the person before anything else:
@@ -211,7 +211,7 @@ Read `references/relate-and-1to1.md` first. Short loop:
 - Video clips (optional, for `media-frame` kind video): Seedance 2.0 or Kling 3.0 via Higgsfield/fal/Magnific with the approved still as reference, render 3 s longer than the cut, "no music" in the prompt.
 - No em dashes or en dashes in any copy (the pipeline strips them; check anything you write).
 - Motion law: focus-pull arrivals, no overshoot, camera never still, one accent colour, sync to VO words.
-- Deliver: copy `renders/final.mp4` + an HTML review sheet to the company Google Drive project folder (Eden Business). Never send to a client without Gedeon's approval.
+- Deliver: `review <slug> --deliver <folder>` copies `renders/final.mp4` + the HTML review sheet to your delivery folder. Never send a film to a client before a human has approved it.
 
 ## References
 - `references/style-dna.md` - measured rules from the reference films (pacing, easing, type, sound).
@@ -219,4 +219,4 @@ Read `references/relate-and-1to1.md` first. Short loop:
 - `references/director-brief.md` - the long-brief template (logline, refs, keys, beat sheet, gates, critique loop, deliverables) and the parallel-chapter subagent pattern.
 - `references/pipeline.md` - file formats (brief, brand, script, vo, storyboard), rendering and motion blur internals, troubleshooting.
 - `references/relate-and-1to1.md` - Relate grammar, the 1:1 rebuild loop, Blender 5.2 headless + HyperFrames gotchas.
-- Repo research: `~/Dev/eden-motion/research/analysis/{burnwe,launch-films,higgsfield,relate,tooling-and-workflows}.md` (full forensic breakdowns, 90+ techniques with parameters, Higgsfield preset map), `research/relate/*.md` (26 per-film shot lists), `research/blender/{PLAYBOOK,tutorials}.md` (12 Blender tutorials distilled).
+- Repo research: `research/analysis/{burnwe,launch-films,higgsfield,relate,tooling-and-workflows}.md` (full forensic breakdowns, 90+ techniques with parameters, Higgsfield preset map), `research/relate/*.md` (26 per-film shot lists), `research/blender/{PLAYBOOK,tutorials}.md` (12 Blender tutorials distilled).

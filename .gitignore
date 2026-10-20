@@ -12,3 +12,4 @@ research/refs/*.mp4
 skills/eden-motion/.repo-path
 __pycache__/
 *.pyc
+.claude/

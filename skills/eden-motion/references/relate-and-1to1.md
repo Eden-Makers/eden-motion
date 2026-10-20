@@ -63,7 +63,7 @@ Result benchmarks: Enoki web 0.889 SSIM (pure HTML), Ledger 0.765, Frontier 0.69
 
 ## Part C. Tooling lessons
 
-Project root: `~/Dev/relate-mograph/`
+Workspace layout used for the original study (a separate rebuild workspace next to eden-motion):
 - `ref/` reference videos, `ref/index.json` titles, `sheets/` contact sheets, `research/relate/*.md` forensic shot lists (READ the one for your video first).
 - `videos/<slug>/` one HyperFrames project per recreation. Example finished-ish project: `videos/r04-frontier/` (index.html shows the patterns below).
 - `blender/lib/chrome.py` (render setup, Cycles Metal, metal material, machined block, socket screw, rods, env_dome studio, keyframes), `blender/lib/product.py` (EEVEE product CG: rounded slabs, acrylic cards, device, phone, scale_vis).
@@ -95,7 +95,7 @@ Project root: `~/Dev/relate-mograph/`
 - For internal comparison you may put the reference's own audio track under the recreation (`ffmpeg -i ref.mp4 -vn -c:a aac assets/ref_audio.m4a` + `<audio id=...>`). Note in the report that it is the original track.
 
 ## AI generation (only where unavoidable, e.g. live-action people)
-- Eden Gen MCP (`mcp__eden-gen__*`), project "Social Media". Stills `nbp` 2K (~$0.13), animate with `kling-3` first_frame 5 s 1080p (~$0.28). Never above $5 per call. Log every prompt + job id in `assets/gen/PROMPTS.md`. Download files keeping the job-id filename.
+- Use your image/video generator of choice (we use Nano Banana Pro stills at 2K, then Kling 3 or Seedance image-to-video, 5 s at 1080p, render 2 s longer than the cut). Confirm cost before any expensive call. Log every prompt + job id in `assets/gen/PROMPTS.md` and keep the job id in the filename.
 
 ## Writing rule
 Never use em dash or en dash characters in any file (plain hyphen). Check with `grep -c $'-\|-' file`.
