@@ -11,7 +11,8 @@ const HELP = `eden-motion - company name in, finished motion-graphics brand film
 USAGE
   eden-motion new "<Company>" [--url https://...] [--duration 60] [--lang en] [--theme saas-light|saas-dark|glow|cinematic]
                   [--voice brian|george|sarah|alice|matilda|daniel|<id>] [--structure problem-solution|launch|manifesto]
-                  [--notes "client notes"] [--video (allow Seedance 2.0 AI clips)] [--style burnwe|launch|higgsfield]
+                  [--notes "client notes"] [--video (allow Seedance 2.0 AI clips)] [--style burnwe|launch|higgsfield|relate]
+                  [--cut-grid 1.0 (metronome cuts every N s; relate default 1.0)] [--fps 24|30]
                   [--dir <projects root>]
   eden-motion run <project> [--from <step>] [--to <step>] [--draft]   full pipeline (research -> qc)
   eden-motion <step> <project> [options]
@@ -26,19 +27,33 @@ STEPS (in order)
   pick         <slug> <n>  make storyboard.v<n>.json the storyboard
   note         <slug> "slow every zoom to 0.7x; hard cut into s5; push in on the button"  director notes
   assets       generate images for "gen:" props (Nano Banana Pro 2K)
-  audio        music + SFX on engine cues + VO mix -> audio/mix.wav
+  blender      render "blender:<template>?k=v" props headless into transparent webm plates [--preview] [--force]
+               templates: chrome-object (object=block|screw|screws3|ring|rodblock), card-stack (action=collapse|flyoff|fan),
+               layers-3d (images=a.png,b.mp4 layout=stack|row|fan|floor move=dolly|orbit|tilt|float fstop=2.8 focus=i)
+  audio        VO + music + ambience + layered SFX -> audio/stems/<layer>.wav + audio/mix.wav
+               layers: vo, music, ambience, sfx_transitions, sfx_ui, sfx_foley, sfx_accents
+               [--sfx-source local|openverse (fresh CC0/CC-BY palette per film, picked by a code score)]
+               [--judge-sfx (optional: Gemini listens to the top 4 candidates per sound; extra API calls)]
+               [--ambience "rain on window"] [--no-openverse] [--no-music]
+               [--stingers (accent thumps + logo sting composed in code in the music's key; needs uv)]
+               no ElevenLabs music? a bed is composed in code as a fallback (audio/music-code.wav)
+  remix        <slug> --music -3 --sfx +2 --ambience off --sfx-foley -4   rebalance stems -> mix.wav (no regeneration)
   preview      build comp/ and open HyperFrames Studio preview
-  render       --draft (fast, no blur) or final (true shutter motion blur, --slow 4..8)
+  render       --draft (fast, no blur) or final (true shutter motion blur, --slow 4..8) [--shutter-phase center|forward]
   qc           Gemini creative-director review -> renders/qc.json
   critique     watch-your-own-frames loop: contact/phone/strip sheets + measured pops, dead air,
                variety gaps, hook; harsh 1-10 rubric; appends renders/review_log.md [--no-ai] [--file]
+               [--against ref.mp4] scores the reference with the same rubric and prints the delta
+  compare      <slug> <ref.mp4> side by side + frame pairs + SSIM vs a reference film [--file]
   review       HTML review sheet (frames per shot, VO, props, prompts, QC) [--deliver <drive folder>]
   build        only build comp/index.html from storyboard.json
-  doctor       check keys and tools
+  setup        first-run wizard: installs deps + skill links, asks for missing keys (masked, saved to .env),
+               verifies them live, runs a 20 s smoke render [--yes non-interactive]
+  doctor       check tools and keys [--json for agents] [--verify pings the APIs]
 
 ENV / KEYS: GEMINI_API_KEY, ELEVENLABS_API_KEY (read from env, repo .env or ~/.zshrc)`;
 
-const STEPS = ["research", "script", "vo", "storyboard", "assets", "audio", "render", "qc", "review"];
+const STEPS = ["research", "script", "vo", "storyboard", "assets", "blender", "audio", "render", "qc", "review"];
 
 function parseArgs(argv) {
   const out = { _: [] };
@@ -107,20 +122,34 @@ async function step(name, dir, args) {
     case "assets":
       await (await import("../src/steps/assets.mjs")).assets(dir);
       break;
-    case "audio":
-      await (await import("../src/steps/audio.mjs")).audio(dir, { noMusic: !!args["no-music"] });
+    case "blender":
+      await (await import("../src/steps/blender.mjs")).blender(dir, { preview: !!args.preview, force: !!args.force });
       break;
+    case "compare":
+      await (await import("../src/steps/compare.mjs")).compare(dir, args._[2], { file: args.file });
+      break;
+    case "audio":
+      await (await import("../src/steps/audio.mjs")).audio(dir, { noMusic: !!args["no-music"], sfxSource: args["sfx-source"], ambience: args.ambience, openverse: !args["no-openverse"], stingers: args.stingers ? true : undefined, judgeSfx: args["judge-sfx"] ? true : undefined });
+      break;
+    case "remix": {
+      const { remix, LAYERS } = await import("../src/steps/audio.mjs");
+      const gains = Object.fromEntries(Object.entries(args).filter(([k]) => k === "sfx" || LAYERS.includes(k.replace(/-/g, "_"))).map(([k, v]) => [k, v === "off" ? "off" : +v]));
+      remix(dir, gains);
+      log(`remix: audio/mix.wav rebuilt from stems (${JSON.stringify(gains)}). Next: render (audio is muxed at the end, a --draft re-render is enough)`);
+      break;
+    }
     case "build":
       await (await import("../src/steps/build.mjs")).build(dir, { slow: +args.slow || 1 });
       break;
     case "render":
-      await (await import("../src/steps/render.mjs")).render(dir, { quality: args.draft ? "draft" : "final", slow: args.slow && +args.slow, fps: args.fps && +args.fps, workers: args.workers, uniform: !!args.uniform, hi: args.hi && +args.hi, resolution: args.resolution });
+      await (await import("../src/steps/render.mjs")).render(dir, { quality: args.draft ? "draft" : "final", slow: args.slow && +args.slow, fps: args.fps && +args.fps, workers: args.workers, uniform: !!args.uniform, hi: args.hi && +args.hi, resolution: args.resolution, shutterPhase: args["shutter-phase"] });
       break;
     case "qc":
       await (await import("../src/steps/qc.mjs")).qc(dir, { file: args.file });
       break;
     case "critique":
-      await (await import("../src/steps/critique.mjs")).critique(dir, { file: args.file, noAi: !!args["no-ai"] });
+      if (args.against) await (await import("../src/steps/critique.mjs")).critiqueAgainst(dir, args.against, { file: args.file, noAi: !!args["no-ai"] });
+      else await (await import("../src/steps/critique.mjs")).critique(dir, { file: args.file, noAi: !!args["no-ai"] });
       break;
     case "review":
       await (await import("../src/steps/review.mjs")).review(dir, { deliver: args.deliver || process.env.EDEN_MOTION_DELIVER });
@@ -142,10 +171,16 @@ async function main() {
   if (!cmd || cmd === "help" || args.help) return console.log(HELP);
 
   if (cmd === "doctor") {
-    const env = loadEnv();
-    for (const k of ["GEMINI_API_KEY", "ELEVENLABS_API_KEY", "FAL_KEY"]) console.log(`${k.padEnd(20)} ${env[k] ? "ok" : "MISSING"}`);
-    for (const t of ["ffmpeg", "ffprobe", "npx"]) console.log(`${t.padEnd(20)} ${run("which", [t], { allowFail: true }).status === 0 ? "ok" : "MISSING"}`);
-    console.log(`${"projects root".padEnd(20)} ${projectsRoot(args)}`);
+    const { doctor } = await import("../src/steps/setup.mjs");
+    const { ready } = await doctor({ json: !!args.json, verify: !!args.verify });
+    if (!args.json) console.log(`${"projects root".padEnd(29)} ${projectsRoot(args)}`);
+    process.exitCode = ready ? 0 : 1;
+    return;
+  }
+
+  if (cmd === "setup") {
+    const ok = await (await import("../src/steps/setup.mjs")).setup({ yes: !!args.yes });
+    process.exitCode = ok ? 0 : 1;
     return;
   }
 
@@ -165,6 +200,11 @@ async function main() {
       notes: args.notes || null,
       video: !!args.video,
       style: args.style || null,
+      cutGrid: args["cut-grid"] ? +args["cut-grid"] : null,
+      fps: args.fps ? +args.fps : null,
+      sfxSource: args["sfx-source"] || null,
+      ambience: typeof args.ambience === "string" ? args.ambience : null,
+      stingers: !!args.stingers,
       created: new Date().toISOString(),
     };
     writeJSON(path.join(dir, "brief.json"), brief);

@@ -81,6 +81,7 @@
     const root = $("#root");
     const stage = $("#stage");
     document.documentElement.dataset.theme = sb.theme || "saas-light";
+    if (sb.flat) document.documentElement.dataset.flat = "1";
 
     const tl = gsap.timeline({ paused: true });
     const scenes = sb.scenes;
@@ -155,7 +156,7 @@
         const sc = [1, 1 + rate * D];
         const dir = i % 2 ? 1 : -1;
         const truck = s.camera === "truck" ? 20 * CS * D : 0; // lateral drift only on request: it reads as a wobble
-        tl.fromTo(inner, { scale: pull ? sc[1] : sc[0], x: -dir * truck }, { scale: pull ? sc[0] : sc[1], x: dir * truck, duration: D, ease: "none" }, Math.max(0, start - tIn / 2));
+        tl.fromTo(inner, { scale: pull ? sc[1] : sc[0], x: -dir * truck }, { scale: pull ? sc[0] : sc[1], x: dir * truck, duration: D, ease: "sine.inOut" }, Math.max(0, start - tIn / 2));
       }
     });
 
@@ -166,7 +167,8 @@
       // Hard cut into a different world: exposure ramp so it reads as a camera adjusting.
       if (type === "cut") {
         const prevTone = scenes[i - 1].tone, tone = s.tone;
-        if (prevTone && tone && prevTone !== tone) {
+        // flat (Relate) films flip polarity on purpose: a clean cut, no ramp
+        if (prevTone && tone && prevTone !== tone && !sb.flat) {
           const flash = EM.h("div", { class: "em-exposure tone-" + prevTone });
           document.getElementById(`scene-${i}`).appendChild(flash);
           tl.fromTo(flash, { opacity: 0.4 }, { opacity: 0, duration: 0.44, ease: "power2.out" }, s.start);

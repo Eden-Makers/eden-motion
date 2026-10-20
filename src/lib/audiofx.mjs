@@ -76,3 +76,46 @@ export function peakTime(file) {
   peakCache.set(file, t);
   return t;
 }
+
+// Key of a music file (so a code-composed sting does not clash with it): Goertzel energy of every
+// semitone over 4 octaves (C2-B5), folded into 12 pitch classes, correlated with the Krumhansl-
+// Kessler major/minor profiles. Returns { key: "D", mode: "major"|"minor", confidence }.
+const KK_MAJ = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
+const KK_MIN = [6.33, 2.68, 3.52, 5.38, 2.6, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
+const NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+export function estimateKey(file, { seconds = 30 } = {}) {
+  const x = decode(file, seconds);
+  const chroma = new Array(12).fill(0);
+  for (let midi = 36; midi < 84; midi++) {
+    const f = 440 * Math.pow(2, (midi - 69) / 12);
+    const w = (2 * Math.PI * f) / SR, c = 2 * Math.cos(w);
+    // blocks of 0.5 s so a long file does not smear phase; sum magnitudes
+    const B = Math.floor(SR / 2);
+    let e = 0;
+    for (let s = 0; s + B <= x.length; s += B) {
+      let s1 = 0, s2 = 0;
+      for (let i = s; i < s + B; i++) {
+        const s0 = x[i] + c * s1 - s2;
+        s2 = s1;
+        s1 = s0;
+      }
+      e += Math.sqrt(Math.max(0, s1 * s1 + s2 * s2 - c * s1 * s2));
+    }
+    chroma[midi % 12] += e;
+  }
+  const corr = (a, b) => {
+    const ma = a.reduce((p, v) => p + v, 0) / 12, mb = b.reduce((p, v) => p + v, 0) / 12;
+    let n = 0, da = 0, db = 0;
+    for (let i = 0; i < 12; i++) (n += (a[i] - ma) * (b[i] - mb)), (da += (a[i] - ma) ** 2), (db += (b[i] - mb) ** 2);
+    return n / Math.sqrt(da * db || 1);
+  };
+  let best = { r: -2 };
+  for (let k = 0; k < 12; k++) {
+    const rot = chroma.slice(k).concat(chroma.slice(0, k));
+    for (const [mode, prof] of [["major", KK_MAJ], ["minor", KK_MIN]]) {
+      const r = corr(rot, prof);
+      if (r > best.r) best = { r, key: NAMES[k], mode };
+    }
+  }
+  return { key: best.key, mode: best.mode, confidence: +best.r.toFixed(3) };
+}

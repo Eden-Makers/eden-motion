@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-function findChrome() {
+export function findChrome() {
   if (process.env.CHROME_PATH && fs.existsSync(process.env.CHROME_PATH)) return process.env.CHROME_PATH;
   const cache = path.join(os.homedir(), ".cache/puppeteer/chrome-headless-shell");
   if (fs.existsSync(cache)) {

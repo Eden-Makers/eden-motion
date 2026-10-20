@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>eden-motion: company name in, finished film out</title>
+<meta name="description" content="Agent-driven motion graphics: brand films, launch videos and explainers with real 3D from Blender, true motion blur, layered sound and a director loop that watches its own frames. By Edenmakers." />
+<meta property="og:title" content="eden-motion" />
+<meta property="og:description" content="Company name in, finished motion-graphics film out. Real 3D, true motion blur, layered sound, a self-critiquing director loop." />
+<meta property="og:image" content="https://eden-makers.github.io/eden-motion/media/hero.jpg" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" />
+<style>
+  :root {
+    --bg: hsl(0 0% 6%);
+    --bg2: hsl(0 0% 12%);
+    --card: hsl(0 0% 9%);
+    --line: hsl(0 0% 98% / 0.08);
+    --fg: hsl(0 0% 98%);
+    --muted: hsl(0 0% 64%);
+    --dim: hsl(0 0% 46%);
+    --accent: hsl(153 100% 45%);
+    --ink: hsl(0 0% 6%);
+    --r: 20px;
+    --pad: max(20px, env(safe-area-inset-left, 0px));
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font-family: "Satoshi", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; line-height: 1.5; }
+  a { color: inherit; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding-left: var(--pad); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+  .label { font-size: 12px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); }
+  nav { position: sticky; top: 0; z-index: 10; background: hsl(0 0% 6% / 0.78); backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+  .logo { font-weight: 700; letter-spacing: -0.02em; font-size: 18px; text-decoration: none; display: flex; align-items: center; gap: 10px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 18px var(--accent); }
+  .navlinks { display: flex; gap: 22px; font-size: 14px; color: var(--muted); }
+  .navlinks a { text-decoration: none; }
+  .navlinks a:hover { color: var(--fg); }
+
+  header.hero { position: relative; overflow: hidden; padding-block: 88px 40px; }
+  header.hero::before { content: ""; position: absolute; inset: -20% -10% auto; height: 120%; background: radial-gradient(50% 45% at 50% 60%, hsl(153 100% 45% / 0.13), transparent 70%); pointer-events: none; }
+  h1 { font-size: clamp(44px, 7.4vw, 96px); line-height: 0.98; letter-spacing: -0.045em; font-weight: 700; margin: 18px 0 22px; text-wrap: balance; max-width: 13ch; }
+  h1 em { font-style: normal; color: var(--accent); }
+  .lede { font-size: clamp(17px, 1.6vw, 21px); color: var(--muted); max-width: 60ch; margin: 0 0 32px; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn { display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; border-radius: 999px; font-weight: 700; font-size: 15px; text-decoration: none; border: 1px solid var(--line); }
+  .btn.primary { background: var(--accent); color: var(--ink); border-color: transparent; }
+  .btn:hover { transform: translateY(-1px); }
+  .heroimg { margin-top: 56px; border-radius: 28px; overflow: hidden; border: 1px solid var(--line); }
+  .heroimg img { display: block; width: 100%; height: auto; }
+
+  section { padding-block: 84px; border-top: 1px solid var(--line); }
+  h2 { font-size: clamp(30px, 4vw, 52px); letter-spacing: -0.035em; line-height: 1.04; margin: 12px 0 18px; font-weight: 700; text-wrap: balance; max-width: 20ch; }
+  .sub { color: var(--muted); max-width: 62ch; margin: 0 0 40px; }
+
+  .films { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.6fr); gap: 28px; align-items: start; }
+  .film { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; min-width: 0; }
+  .film video { display: block; width: 100%; height: auto; background: var(--bg2); }
+  .film .meta { padding: 18px 20px 22px; }
+  .film h3 { margin: 6px 0 8px; font-size: 21px; letter-spacing: -0.02em; }
+  .film p { margin: 0; color: var(--muted); font-size: 15px; }
+  .film.vertical video { aspect-ratio: 9 / 16; object-fit: cover; }
+
+  .strip { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 12px; margin-top: 28px; }
+  .strip img { width: 100%; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 14px; border: 1px solid var(--line); display: block; }
+  .grid16 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+  .grid16 img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 12px; border: 1px solid var(--line); display: block; }
+
+  .features { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .f { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 26px 24px; min-width: 0; }
+  .f .n { font-size: 12px; letter-spacing: 0.2em; color: var(--dim); }
+  .f h3 { margin: 12px 0 8px; font-size: 20px; letter-spacing: -0.02em; }
+  .f p { margin: 0; color: var(--muted); font-size: 15px; }
+  .f code { color: var(--fg); font-size: 13.5px; }
+
+  pre { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 22px 24px; overflow-x: auto; font-size: 14px; line-height: 1.7; color: hsl(0 0% 86%); margin: 0; }
+  pre .c { color: var(--dim); }
+  pre .g { color: var(--accent); }
+  .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
+  .two > div { min-width: 0; }
+  .two h3 { font-size: 15px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); font-weight: 500; margin: 0 0 12px; }
+
+  footer { border-top: 1px solid var(--line); padding-block: 48px 64px; color: var(--muted); font-size: 14px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 18px; justify-content: space-between; align-items: center; }
+  footer b { color: var(--fg); }
+
+  @media (max-width: 900px) {
+    .films, .two { grid-template-columns: minmax(0, 1fr); }
+    .features { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .strip { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .grid16 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .navlinks .hide-s { display: none; }
+  }
+  @media (max-width: 560px) {
+    .features { grid-template-columns: minmax(0, 1fr); }
+    header.hero { padding-block: 56px 24px; }
+    section { padding-block: 60px; }
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .btn:hover { transform: none; } }
+</style>
+</head>
+<body>
+<nav>
+  <div class="wrap">
+    <a class="logo" href="#"><span class="dot"></span>eden-motion</a>
+    <div class="navlinks">
+      <a href="#films">Films</a>
+      <a class="hide-s" href="#features">Features</a>
+      <a class="hide-s" href="#start">Quick start</a>
+      <a href="https://github.com/Eden-Makers/eden-motion">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="label">Agent-driven motion graphics</div>
+    <h1>Company name in. <em>Finished film out.</em></h1>
+    <p class="lede">eden-motion researches the brand, writes and voices the script, storyboards it from 31 parameterised scenes, renders real 3D in Blender, mixes layered sound, renders with true shutter motion blur, then watches its own frames and fixes what it sees. Built to be driven by Claude Code, Codex or Gemini CLI.</p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/Eden-Makers/eden-motion">View on GitHub ↗</a>
+      <a class="btn" href="#films">Watch the films</a>
+    </div>
+    <div class="heroimg"><img src="media/hero.jpg" alt="Frames from a vertical promo made with eden-motion: a glowing Fn keycap in Blender, typing hands, the Hlas mark, a macro eye, real app screens flown in 3D" width="2400" height="1260" /></div>
+  </div>
+</header>
+
+<section id="films">
+  <div class="wrap">
+    <div class="label">Made with eden-motion</div>
+    <h2>Real 3D, real blur, real sound.</h2>
+    <p class="sub">Two films rendered end to end by the pipeline. Turn the sound on: the stems are voice, music, foley and stingers composed in the music's key.</p>
+    <div class="films">
+      <div class="film vertical" id="hlas">
+        <video src="media/hlas-promo.mp4" poster="media/poster-hlas.jpg" controls playsinline preload="metadata"></video>
+        <div class="meta">
+          <div class="label">Vertical promo · 43 s</div>
+          <h3>Hlas, dictation not typing</h3>
+          <p>Keycaps drift apart and a Fn key lights up green (Blender plates); the dictated Czech sentence lands at the cursor on release, exactly like the app; the real screens fly in 3D with a rack focus.</p>
+        </div>
+      </div>
+      <div class="film" id="editorial">
+        <video src="media/relate-test.mp4" poster="media/relate-9.jpg" controls playsinline preload="metadata"></video>
+        <div class="meta">
+          <div class="label">Editorial style · 13 s</div>
+          <h3>A metronome edit</h3>
+          <p>Hard cuts every 24 frames, polarity flips, a machined chrome block rendered in Cycles, rolling counters with ghost copies, frosted glass letters and a logo built from its own bars.</p>
+        </div>
+      </div>
+    </div>
+    <div class="strip">
+      <img src="media/hlas-6.jpg" alt="Typing hands on a dark keyboard" loading="lazy" />
+      <img src="media/hlas-7.jpg" alt="Dictation window with a listening pill" loading="lazy" />
+      <img src="media/hlas-2.jpg" alt="The Czech sentence landing at the cursor" loading="lazy" />
+      <img src="media/hlas-3.jpg" alt="Macro eye reflecting the green pill" loading="lazy" />
+      <img src="media/hlas-8.jpg" alt="Proof card: 4 MB" loading="lazy" />
+      <img src="media/hlas-4.jpg" alt="Real app screens flown in 3D" loading="lazy" />
+      <img src="media/hlas-1.jpg" alt="A Fn keycap glowing green" loading="lazy" />
+      <img src="media/hlas-5.jpg" alt="The Hlas mark and lockup" loading="lazy" />
+    </div>
+    <div class="grid16">
+      <img src="media/relate-9.jpg" alt="Chrome block rendered in Blender" loading="lazy" />
+      <img src="media/relate-2.jpg" alt="Rolling counters with ghost copies" loading="lazy" />
+      <img src="media/relate-5.jpg" alt="Frosted glass letters" loading="lazy" />
+      <img src="media/relate-4.jpg" alt="Acrylic card stack rendered in Blender" loading="lazy" />
+      <img src="media/diagram-2.jpg" alt="Flywheel diagram drawn on" loading="lazy" />
+      <img src="media/diagram-1.jpg" alt="Quadrant diagram drawn on" loading="lazy" />
+      <img src="media/relate-1.jpg" alt="Dash flow field" loading="lazy" />
+      <img src="media/relate-7.jpg" alt="Kinetic word stack" loading="lazy" />
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <div class="label">What is inside</div>
+    <h2>A studio pipeline, not a template.</h2>
+    <p class="sub">Every step is plain JSON in a project folder, so an agent or a human can stop anywhere, edit, and continue.</p>
+    <div class="features">
+      <div class="f"><div class="n">01</div><h3>31 scenes, 4 styles</h3><p>Kinetic and editorial type, product UI with camera and cursor, counters, diagrams, glass orbs, logo lockups. Styles: SaaS explainer, launch film, grid promo, editorial metronome.</p></div>
+      <div class="f"><div class="n">02</div><h3>Real 3D from Blender</h3><p><code>blender:</code> props render headless plates. <code>layers-3d</code> puts your screenshots and stills into real space for true depth of field, rack focus and parallax.</p></div>
+      <div class="f"><div class="n">03</div><h3>True motion blur</h3><p>Time is stretched where things move fast, sub-frames are captured and averaged with a real 180 degree shutter. Smear only where it belongs.</p></div>
+      <div class="f"><div class="n">04</div><h3>Layered sound</h3><p>Voice, music, ambience and four SFX layers as separate stems, from 5M+ free sounds on Openverse scored in code. <code>remix</code> rebalances in a second.</p></div>
+      <div class="f"><div class="n">05</div><h3>A director loop</h3><p>Contact sheets, a phone-size test, frame strips around every cut, measured pops and dead air, a harsh rubric. It never ships the first render.</p></div>
+      <div class="f"><div class="n">06</div><h3>Rebuild any reference</h3><p><code>ref</code> measures a film, <code>compare</code> puts yours next to it with SSIM, <code>critique --against</code> scores both with the same rubric.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="start">
+  <div class="wrap">
+    <div class="label">Quick start</div>
+    <h2>Five minutes to your first frame.</h2>
+    <div class="two">
+      <div>
+        <h3>Install</h3>
+<pre><span class="c"># macOS, Node 20+, ffmpeg, Chrome</span>
+git clone https://github.com/Eden-Makers/eden-motion
+cd eden-motion && ./install.sh
+eden-motion setup   <span class="c"># keys (masked), checks, smoke render</span>
+eden-motion new <span class="g">"Attio"</span> --url https://attio.com --duration 45</pre>
+      </div>
+      <div>
+        <h3>Or ask your agent</h3>
+<pre><span class="c"># the skill is linked into Claude Code, Codex
+# and every Agent Skills harness by install.sh</span>
+<span class="g">&gt;</span> make a 45 second launch video for Linear
+<span class="g">&gt;</span> rebuild this reference 1:1
+<span class="g">&gt;</span> a vertical promo for my app, here is my moodboard</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div><b>eden-motion</b> by <a href="https://edenmakers.ai">Edenmakers</a>, an AI film and advertising studio in Prague. Directed. Not generated.</div>
+    <div>Built on HyperFrames, GSAP, Blender, ffmpeg and Openverse.</div>
+  </div>
+</footer>
+</body>
+</html>

@@ -173,11 +173,13 @@ export async function build(projectDir, { slow = 1, out = "comp", mb = null, sto
   if (customFiles.length) copyDir(customDir, path.join(comp, "custom-scenes"));
 
   const total = sb.duration;
+  // frame size: storyboard width/height (vertical 1080x1920 for reels), default 1920x1080
+  const W = +sb.width || 1920, H = +sb.height || 1080;
   const html = `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=1920, height=1080" />
+<meta name="viewport" content="width=${W}, height=${H}" />
 <title>${(brand.name || "eden-motion").replace(/</g, "")}</title>
 <script src="runtime/gsap.min.js"></script>
 <link rel="stylesheet" href="fonts.css" />
@@ -185,12 +187,13 @@ export async function build(projectDir, { slow = 1, out = "comp", mb = null, sto
 ${sceneCss.map((f) => `<link rel="stylesheet" href="runtime/scenes/${f}" />`).join("\n")}
 <link rel="stylesheet" href="runtime/scenes.css" />
 <style>
-:root { ${tokens.join(" ")} }
+:root { ${tokens.join(" ")} --W: ${W}px; --H: ${H}px; }
+#root { width: ${W}px; height: ${H}px; }
 html[data-theme] { ${themeOverrides.join(" ")} }
 </style>
 </head>
 <body>
-<div id="root" data-composition-id="main" data-start="0" data-width="1920" data-height="1080" data-duration="${(total * slow).toFixed(3)}">
+<div id="root" data-composition-id="main" data-start="0" data-width="${W}" data-height="${H}" data-duration="${(total * slow).toFixed(3)}">
   <!--EM_STATIC_MEDIA-->
   <div id="bg"></div>
   <div id="stage"></div>

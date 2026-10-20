@@ -1,18 +1,29 @@
 ---
 name: eden-motion
-description: Company name in, finished motion-graphics brand film out (Burnwe / Lovable / Google launch-film quality). Researches the brand from its website, writes the script, records an ElevenLabs voiceover with word timings, storyboards 15-20 shots from a library of premium scenes (hot-tail kinetic type, product UI with camera and cursor, prompt box, orbit, stat counters, card chaos, flow lines, glass media frames, logo resolve), generates images with Nano Banana Pro and AI clips via Higgsfield (Seedance 2.0 / Kling 3 / Veo 3.1), offers burnwe / launch / higgsfield visual styles, mixes music + SFX on exact frames, renders with HyperFrames and true shutter motion blur, then self-reviews with Gemini and iterates. Use for "make a motion graphics video for <company>", "explainer video", "SaaS promo", "launch video", "brand film from a website", "motion design like Burnwe/Lovable/Google", "udělej motion graphic video", "explainer pro firmu".
+description: Company name in, finished motion-graphics brand film out (Burnwe / Lovable / Google launch-film quality). Researches the brand from its website, writes the script, records an ElevenLabs voiceover with word timings, storyboards 15-20 shots from a library of premium scenes (hot-tail kinetic type, product UI with camera and cursor, prompt box, orbit, stat counters, card chaos, flow lines, glass media frames, logo resolve), generates images with Nano Banana Pro and AI clips via Higgsfield (Seedance 2.0 / Kling 3 / Veo 3.1), offers burnwe / launch / higgsfield / relate visual styles, renders 3D plates headless in Blender (chrome hardware, acrylic card stacks, product CG), mixes layered stems (VO, music, ambience, transition / UI / foley / accent SFX) on exact frames with free CC0 / CC-BY sounds from Openverse picked by a code score, renders with HyperFrames and true shutter motion blur, then self-reviews with Gemini and iterates. Also rebuilds a reference film 1:1 (compare + calibrated critique). Use for "make a motion graphics video for <company>", "explainer video", "SaaS promo", "launch video", "brand film from a website", "motion design like Burnwe/Lovable/Google/Relate", "crypto / fintech promo", "napodob tohle video 1:1", "udělej motion graphic video", "explainer pro firmu".
 ---
 
 # eden-motion
 
-Repo: `~/Dev/eden-motion` (path also in `.repo-path` next to this file). CLI: `eden-motion` (global) or `node <repo>/bin/eden-motion.mjs`. Engine = HyperFrames (HTML + GSAP, seek-deterministic).
+Repo: the clone this skill was installed from (its path is in `.repo-path` next to this file, written by `install.sh`). CLI: `eden-motion` (global) or `node <repo>/bin/eden-motion.mjs`. Engine = HyperFrames (HTML + GSAP, seek-deterministic).
 Everything is plain JSON in a project folder, so any harness can run steps, read results and edit them.
 
-## 0. Setup check (10 s)
+## 0. Setup check (first thing, every new machine)
 ```bash
-cd ~/Dev/eden-motion && node bin/eden-motion.mjs doctor
+cd "$(cat <this skill dir>/.repo-path)" && node bin/eden-motion.mjs doctor --json
 ```
-Needs `GEMINI_API_KEY`, `ELEVENLABS_API_KEY` (env, repo `.env` or `~/.zshrc`), ffmpeg, node 20+, npx.
+Each check has `level` (required | recommended | optional), `status`, `why` and `fix`. If `ready` is
+false or a recommended item is missing, onboard the person before anything else:
+- Talk them through it one item at a time, in their language (Czech if they write Czech), plain words:
+  what it is for (`why`), then the exact fix. Install tools yourself when you have a shell
+  (`brew install ffmpeg`, `brew install --cask blender`, `bash install.sh`), after saying what you run.
+- **API keys: never ask for them in chat.** Send the person to the key page from `fix`, then have them
+  run `eden-motion setup` in their own terminal: input is masked, the key goes to the repo `.env`
+  (gitignored, chmod 600) and is verified live. If a key appears in chat anyway, tell them to rotate it.
+- Required: Node 20+, ffmpeg, Chrome, `GEMINI_API_KEY` (free at aistudio.google.com/apikey).
+  Recommended: `ELEVENLABS_API_KEY` (voice + music), skill links. Optional, only when the film needs it:
+  Blender 4.2+ (3D plates), uv (stingers), `FAL_KEY` (AI clips). Do not block on optional items.
+- Finish with `eden-motion setup --yes` (20 s smoke render, no API calls) and show them the frame.
 
 ## 1. One command (autopilot, ~25-40 min)
 ```bash
@@ -33,7 +44,8 @@ node bin/eden-motion.mjs script <slug>                 # script.json  <- READ AN
 node bin/eden-motion.mjs vo <slug>                     # audio/vo.mp3, vo.json (word timings)
 node bin/eden-motion.mjs storyboard <slug>             # storyboard.json  <- READ AND IMPROVE IT
 node bin/eden-motion.mjs assets <slug>                 # resolves "gen:<prompt>" images (Nano Banana Pro 2K)
-node bin/eden-motion.mjs audio <slug>                  # music + SFX on engine cues + VO -> audio/mix.wav
+node bin/eden-motion.mjs audio <slug>                  # VO + music + ambience + layered SFX -> audio/stems/*.wav + audio/mix.wav
+node bin/eden-motion.mjs remix <slug> --music -3 --sfx +2   # rebalance stems -> mix.wav in seconds
 node bin/eden-motion.mjs render <slug> --draft         # ~1-2 min, no motion blur, for review
 node bin/eden-motion.mjs render <slug>                 # final: adaptive true shutter motion blur (~7 min / 60 s)
 node bin/eden-motion.mjs qc <slug>                     # Gemini creative-director review
@@ -101,6 +113,17 @@ promote it into `runtime/scenes/` and add it to `src/lib/catalog.mjs`.
 - `--style burnwe` (default SaaS explainer), `--style launch` (Google/Lovable launch film), `--style higgsfield`
   (white grid canvas, magenta + lime accents, flash frames, punch-ins, pixel reveals, AI footage as proof in
   grid cells; see `research/analysis/higgsfield.md`). The style steers storyboard scene and transition choice.
+- `--style relate` (Relate Studio crypto/fintech editorial, `research/analysis/relate.md`): metronome hard cuts
+  on a fixed grid (`--cut-grid 1.0` = one cut every 24 frames at 24 fps; several shots share one VO line),
+  polarity flip paper/black every shot, flat worlds (no bloom, no exposure ramp), forward-shutter motion blur,
+  Relate scene pack (ghost-counter, editorial-headline, dash-field, glass-letters, rank-list, clip-3d, logo-bars).
+  Elements that the originals change per frame (counters, word stacks, swaps) are quantised to the film fps so
+  the true-shutter blur keeps them crisp.
+- 3D plates: any prop `src: "blender:<template>?k=v"` is rendered headless by `eden-motion blender <slug>` into
+  a transparent VP9 webm in `assets/3d/` (cached by params). Templates: `chrome-object` (object=block|screw|screws3|ring|rodblock,
+  spin, gain; Cycles Metal in a near emissive studio dome), `card-stack` (action=collapse|flyoff|fan, colors; EEVEE).
+  `blender:./custom/shot.py` runs your own script (args: `-- --out DIR --params JSON [--preview]`, write `f_0001.png`...).
+  Libraries: `blender/lib/chrome.py`, `product.py`, `mglib.py`. Lessons: `references/relate-and-1to1.md`.
 - `--video` allows up to 2 AI clips: storyboard props `{kind:"video", src:"genvideo:<still prompt> || <motion prompt>"}`.
   The assets step makes the still with Nano Banana Pro, then image-to-video through the **Higgsfield CLI**
   (`higgsfield generate create seedance_2_0 --start-image ...`, default when `higgsfield account status` works;
@@ -111,16 +134,89 @@ promote it into `runtime/scenes/` and add it to `src/lib/catalog.mjs`.
   transition, World morphing, Overexposed, Break Typography, Slot Roll ...) and generate hero shots there,
   then drop the mp4 into `assets/` and reference it from storyboard.json.
 
+## 4b. 2D assets in real 3D (Blender `layers-3d`)
+
+HyperFrames (like Remotion) fakes depth with CSS 3D: no true depth of field, no rack focus,
+perspective that breaks on big rotations, no parallax between layers. When a shot needs that, put
+the pre-rendered assets into Blender and film them with a real camera:
+
+```json
+{"type": "clip-3d", "props": {"src": "blender:layers-3d?images=assets/ui-1.png,assets/ui-2.png,assets/still.jpg&layout=stack&move=dolly&focus=2"}}
+```
+then `eden-motion blender <slug>`. Inputs: UI screenshots, Nano Banana stills, PNG/MOV-with-alpha
+layers you rendered from HyperFrames, or plain video (plays as a moving texture). Layouts: `stack`
+(one behind another), `row` (curved side by side), `fan`, `floor` (lying on a table). Moves: `dolly`
+(push in + rack focus from the first layer to `focus`), `orbit`, `tilt` (swing from flat into 3D),
+`float`. The rig is tabletop scale so f-stops behave like a real lens: `fstop=2.8` default, `1.4`
+leaves only a sliver of the focus layer sharp. Assets render unlit, so UI colours stay exact.
+Typical uses: a product UI flythrough with focus pulls, a wall of stills the camera orbits, a
+screenshot that swings from flat into a 3D hero angle. Render cost ~1.5 s per 1080p frame (EEVEE).
+
+## Motion curves
+
+No linear motion by default (`runtime/SCENE_API.md` rule 14): arrivals `power3.out`/`expo.out`,
+settles `power2.out`, drifts and push-ins `sine.out` (energy first, settles into the cut), camera
+moves across a cut `sine.inOut`. Linear only for typing, time remaps, continuous spins, frame-stepped
+wipes. Blender templates follow the same rule (SINE ease-out keys; `curve=linear` opts out).
+
+## Diagrams
+
+`diagram-draw` (mode timeline | quadrant | flywheel | sequence | nested) draws editorial diagrams
+stroke by stroke: hairlines, one accent on the focus item (falls back to ink + fill + weight when the
+brand accent has no contrast on the tone), everything on a 4 px grid, all items landed by ~45% of the
+shot so the focal read is held.
+
+## 5a. Sound layers
+
+`audio` renders every layer to its own full-length 48 kHz float stem in `audio/stems/` (import them
+straight into DaVinci as separate tracks) and then sums them into `audio/mix.wav`:
+
+| layer | what lands there | source |
+|---|---|---|
+| `vo` | narrator, compressed | ElevenLabs |
+| `music` | bed with fades, TURN dips, strongest hit shifted onto the logo (clean, not ducked) | ElevenLabs music |
+| `ambience` | optional steady bed far under everything (`storyboard.ambience` or `--ambience "..."`) | Openverse |
+| `sfx_transitions` | whoosh on transitions and tone-change cuts | local library or Openverse |
+| `sfx_ui` | clicks, pops, typing beds, panned with the element | local library or Openverse |
+| `sfx_foley` | per-shot signature sounds: `scene.sound = {"q":"metal screw drop","at":0.4,"gain":-6}` | Openverse |
+| `sfx_accents` | riser + impact into the logo | local library or Openverse |
+| `stingers` | `--stingers`: accent thumps + a logo sting composed in code in the music's detected key | audio-as-code (uv) |
+
+- `--sfx-source openverse` swaps the curated library for a fresh palette per film. Every Openverse
+  pick is: safe license only (CC0, PDM, CC-BY; never NC, ND, SA), silence trimmed, loudness matched
+  to the library file of the same role, and scored in code: length and peak position for its role,
+  query words in title/tags, penalties for speech/music/loops, hiss and clipping, CC0 over CC-BY.
+  No LLM calls by default (editors replace sounds anyway); `--judge-sfx` lets Gemini listen to the
+  top 4 when a film needs it. Picks and files cache in `.cache/openverse`.
+- No ElevenLabs music (no key or it failed)? A plain bed is composed in code (`audio/music-code.wav`,
+  same level as the real bed) so drafts are never silent; generate real music for a final.
+- CC-BY sounds are listed in `audio/CREDITS.md` and must go into the description or end credits.
+- `remix <slug> --music -3 --sfx-foley -4 --ambience off` rebuilds only the mix from stems (gains
+  persist in `audio/mix.json`; `--sfx` moves all four SFX layers). Music ducks under the VO here.
+- Foley is for physical events on screen only (objects landing, metal, glass, paper). Text and UI
+  shots already get whooshes, clicks and pops; do not stack foley on them.
+
+## 5b. Rebuild a reference film 1:1 (or match a client's favourite)
+Read `references/relate-and-1to1.md` first. Short loop:
+1. `eden-motion ref <slug> <ref.mp4>`: measured cut list, metronome detection, style notes.
+2. Per-second strips: `ffmpeg -i ref.mp4 -vf "fps=6,scale=320:-1" f_%04d.jpg` then tile 6x4; LOOK at every second.
+3. Write storyboard.json by hand on the measured cut frames (no VO needed), 3D shots as `blender:` props.
+4. `eden-motion blender <slug> --preview` while iterating, then without `--preview`.
+5. `render --draft`, `npx hyperframes snapshot --at t1,t2 --against ref.mp4` inside `comp/` (pairs render | reference).
+6. `render`, `compare <slug> ref.mp4` (side by side + pairs + SSIM), `critique <slug> --against ref.mp4`
+   (same rubric on both; within 1 point on every axis = on par). SSIM is harsh on thin detail and DOF: read pairs.jpg.
+
 ## 6. House rules
 - Stills: Nano Banana Pro (Gemini 3 Pro Image) at 2K, always end prompts with "no text, no letters, no logos". Flux is banned. Log every prompt (done automatically in `prompts.log.jsonl`).
 - Video clips (optional, for `media-frame` kind video): Seedance 2.0 or Kling 3.0 via Higgsfield/fal/Magnific with the approved still as reference, render 3 s longer than the cut, "no music" in the prompt.
 - No em dashes or en dashes in any copy (the pipeline strips them; check anything you write).
 - Motion law: focus-pull arrivals, no overshoot, camera never still, one accent colour, sync to VO words.
-- Deliver: copy `renders/final.mp4` + an HTML review sheet to the company Google Drive project folder (Eden Business). Never send to a client without Gedeon's approval.
+- Deliver: `review <slug> --deliver <folder>` copies `renders/final.mp4` + the HTML review sheet to your delivery folder. Never send a film to a client before a human has approved it.
 
 ## References
 - `references/style-dna.md` - measured rules from the reference films (pacing, easing, type, sound).
 - `references/scene-catalog.md` - every scene type, props, when to use.
 - `references/director-brief.md` - the long-brief template (logline, refs, keys, beat sheet, gates, critique loop, deliverables) and the parallel-chapter subagent pattern.
 - `references/pipeline.md` - file formats (brief, brand, script, vo, storyboard), rendering and motion blur internals, troubleshooting.
-- Repo research: `~/Dev/eden-motion/research/analysis/{burnwe,launch-films,higgsfield,tooling-and-workflows}.md` (full forensic breakdowns, 90+ techniques with parameters, Higgsfield preset map).
+- `references/relate-and-1to1.md` - Relate grammar, the 1:1 rebuild loop, Blender 5.2 headless + HyperFrames gotchas.
+- Repo research: `research/analysis/{burnwe,launch-films,higgsfield,relate,tooling-and-workflows}.md` (full forensic breakdowns, 90+ techniques with parameters, Higgsfield preset map), `research/relate/*.md` (26 per-film shot lists), `research/blender/{PLAYBOOK,tutorials}.md` (12 Blender tutorials distilled).

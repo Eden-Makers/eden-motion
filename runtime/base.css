@@ -90,9 +90,17 @@ html[data-theme="saas-light"] .em-vignette, html[data-theme="glow"] .em-vignette
 .tone-cream { --bg: #f7f2ec; --bg2: #fffaf5; --fg: #121212; --muted: #8a8580; --card: #ffffff; --card-fg: #141414;
   --line: rgba(0, 0, 0, 0.07); --shadow: 0 40px 90px -25px rgba(80, 30, 30, 0.25), 0 10px 30px -10px rgba(80, 30, 30, 0.15); --chip: #f3eee8; color: var(--fg); }
 .tone-black { --bg: #000; --bg2: #07090e; --fg: #fff; --muted: #9aa0ab; --card: #111318; --card-fg: #fff; --line: rgba(255,255,255,0.1); --shadow: 0 40px 120px -20px rgba(0,0,0,0.9); --chip: #1a1c22; color: var(--fg); }
+.tone-paper { --bg: #fcfcfc; --bg2: #ffffff; --fg: #0b0b0b; --muted: #6f6f6f; --card: #ffffff; --card-fg: #111; --line: rgba(0,0,0,0.12); --shadow: 0 30px 80px -30px rgba(0,0,0,0.25); --chip: #f0f0f0; color: var(--fg); }
+.tone-stage { --bg: #d9d9d9; --bg2: #e6e6e6; --fg: #0b0b0b; --muted: #7a7a7a; --card: #ffffff; --card-fg: #111; --line: rgba(0,0,0,0.1); --shadow: 0 30px 80px -30px rgba(0,0,0,0.2); --chip: #eeeeee; color: var(--fg); }
 .em-scene-bg { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 40%, var(--bg2) 0%, var(--bg) 72%); overflow: hidden; }
 .em-scene-bloom { position: absolute; width: 1300px; height: 1300px; margin: -650px 0 0 -650px; border-radius: 50%; opacity: 0.35; }
 .tone-dark .em-scene-bloom { opacity: 0.4; } .tone-black .em-scene-bloom { opacity: 0.18; }
 .em-exposure { position: absolute; inset: 0; background: var(--bg); z-index: 30; pointer-events: none; }
 .em-tag { position: absolute; left: 30px; top: 34px; padding: 6px 14px; border-radius: 8px; background: var(--accent); color: #fff; font: 600 20px var(--font-body); white-space: nowrap; }
 .em-hot { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text; }
+
+/* Relate / flat worlds: no bloom, no gradient, exact background colour (set by storyboard "flat": true). */
+[data-flat] .em-scene-bloom { display: none; }
+[data-flat] .em-scene-bg { background: var(--bg); }
+.tone-paper .em-scene-bloom, .tone-stage .em-scene-bloom { display: none; }
+.tone-paper .em-scene-bg, .tone-stage .em-scene-bg { background: var(--bg); }

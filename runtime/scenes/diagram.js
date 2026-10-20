@@ -36,7 +36,7 @@
  *   props: {
  *     cards: [{ icon, title, text, cue? }]   2-4 cards
  *     headline?: str, keyword?: str          typed above the row with fx.hotType
- *     index?: bool (default true)            small 01 / 02 / 03 numerals
+ *     index?: bool (default false)           small 01 / 02 / 03 numerals (template tell, use sparingly)
  *   }
  *
  * tasks (M30 status flip + M31 highlight sweep + M32 row lift, "AI doing the work")
@@ -255,7 +255,7 @@
       sats.forEach((s) => gsap.set(s.label, { xPercent: -50 }));
 
       // ---- timeline
-      tl.fromTo(cam, { scale: 1, x: 7 * D }, { scale: 1 + 0.04 * D, x: -7 * D, duration: D, ease: "none" }, t0);
+      tl.fromTo(cam, { scale: 1, x: 7 * D }, { scale: 1 + 0.04 * D, x: -7 * D, duration: D, ease: "sine.inOut" }, t0);
       tl.fromTo(halo, { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 1.4, ease: "power2.out" }, start + 0.05);
 
       const tc = start + 0.12;
@@ -267,7 +267,7 @@
         const at = start + 0.2 + i * 0.12;
         if (rg.dashed) tl.fromTo(rg.wrap, { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 1.0, ease: "expo.out" }, at);
         else {
-          tl.fromTo(rg.wrap, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "none" }, at);
+          tl.fromTo(rg.wrap, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power1.out" }, at);
           fx.draw(tl, rg.circle, at, { dur: 1.3, ease: "power3.inOut" });
         }
       });
@@ -435,7 +435,7 @@
       });
 
       // camera: truck sideways (world moves left) while pushing in
-      tl.fromTo(world, { x: TR, z: 0, y: 20 }, { x: -TR, z: ZP, y: -20, duration: D, ease: "none" }, t0);
+      tl.fromTo(world, { x: TR, z: 0, y: 20 }, { x: -TR, z: ZP, y: -20, duration: D, ease: "sine.inOut" }, t0);
 
       // arrival = when the card first enters frame (or staggered by screen x if visible at t0)
       const sx = (c, t) => {
@@ -497,7 +497,7 @@
       tl.fromTo(dim, { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "power2.out" }, tw - 0.1);
       tl.fromTo(glow, { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 1.0, ease: "power2.out" }, tw - 0.05);
       tl.fromTo(wEl, { opacity: 0, scale: 1.4, filter: "blur(30px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.8, ease: "power3.out" }, tw);
-      tl.to(wEl, { scale: 1.05, duration: Math.max(0.3, t1 - tw - 0.8), ease: "none" }, tw + 0.8);
+      tl.to(wEl, { scale: 1.05, duration: Math.max(0.3, t1 - tw - 0.8), ease: "sine.out" }, tw + 0.8);
       if (subEl) fx.focusIn(tl, subEl, tw + 0.45, { y: 14, blur: 12 });
     },
   });
@@ -736,7 +736,7 @@
 
       // arrival: from depth with a small tilt, content focus-pulls (M8)
       const ta = start + (hasHead ? 0.3 : 0.12);
-      tl.fromTo(rig, { rotationY: 5, rotationX: 7 }, { rotationY: -4, rotationX: 3, duration: t1 - ta, ease: "none" }, ta);
+      tl.fromTo(rig, { rotationY: 5, rotationX: 7 }, { rotationY: -4, rotationX: 3, duration: t1 - ta, ease: "sine.inOut" }, ta);
       els.forEach((e, i) => {
         const t = ta + i * 0.14;
         tl.fromTo(e.outer, { y: 90, z: -Math.abs(e.off) * 50 - 220 }, { y: 0, z: -Math.abs(e.off) * 50, duration: 0.9, ease: "expo.out" }, t);
@@ -822,7 +822,7 @@
       // panel arrives tilted back (M18) and settles to a gentle 3D angle
       const ta = start + 0.08;
       tl.fromTo(panel, { rotationX: 30, rotationY: -10, y: 120, scale: 0.84, opacity: 0, filter: "blur(18px)" }, { rotationX: 7, rotationY: -5, y: 0, scale: 1, opacity: 1, filter: "blur(0px)", duration: 1.0, ease: "expo.out" }, ta);
-      tl.to(panel, { rotationX: 3, rotationY: 3, duration: Math.max(0.5, t1 - ta - 1.0), ease: "none" }, ta + 1.0);
+      tl.to(panel, { rotationX: 3, rotationY: 3, duration: Math.max(0.5, t1 - ta - 1.0), ease: "sine.inOut" }, ta + 1.0);
       fx.focusIn(tl, head.children, ta + 0.3, { blur: 12, stagger: 0.1, scale: 1 });
       fx.focusIn(tl, rowEls.map((e) => e.content), ta + 0.45, { blur: 12, y: 16, stagger: 0.09, scale: 1 });
 

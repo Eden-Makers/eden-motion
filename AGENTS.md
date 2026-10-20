@@ -4,7 +4,7 @@ This repo turns a company name into a finished motion-graphics brand film. The o
 agents is `skills/eden-motion/SKILL.md`; read it first. Short version:
 
 ```bash
-node bin/eden-motion.mjs doctor
+node bin/eden-motion.mjs doctor --json      # not ready? onboard the person first (SKILL.md section 0)
 node bin/eden-motion.mjs new "<Company>" --url https://site --duration 60     # autopilot draft
 node bin/eden-motion.mjs render <slug> --draft && node bin/eden-motion.mjs qc <slug>
 ```

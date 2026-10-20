@@ -200,8 +200,8 @@
 
       // Ken Burns on the footage, the refracted rim copy rides along magnified.
       const kbD = end + 0.4 - t0;
-      tl.fromTo(kb, { scale: 1.16, xPercent: -2 }, { scale: 1.02, xPercent: 2, duration: kbD, ease: "none" }, t0);
-      tl.fromTo(refract, { scale: 1.48, xPercent: -3 }, { scale: 1.3, xPercent: 3, duration: kbD, ease: "none" }, t0);
+      tl.fromTo(kb, { scale: 1.16, xPercent: -2 }, { scale: 1.02, xPercent: 2, duration: kbD, ease: "sine.out" }, t0);
+      tl.fromTo(refract, { scale: 1.48, xPercent: -3 }, { scale: 1.3, xPercent: 3, duration: kbD, ease: "sine.out" }, t0);
       // Glint sweeps once across the glass as it lands.
       tl.fromTo(glint, { backgroundPosition: "130% 0%" }, { backgroundPosition: "-40% 0%", duration: 1.3, ease: "power2.inOut" }, t0 + 0.55);
       // The glass breathes (T8): rim swells a touch.
@@ -357,7 +357,7 @@
     tl.fromTo(others, { opacity: 0.35 }, { opacity: 1, duration: 0.8, ease: "power2.out", stagger: { each: 0.015, from: "center" } }, tPull + 0.2);
     // Rack focus on the push: everything but the target defocuses.
     const nonTarget = [...wallEl.children].filter((e) => e !== tgt.el);
-    tl.to(wallEl.querySelectorAll(".mo-tile img"), { scale: 1.06, duration: end - tPull, ease: "none" }, tPull);
+    tl.to(wallEl.querySelectorAll(".mo-tile img"), { scale: 1.06, duration: end - tPull, ease: "sine.out" }, tPull);
     tl.to(nonTarget, { opacity: 0.5, duration: dPush * 0.8, ease: "power2.in" }, tPush);
     (EM.cues = EM.cues || []).push({ t: tPull, type: "whoosh", dur: dPull }, { t: tPush, type: "whoosh", dur: dPush });
   }
@@ -410,13 +410,13 @@
       tl.fromTo(orb, { scale: 0.45, opacity: 0, filter: "blur(26px) brightness(1.6)" }, { scale: 1, opacity: 1, filter: "blur(0px) brightness(1)", duration: 1.0, ease: "expo.out" }, t0);
       tl.fromTo(halo, { scale: 0.4, opacity: 0 }, { scale: 1, opacity: 1, duration: 1.4, ease: "power2.out" }, t0 + 0.05);
       tl.fromTo([ring1, ring2], { scale: 0.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 1.2, ease: "expo.out", stagger: 0.12 }, t0 + 0.2);
-      tl.fromTo(ring1, { rotationZ: -8 }, { rotationZ: 22, duration: end + 0.4 - t0, ease: "none" }, t0);
-      tl.fromTo(ring2, { rotationZ: 14 }, { rotationZ: -18, duration: end + 0.4 - t0, ease: "none" }, t0);
-      tl.fromTo(swirl, { rotation: 0 }, { rotation: 140, duration: end + 0.4 - t0, ease: "none" }, t0);
+      tl.fromTo(ring1, { rotationZ: -8 }, { rotationZ: 22, duration: end + 0.4 - t0, ease: "sine.inOut" }, t0);
+      tl.fromTo(ring2, { rotationZ: 14 }, { rotationZ: -18, duration: end + 0.4 - t0, ease: "sine.inOut" }, t0);
+      tl.fromTo(swirl, { rotation: 0 }, { rotation: 140, duration: end + 0.4 - t0, ease: "sine.inOut" }, t0);
       tl.fromTo(glyph, { scale: 0.5, opacity: 0, filter: "blur(12px)" }, { scale: 1, opacity: 1, filter: "blur(0px)", duration: 0.55, ease: "expo.out" }, t0 + 0.4);
       tl.fromTo(shadow, { opacity: 0 }, { opacity: 1, duration: 1, ease: "power2.out" }, t0 + 0.2);
       tl.fromTo(motes.map((x) => x.m), { opacity: 0 }, { opacity: (i) => motes[i].o, duration: 1.2, stagger: 0.04, ease: "power2.out" }, t0 + 0.3);
-      motes.forEach((x) => tl.to(x.m, { x: x.dx, y: x.dy, duration: end + 0.4 - t0, ease: "none" }, t0));
+      motes.forEach((x) => tl.to(x.m, { x: x.dx, y: x.dy, duration: end + 0.4 - t0, ease: "sine.inOut" }, t0));
       // bob (M28: +-6..8 px over ~3 s) on the orb and a counter-bob on its floor shadow
       bob(tl, orb, t0 + 0.9, end + 0.3, { amp: 9, period: 2.8 });
       bob(tl, shadow, t0 + 0.9, end + 0.3, { amp: 0.08, base: 1, period: 2.8, prop: "scaleX" });
@@ -553,7 +553,7 @@
       const t0 = start + 0.02;
       tl.fromTo(lInner, { opacity: 0, scale: 1.08, filter: "blur(16px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.45, ease: "power3.out" }, t0);
       tl.fromTo(rInner, { opacity: 0, scale: 1.06, filter: "blur(16px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.45, ease: "power3.out" }, t0 + 0.04);
-      if (lImg) tl.fromTo(lImg, { scale: 1.12 }, { scale: 1.0, duration: end + 0.3 - t0, ease: "none" }, t0);
+      if (lImg) tl.fromTo(lImg, { scale: 1.12 }, { scale: 1.0, duration: end + 0.3 - t0, ease: "power2.out" }, t0);
       tl.fromTo(divider, { scaleY: 0 }, { scaleY: 1, duration: 0.45, ease: "expo.out" }, t0 + 0.05);
       fx.focusIn(tl, [lLabel, rLabel], t0 + 0.08, { stagger: 0.08, y: 10, dur: 0.36 });
       if (lItems.length) fx.focusIn(tl, lItems, t0 + 0.18, { stagger: 0.1, y: 14, blur: 12, dur: 0.38 });
@@ -595,7 +595,7 @@
         tl.to(rCol, { scale: 1.06, duration: 0.6, ease: "power3.inOut" }, tExp);
       }
       // camera: slow push, never still
-      tl.fromTo(root, { scale: 1.0 }, { scale: 1.04, duration: end + 0.3 - start, ease: "none" }, start - 0.1);
+      tl.fromTo(root, { scale: 1.0 }, { scale: 1.04, duration: end + 0.3 - start, ease: "sine.out" }, start - 0.1);
     },
   });
 

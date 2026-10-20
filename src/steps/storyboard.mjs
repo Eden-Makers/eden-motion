@@ -12,6 +12,7 @@ import { log, warn, readJSON, writeJSON, deepNoDashes } from "../lib/util.mjs";
 const STYLES = {
   burnwe: "Burnwe SaaS explainer: clean light/dark worlds alternating every 5-13 s, hot-tail typed headlines, product UI as a stage prop with camera push and cursor, focus-pull arrivals, mostly cuts on VO phrase ends, orbit/flow/tasks diagrams, one accent colour.",
   launch: "Google/Lovable launch film: big single-word kinetic type on beats, glowing prompt box as the hero prop, AI result imagery in glass frames and montages, tones black or cream with gradient blooms, blur-based transitions, energetic cold open.",
+  relate: "Relate Studio editorial film (research/analysis/relate.md): metronome hard cuts on a fixed grid (every 24 frames or every 2 beats), almost no transitions, polarity flip as rhythm (tone paper / black alternating nearly every shot, stage grey for UI), strictly one palette (monochrome or brand + neutrals), neo-grotesk type with tight tracking, small captions against giant cropped numbers, fast label swaps inside a held shot, industrial 3D metaphors for abstract ideas (chrome blocks, screws, rods, acrylic cards) as clip-3d plates, product UI only as physical objects or clean cards, logo built from its own graphic vocabulary at the end. Prefer scenes ghost-counter, editorial-headline, dash-field, glass-letters, rank-list, clip-3d, logo-bars, kinetic-type single; transitions cut only.",
   higgsfield: "Higgsfield promo: white grid canvas with hairlines and magenta crosshairs (tone 'grid', background 'hf-grid'), two accents with fixed jobs (magenta for names/buttons, lime for highlights), 1 char/frame typing, flash-frame and punch-in transitions on every section change, pixel/halftone reveals, AI footage shown as proof inside grid cells or tilted cards, fast 1-1.5 s shots, slot-roll word lists, crash-zoom logo lockup, plain caps end card. Prefer scenes grid-stage, drum-list, pixel-type, persp-card, glitch-lockup, endcard-caps when available, and transitions flash-frame, punch-in, pixel-dissolve, overexpose, grid-reflow.",
 };
 
@@ -60,7 +61,24 @@ export async function storyboard(projectDir, { endHold = 2.2, direction = null, 
     return { start: +start.toFixed(3), end: +end.toFixed(3) };
   });
 
-  log(`storyboarding ${lines.length} shots (${total}s, theme ${theme}, scenes: ${avail.length})`);
+  // Metronome mode (Relate): shots on a fixed grid regardless of VO phrasing; each shot inherits
+  // the line playing at its midpoint. brief.cutGrid in seconds (1.0 = 24 frames at 24 fps).
+  const grid = +(brief.cutGrid || (brief.style === "relate" ? 1.0 : 0));
+  let units = lines.map((l, i) => ({ li: i, start: windows[i].start, end: windows[i].end }));
+  if (grid > 0) {
+    units = [];
+    // snap the end card onto the grid (no sliver shot before it), keep it at least 2.4 s
+    const lastFrom = Math.max(grid, Math.floor((total - Math.max(2.4, endHold + 1)) / grid + 1e-6) * grid);
+    for (let t = 0; t < lastFrom - 1e-6; t += grid) {
+      const mid = t + grid / 2;
+      const li = Math.max(0, windows.findIndex((w) => mid >= w.start && mid < w.end));
+      units.push({ li, start: +t.toFixed(3), end: +Math.min(t + grid, lastFrom).toFixed(3) });
+    }
+    units.push({ li: lines.length - 1, start: +lastFrom.toFixed(3), end: total });
+    log(`metronome grid ${grid}s: ${units.length} shots`);
+  }
+
+  log(`storyboarding ${units.length} shots (${total}s, theme ${theme}, scenes: ${avail.length})`);
   const catalog = avail.map((k) => `- ${k}: ${SCENES[k]}`).join("\n");
   const trans = Object.entries(TRANSITIONS).map(([k, v]) => `- ${k}: ${v}`).join("\n");
   const assets = { logo: brand.logo, mark: brand.mark, screenshots: brand.screenshots || [] };
@@ -71,8 +89,8 @@ BRAND: ${JSON.stringify({ name: brand.name, tagline: brand.tagline, one_liner: b
 AVAILABLE BRAND ASSETS: ${JSON.stringify(assets)}
 THEME: ${theme}
 
-SHOTS (one per narration line, timing is fixed):
-${lines.map((l, i) => `${i}. [${windows[i].start.toFixed(2)}-${windows[i].end.toFixed(2)}s, ${(windows[i].end - windows[i].start).toFixed(1)}s] beat=${l.beat} tone=${l.tone} suggested=${l.scene} VO: "${l.text}" | idea: ${l.visual}`).join("\n")}
+SHOTS (${grid > 0 ? "metronome cuts on a fixed grid, several shots can share one narration line" : "one per narration line"}, timing is fixed):
+${units.map((u, i) => { const l = lines[u.li]; return `${i}. [${u.start.toFixed(2)}-${u.end.toFixed(2)}s, ${(u.end - u.start).toFixed(1)}s] line=${u.li} beat=${l.beat} tone=${l.tone} suggested=${l.scene} VO: "${l.text}" | idea: ${l.visual}`; }).join("\n")}
 
 SCENE CATALOG (type: props schema + purpose):
 ${catalog}
@@ -84,7 +102,7 @@ STYLE: ${STYLES[brief.style || "burnwe"] || brief.style}
 ${refStyle ? `REFERENCE FILM TO MATCH (measured from the client's chosen reference; copy its pacing, type behaviour, transitions and camera, not its content):\n${refStyle}\n` : ""}${direction ? `CREATIVE DIRECTION FOR THIS VARIANT: ${direction}\n` : ""}
 APPLE FRAMEWORK: every choice is intentional; one shot = one idea; each shot has room to breathe; the key object sits in the centre of the frame; backgrounds never compete with the key object; motion is eased and overlapping, never linear; rhythm adapts (speeds up in lists and montages, slows down on the reveal and the proof).
 
-BANNED DEFAULTS (the tells of AI-made video): centered title on a gradient, everything fading in, corner labels and frame borders, glow on UI chrome, generic particle bursts, a beat where nothing happens, invented UI when the real product exists (use its screenshots or rebuild it 1:1).
+BANNED DEFAULTS (the tells of AI-made video): centered title on a gradient, everything fading in, corner labels and frame borders, glow on UI chrome, generic particle bursts, a beat where nothing happens, invented UI when the real product exists (use its screenshots or rebuild it 1:1). Also the template tells: a pill or eyebrow label above a headline, 01 / 02 / 03 section numbering, tiny letter-spaced uppercase captions on every shot, rows of identical icon cards, fake dashboards of grey bars, default palettes the brand does not own (cream + terracotta, generic violet), invented proof (logos, stats, quotes, ratings not in BRAND), more than two typefaces. Every shot should look like it could only belong to this brand: lean on its own colours, words, product and references, not on a house look.
 
 READS (the rule models break most often): a read is one thing the viewer must understand (a word, a number, a UI change). Give every shot a "reads" array: [{"what":"...","at":seconds from shot start,"hold":seconds}]. Time to find it, understand it and let it land: hold >= 0.4 s for a word or icon, >= 0.8 s for a sentence or number. Two important reads never overlap; a cause comes before its reaction. Fast actions, slow meanings: motion can be quick, what it means gets held time.
 
@@ -101,20 +119,24 @@ DIRECTION RULES
 - montage items: use the brand's real screenshots first, then abstract renders.
 - card-cloud word: "?" or one calm word, never shouting capitals.
 - For images use "gen:<prompt>": a full Nano Banana Pro prompt, photographic or 3D, premium, brand colours ${JSON.stringify(brand.colors || {})}, and ALWAYS end with "no text, no letters, no logos". Max 5 generated images in the whole film.
-${brief.video ? `- You MAY use up to 2 AI video clips in media-frame: props {kind:"video", src:"genvideo:<detailed still prompt> || <camera + motion direction, single shot>"}. Use them for the most cinematic human/world moments only.\n` : ""}- tone: keep the line's tone (dark/light); for theme glow you may use "cream", for cinematic use "black". The last shot must be logo-reveal.
+${brief.video ? `- You MAY use up to 2 AI video clips in media-frame: props {kind:"video", src:"genvideo:<detailed still prompt> || <camera + motion direction, single shot>"}. Use them for the most cinematic human/world moments only.\n` : ""}- tone: keep the line's tone (dark/light); for theme glow you may use "cream", for cinematic use "black"${brief.style === "relate" ? '; RELATE: use "paper" and "black" alternating nearly every shot, "stage" for UI cards' : ""}. The last shot must be ${brief.style === "relate" ? "logo-bars" : "logo-reveal"}.
 - transitions: mostly "cut" (60%+). Use zoom-through into the reveal, push-left between features, at most 1 whip, at most 1 wipe. Transition duration 0.4-0.7.
 - camera: omit (auto drift) or "push" for emphasis shots.
+- sound (optional, at most one shot in three): a signature foley sound for a PHYSICAL event on screen (an object lands, metal clinks, a card slides, paper folds, a coin drops, glass taps). {"q":"2-4 word search, concrete and literal, e.g. metal screw drop","at":seconds from shot start when the event happens,"gain":-8..-3}. Never for text, UI or abstract shots: those already get whooshes, clicks and pops.
+- ambience (film level, optional): a 2-4 word search for a quiet bed that fits the world (e.g. "quiet studio room tone", "soft city ambience"), or null for none. Most graphic films want null.
 
-Return ONLY JSON: {"scenes":[{"i":0,"type":"...","tone":"dark|light|cream|black|grid","transition":{"type":"cut|...","duration":0.5},"camera":null,"props":{...}}]}`,
+Return ONLY JSON: {"ambience":null,"scenes":[{"i":0,"type":"...","tone":"dark|light|cream|black|grid","transition":{"type":"cut|...","duration":0.5},"camera":null,"sound":null,"props":{...}}]}`,
     { temperature: 0.6 }
   );
 
   const byI = new Map((plan.scenes || []).map((s, k) => [s.i ?? k, s]));
-  const scenes = lines.map((l, i) => {
+  const lastType = brief.style === "relate" && avail.includes("logo-bars") ? "logo-bars" : "logo-reveal";
+  const scenes = units.map((u, i) => {
+    const l = lines[u.li];
     const s = byI.get(i) || { type: l.scene, props: { text: l.text } };
     let type = avail.includes(s.type) ? s.type : avail.includes(l.scene) ? l.scene : "headline";
-    if (i === lines.length - 1) type = "logo-reveal";
-    const win = windows[i];
+    if (i === units.length - 1) type = s.type === "logo-reveal" || s.type === "logo-bars" ? s.type : lastType;
+    const win = { start: u.start, end: u.end };
     const tr = s.transition && s.transition.type && s.transition.type !== "cut" && TRANSITIONS[s.transition.type] ? { type: s.transition.type, duration: Math.min(0.8, Math.max(0.3, +s.transition.duration || 0.55)) } : undefined;
     return {
       id: `s${i + 1}`,
@@ -126,13 +148,16 @@ Return ONLY JSON: {"scenes":[{"i":0,"type":"...","tone":"dark|light|cream|black|
       ...(s.camera ? { camera: s.camera } : {}),
       props: s.props || {},
       ...(Array.isArray(s.reads) && s.reads.length ? { reads: s.reads } : {}),
+      ...(s.sound && (s.sound.q || typeof s.sound === "string") ? { sound: s.sound } : {}),
       vo: l.text,
     };
   });
   // Typed text must start when the narrator starts, or the shot opens on an empty frame for
   // however long it takes to reach the excerpt. If the excerpt starts late, type the whole line.
   const norm = (w) => String(w).toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
-  scenes.forEach((s, i) => {
+  scenes.forEach((s, k) => {
+    const i = units[k].li;
+    if (grid > 0) return; // metronome shots carry excerpts by design
     if (!["headline", "kinetic-type"].includes(s.type) || s.props.mode === "single") return;
     const text = s.props.text || (s.props.lines || []).join(" ");
     const first = norm(String(text).split(/\s+/)[0] || "");
@@ -148,12 +173,14 @@ Return ONLY JSON: {"scenes":[{"i":0,"type":"...","tone":"dark|light|cream|black|
   });
   // logo-reveal defaults
   const last = scenes[scenes.length - 1];
-  last.props = { tagline: brand.tagline, cta: brand.cta, url: brand.url, ...last.props };
+  last.props = last.type === "logo-bars" ? { name: brand.name, ...last.props } : { tagline: brand.tagline, cta: brand.cta, url: brand.url, ...last.props };
 
   const sb = deepNoDashes({
     theme,
     ...(brief.style === "higgsfield" ? { background: "hf-grid" } : {}),
+    ...(brief.style === "relate" ? { background: "none", flat: true, fps: brief.fps || 24, shutterPhase: "forward" } : {}),
     duration: total,
+    ...(typeof plan.ambience === "string" && plan.ambience.trim() ? { ambience: plan.ambience.trim() } : {}),
     brand: {},
     vo: { file: vo.file, words: vo.words },
     scenes,

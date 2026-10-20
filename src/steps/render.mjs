@@ -16,9 +16,8 @@ import { readDomJson } from "../lib/browser.mjs";
 import { log, run, runLive, readJSON, probeDuration } from "../lib/util.mjs";
 
 const HF = ["-y", "hyperframes@0.8.72"];
-const R = 60;
 
-function segmentGraph(map, fps, shutter) {
+function segmentGraph(map, fps, shutter, phase = "center", R = 60) {
   // One trim -> (tmix -> select) chain per segment, then concat.
   let F = 0;
   const parts = [];
@@ -30,7 +29,9 @@ function segmentGraph(map, fps, shutter) {
     let chain = `[0:v]trim=start_frame=${F}:end_frame=${F + count},setpts=PTS-STARTPTS`;
     if (n > 1) {
       const K = Math.max(1, Math.round((n * shutter) / 360));
-      chain += `,tmix=frames=${K}:weights='${Array(K).fill(1).join(" ")}',select='eq(mod(n\\,${n})\\,${Math.floor(K / 2)})'`;
+      // center: shutter straddles the frame time (physically centred blur, ghosts across hard cuts);
+      // forward: shutter opens at the frame time (hard cuts stay clean; Relate-style metronome edits).
+      chain += `,tmix=frames=${K}:weights='${Array(K).fill(1).join(" ")}',select='eq(mod(n\\,${n})\\,${phase === "forward" ? K - 1 : Math.floor(K / 2)})'`;
     }
     chain += `,setpts=N/${fps}/TB[s${k}]`;
     parts.push(chain);
@@ -40,10 +41,15 @@ function segmentGraph(map, fps, shutter) {
   return `${parts.join(";")};${labels.join("")}concat=n=${labels.length}:v=1:a=0[out]`;
 }
 
-export async function render(projectDir, { quality = "final", fps = 30, shutter = 180, slow, workers, out, uniform, hi = 16, resolution } = {}) {
+export async function render(projectDir, { quality = "final", fps, shutter = 180, shutterPhase, slow, workers, out, uniform, hi = 16, resolution } = {}) {
   const sb = readJSON(path.join(projectDir, "storyboard.json"));
+  fps = fps || sb.fps || 30;
+  const phase = shutterPhase || sb.shutterPhase || "center";
+  const R = 2 * fps; // capture rate: an integer number of sub-frames per output frame at 24, 25 or 30 fps
   const draft = quality === "draft";
-  const hasVideo = JSON.stringify(sb.scenes).includes('"kind":"video"');
+  // any clip (media-frame video, clip-3d Blender plate) needs the uniform stretch: video elements
+  // follow EM_SLOW, not the adaptive per-segment time map
+  const hasVideo = JSON.stringify(sb.scenes).includes('"kind":"video"') || /\.(mp4|mov|webm|m4v)"/i.test(JSON.stringify(sb.scenes));
   const adaptive = !draft && !uniform && !slow && !hasVideo;
   let S = draft ? 1 : slow || 4;
   // HyperFrames clamps a <video> playbackRate to >= 0.1. Time stretching plays video at 1/S, so
@@ -57,7 +63,7 @@ export async function render(projectDir, { quality = "final", fps = 30, shutter 
   const renders = path.join(projectDir, "renders");
   fs.mkdirSync(renders, { recursive: true });
 
-  const comp = await build(projectDir, adaptive ? { slow: 1, mb: { hi, lo: fps / 60, pad: 0.1, fps }, out: "comp-final" } : { slow: S, out: draft ? "comp" : "comp-final" });
+  const comp = await build(projectDir, adaptive ? { slow: 1, mb: { hi, lo: fps / R, pad: 0.1, fps }, out: "comp-final" } : { slow: S, out: draft ? "comp" : "comp-final" });
   let map = null;
   if (adaptive) {
     map = await readDomJson(path.join(comp, "index.html"), "em-timemap");
@@ -82,11 +88,11 @@ export async function render(projectDir, { quality = "final", fps = 30, shutter 
   if (!draft) {
     video = path.join(renders, "video-mb.mp4");
     let graph;
-    if (adaptive) graph = segmentGraph(map, fps, shutter);
+    if (adaptive) graph = segmentGraph(map, fps, shutter, phase, R);
     else {
       const N = Math.round((R * S) / fps);
       const K = Math.max(1, Math.round((N * shutter) / 360));
-      graph = `[0:v]tmix=frames=${K}:weights='${Array(K).fill(1).join(" ")}',select='eq(mod(n\\,${N})\\,${Math.floor(K / 2)})',setpts=N/${fps}/TB[out]`;
+      graph = `[0:v]tmix=frames=${K}:weights='${Array(K).fill(1).join(" ")}',select='eq(mod(n\\,${N})\\,${phase === "forward" ? K - 1 : Math.floor(K / 2)})',setpts=N/${fps}/TB[out]`;
     }
     fs.writeFileSync(path.join(renders, "mb.graph.txt"), graph);
     run("ffmpeg", ["-y", "-v", "error", "-i", raw, "-filter_complex", graph, "-map", "[out]", "-r", String(fps), "-c:v", "libx264", "-preset", "slow", "-crf", resolution ? "14" : "12", "-pix_fmt", "yuv420p", video]);
