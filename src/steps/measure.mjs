@@ -339,6 +339,9 @@ async function inkCheck(page, windows, { fps, W, H, tmp, video, k = 1 }) {
       // crossing the crop: fail only when the clean screenshot agrees, else ask for a look
       if (row.video && row.video.severity === "fail") row.severity = r.severity === "ok" ? "warn" : "fail";
     }
+    // display type above ~120 px (at 1080) keeps some glyph jitter under a scale whatever the CSS
+    // (Skia, documented in SCENE_API rule 15): report it, do not fail the film on it
+    if (row.severity === "fail" && win.frames[0].font >= 120 * (Math.min(W, H) / 1080)) row.severity = "warn";
     res.push(row);
   }
   return res;
