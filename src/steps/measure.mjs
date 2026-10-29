@@ -335,7 +335,9 @@ async function inkCheck(page, windows, { fps, W, H, tmp, video, k = 1 }) {
       const vwin = scaleWin(win, k), vcrop = cropOf(vwin, Math.round(W * k), Math.round(H * k)), [vl, vt, vw, vh] = vcrop;
       const vraw = spawnSync("ffmpeg", ["-v", "error", "-i", video, "-vf", `select='between(n\\,${k0}\\,${k1})',crop=${vw}:${vh}:${vl}:${vt}`, "-fps_mode", "passthrough", "-f", "rawvideo", "-pix_fmt", "gray", "-"], { maxBuffer: 2 ** 30 }).stdout;
       row.video = inkWindow(vraw, vwin, vcrop);
-      if (row.video) row.severity = row.video.severity; // the render is what ships
+      // the render is what ships, but its windows also catch encoder noise, a cursor or a word swap
+      // crossing the crop: fail only when the clean screenshot agrees, else ask for a look
+      if (row.video && row.video.severity === "fail") row.severity = r.severity === "ok" ? "warn" : "fail";
     }
     res.push(row);
   }
