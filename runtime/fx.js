@@ -280,7 +280,10 @@
         }
       }
     });
-    const fallback = fx.wordTimes({ ...ctx, words: [] }, tokens.length);
+    const fallback = fx.wordTimes({ ...ctx, words: [] }, tokens.length, { to: 0.75 });
+    // nothing matched (no VO, or a line the narrator does not say): spread the tokens over the
+    // shot instead of chaining 0.18 s steps off the first one, which flashes words unreadably
+    if (out.every((v) => v == null)) out.splice(0, out.length, ...fallback);
     for (let i = 0; i < out.length; i++) {
       if (out[i] != null) continue;
       const prev = out.slice(0, i).reverse().find((v) => v != null);

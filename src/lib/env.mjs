@@ -25,6 +25,7 @@ export function loadEnv(projectDir) {
   if (cache && !projectDir) return cache;
   const merged = {
     ...parseEnvFile(path.join(os.homedir(), ".zshrc")),
+    ...parseEnvFile(path.join(os.homedir(), ".zshrc.secrets")),
     ...parseEnvFile(path.join(os.homedir(), ".bashrc")),
     ...parseEnvFile(path.join(REPO, ".env")),
     ...(projectDir ? parseEnvFile(path.join(projectDir, ".env")) : {}),
