@@ -17,5 +17,6 @@
     "launch-film",
     "product-demo"
   ],
-  "icon": ".claude-plugin/icon.png"
+  "icon": ".claude-plugin/icon.png",
+  "license": "Apache-2.0"
 }

@@ -127,6 +127,12 @@ breakdowns (90+ techniques with parameters: easing, timing, type, sound), `resea
 per-film shot lists, `research/blender/` a Blender headless playbook, and an analysis of 703 public
 Opus 5.5 video prompts.
 
+## License
+
+Apache License 2.0, copyright Eden Makers s.r.o. See [LICENSE](LICENSE) and [NOTICE](NOTICE):
+the bundled Pixabay sound effects keep their own licence, and the licence grants no rights to the
+Edenmakers, eden-motion or Hlas names and marks.
+
 ## Credits
 
 Built on [HyperFrames](https://github.com/heygen-com/hyperframes), [GSAP](https://gsap.com),
