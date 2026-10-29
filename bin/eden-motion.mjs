@@ -2,14 +2,17 @@
 // eden-motion CLI. Every step reads and writes plain JSON in the project folder, so any agent
 // harness (Claude Code, Codex, Gemini CLI, Cursor, a cron job) can run, inspect and edit it.
 import dns from "node:dns";
+import net from "node:net";
 import fs from "node:fs";
 import path from "node:path";
 import { log, slugify, writeJSON, readJSON, run } from "../src/lib/util.mjs";
 import { loadEnv, REPO } from "../src/lib/env.mjs";
 
-// Node's fetch tries IPv6 first and, on networks with a broken v6 route, times out ("fetch
-// failed") where curl falls back in milliseconds. Every API here answers on IPv4.
+// Node's fetch races IPv6 and IPv4 with a 250 ms budget per address; on a slow or flaky network
+// every attempt times out ("fetch failed", ETIMEDOUT after ~2 s) where curl simply waits. Connect
+// over IPv4 the plain way: every API here answers on it.
 dns.setDefaultResultOrder("ipv4first");
+net.setDefaultAutoSelectFamily(false);
 
 const HELP = `eden-motion - company name in, finished motion-graphics brand film out
 
