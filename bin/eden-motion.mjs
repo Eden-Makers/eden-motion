@@ -37,6 +37,7 @@ STEPS (in order)
                [--ambience "rain on window"] [--no-openverse] [--no-music]
                [--stingers (accent thumps + logo sting composed in code in the music's key; needs uv)]
                no ElevenLabs music? a bed is composed in code as a fallback (audio/music-code.wav)
+  sync         snap cuts within 120 ms of a music beat onto the beat (frame grid), then re-mix [--tol 0.12]
   remix        <slug> --music -3 --sfx +2 --ambience off --sfx-foley -4   rebalance stems -> mix.wav (no regeneration)
   preview      build comp/ and open HyperFrames Studio preview
   render       --draft (fast, no blur) or final (true shutter motion blur, --slow 4..8) [--shutter-phase center|forward]
@@ -57,7 +58,7 @@ STEPS (in order)
 
 ENV / KEYS: GEMINI_API_KEY, ELEVENLABS_API_KEY (read from env, repo .env or ~/.zshrc)`;
 
-const STEPS = ["research", "script", "vo", "storyboard", "assets", "blender", "audio", "render", "qc", "review"];
+const STEPS = ["research", "script", "vo", "storyboard", "assets", "blender", "audio", "sync", "render", "qc", "review"];
 
 function parseArgs(argv) {
   const out = { _: [] };
@@ -134,6 +135,9 @@ async function step(name, dir, args) {
       break;
     case "audio":
       await (await import("../src/steps/audio.mjs")).audio(dir, { noMusic: !!args["no-music"], sfxSource: args["sfx-source"], ambience: args.ambience, openverse: !args["no-openverse"], stingers: args.stingers ? true : undefined, judgeSfx: args["judge-sfx"] ? true : undefined });
+      break;
+    case "sync":
+      await (await import("../src/steps/sync.mjs")).sync(dir, { tol: args.tol ? +args.tol : undefined });
       break;
     case "remix": {
       const { remix, LAYERS } = await import("../src/steps/audio.mjs");

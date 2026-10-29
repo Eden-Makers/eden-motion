@@ -59,6 +59,7 @@ export async function audio(projectDir, { musicPrompt, noMusic = false, sfxSourc
   // SFX are picked by a code score; Gemini listening is opt-in (costs calls, editors swap sounds anyway)
   judgeSfx = judgeSfx ?? (!!brief.sfxJudge || process.env.EM_SFX_JUDGE === "1");
   const D = sb.duration;
+  const FPS = sb.fps || 30;
   const aDir = path.join(projectDir, "audio");
   const stemDir = path.join(aDir, "stems");
   fs.rmSync(stemDir, { recursive: true, force: true });
@@ -138,8 +139,11 @@ export async function audio(projectDir, { musicPrompt, noMusic = false, sfxSourc
     if (t < 0 || t > D) return;
     const k = add(file);
     const rate = pitch ?? (/^w/.test(label) ? 1 : 0.92 + (hash(label) % 1000) / 5000);
-    // t is the EVENT time: shift by the sample's measured peak (scaled by the pitch change) so the transient lands on it
-    const at = Math.max(0, t - peakTime(file) / rate);
+    // t is the EVENT time: shift by the sample's measured peak (scaled by the pitch change) so the
+    // transient lands on it, and one more frame for one-shots: a hit that starts on the picture
+    // frame reads as late (eye and ear fuse a sound that leads by ~40 ms; mg-styles-15 sync.py)
+    const lead = layer === "sfx_transitions" ? 0 : 1 / FPS;
+    const at = Math.max(0, t - peakTime(file) / rate - lead);
     const pan = x != null ? (() => { const p = Math.max(-1, Math.min(1, (x - 960) / 960)) * 0.6; return `,pan=stereo|c0=${(1 - Math.max(0, p)).toFixed(3)}*c0|c1=${(1 + Math.min(0, p)).toFixed(3)}*c1`; })() : "";
     const shift = rate !== 1 ? `,asetrate=${Math.round(48000 * rate)},aresample=48000` : "";
     filters.push(`[${k}:a]aformat=sample_rates=48000:channel_layouts=stereo${shift}${pan},volume=${gainDb}dB,adelay=${Math.round(at * 1000)}:all=1[${label}]`);

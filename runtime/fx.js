@@ -107,7 +107,7 @@
   // monotonically (0.4 -> 1, blur 10 -> 0, ~8 frames).
   fx.pop = function (tl, targets, t, { dur = 0.4, stagger = 0.16, from = 0.4, ease = "expo.out" } = {}) {
     tl.fromTo(targets, { scale: from, opacity: 0, filter: "blur(10px)" }, { scale: 1, opacity: 1, filter: "blur(0px)", duration: dur, stagger, ease }, t);
-    [].concat(targets).forEach((_, i) => (EM.cues = EM.cues || []).push({ t: t + i * stagger, type: "pop" }));
+    [].concat(targets).forEach((el, i) => (EM.cues = EM.cues || []).push({ t: t + i * stagger, type: "pop", x: fx.screenX(el) }));
   };
 
   // Resolve a CSS custom property in the context of el (scene tone classes override vars).
@@ -227,7 +227,7 @@
     tl.to(c, { scale: 0.85, duration: 0.08, ease: "power2.in" }, t).to(c, { scale: 1, duration: 0.2, ease: "power2.out" }, t + 0.08);
     tl.fromTo(r, { scale: 0.2, opacity: 0.9 }, { scale: 2.6, opacity: 0, duration: 0.55, ease: "expo.out" }, t + 0.05);
     if (target) tl.to(target, { scale: 0.96, duration: 0.08, ease: "power2.in" }, t).to(target, { scale: 1, duration: 0.25, ease: "power2.out" }, t + 0.08);
-    (EM.cues = EM.cues || []).push({ t, type: "click" });
+    (EM.cues = EM.cues || []).push({ t, type: "click", x: target ? fx.screenX(target) : undefined });
     return t + 0.35;
   };
 
@@ -245,6 +245,14 @@
 
   // Layout position of el's centre relative to an ancestor, ignoring transforms (seek-safe,
   // unaffected by from-states GSAP has already applied).
+  // Layout x of an element's centre in frame pixels (camera moves ignored), so the audio step can
+  // pan its sound with it. undefined when it cannot be laid out.
+  fx.screenX = function (el) {
+    if (!el || !el.offsetParent) return undefined;
+    const x = fx.layoutCenter(el, null).x;
+    return Number.isFinite(x) ? Math.round(x) : undefined;
+  };
+
   fx.layoutCenter = function (el, ancestor) {
     let x = el.offsetWidth / 2, y = el.offsetHeight / 2, n = el;
     while (n && n !== ancestor) {
