@@ -262,6 +262,7 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error("\x1b[31m[eden-motion] " + (e.stack || e.message) + "\x1b[0m");
+  const cause = e.cause ? ` (cause: ${e.cause.code || e.cause.message || e.cause})` : "";
+  console.error("\x1b[31m[eden-motion] " + (e.stack || e.message) + cause + "\x1b[0m");
   process.exit(1);
 });
