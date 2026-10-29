@@ -310,7 +310,10 @@ function cropOf(win, W, H) {
   return [l, t, r - l, b - t];
 }
 
-async function inkCheck(page, windows, { fps, W, H, tmp, video }) {
+// A window in delivered pixels (4:5 and 1:1 are laid out larger and scaled down at the end).
+const scaleWin = (win, k) => (k === 1 ? win : { ...win, frames: win.frames.map((f) => ({ ...f, l: f.l * k, t: f.t * k, r: f.r * k, b: f.b * k })) });
+
+async function inkCheck(page, windows, { fps, W, H, tmp, video, k = 1 }) {
   const res = [];
   for (const [wi, win] of windows.entries()) {
     const crop = cropOf(win, W, H), [l, t, cw, ch] = crop;
@@ -329,8 +332,9 @@ async function inkCheck(page, windows, { fps, W, H, tmp, video }) {
     // a screenshot and a capture do not always raster the same way
     if (video) {
       const k0 = win.frames[0].k, k1 = k0 + win.frames.length - 1;
-      const vraw = spawnSync("ffmpeg", ["-v", "error", "-i", video, "-vf", `select='between(n\\,${k0}\\,${k1})',crop=${cw}:${ch}:${l}:${t}`, "-fps_mode", "passthrough", "-f", "rawvideo", "-pix_fmt", "gray", "-"], { maxBuffer: 2 ** 30 }).stdout;
-      row.video = inkWindow(vraw, win, crop);
+      const vwin = scaleWin(win, k), vcrop = cropOf(vwin, Math.round(W * k), Math.round(H * k)), [vl, vt, vw, vh] = vcrop;
+      const vraw = spawnSync("ffmpeg", ["-v", "error", "-i", video, "-vf", `select='between(n\\,${k0}\\,${k1})',crop=${vw}:${vh}:${vl}:${vt}`, "-fps_mode", "passthrough", "-f", "rawvideo", "-pix_fmt", "gray", "-"], { maxBuffer: 2 ** 30 }).stdout;
+      row.video = inkWindow(vraw, vwin, vcrop);
       if (row.video) row.severity = row.video.severity; // the render is what ships
     }
     res.push(row);
@@ -361,7 +365,7 @@ export async function measureComp(projectDir, { fps, ink = true, video = null } 
     }
     const a = analyse(frames, { fps, W, H, vo: (sb.vo && sb.vo.words) || [], k: Array.isArray(sb.output) ? sb.output[0] / W : 1 });
     a.sceneErrors = await page.evaluate(() => JSON.parse(document.getElementById("em-errors")?.textContent || "[]"));
-    a.ink = ink ? await inkCheck(page, holdWindows(frames, { fps, W, H }), { fps, W, H, tmp, video }) : [];
+    a.ink = ink ? await inkCheck(page, holdWindows(frames, { fps, W, H }), { fps, W, H, tmp, video, k: Array.isArray(sb.output) ? sb.output[0] / W : 1 }) : [];
     return a;
   }, { width: W, height: H });
   if (process.env.EM_MEASURE_KEEP) log(`ink crops kept in ${tmp}`);

@@ -54,6 +54,9 @@
   h2 { font-size: clamp(30px, 4vw, 52px); letter-spacing: -0.035em; line-height: 1.04; margin: 12px 0 18px; font-weight: 700; text-wrap: balance; max-width: 20ch; }
   .sub { color: var(--muted); max-width: 62ch; margin: 0 0 40px; }
 
+  .samples { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 28px; align-items: start; margin-bottom: 28px; }
+  .samples .wide { grid-column: 1 / -1; }
+  .heroimg video { display: block; width: 100%; height: auto; background: var(--bg2); }
   .films { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.6fr); gap: 28px; align-items: start; }
   .film { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; min-width: 0; }
   .film video { display: block; width: 100%; height: auto; background: var(--bg2); }
@@ -86,6 +89,7 @@
   footer b { color: var(--fg); }
 
   @media (max-width: 900px) {
+    .samples { grid-template-columns: minmax(0, 1fr); }
     .films, .two { grid-template-columns: minmax(0, 1fr); }
     .features { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
     .strip { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -123,7 +127,7 @@
       <a class="btn" href="#films">Watch the films</a>
       <a class="btn" href="https://github.com/Eden-Makers/eden-motion">GitHub ↗</a>
     </div>
-    <div class="heroimg"><img src="media/hero.jpg" alt="Frames from a vertical promo made with eden-motion: a glowing Fn keycap in Blender, typing hands, the Hlas mark, a macro eye, real app screens flown in 3D" width="2400" height="1260" /></div>
+    <div class="heroimg"><video src="media/sample-eden-motion.mp4" poster="media/poster-eden-motion.jpg" controls playsinline preload="metadata" aria-label="eden-motion launch film, made with eden-motion"></video></div>
   </div>
 </header>
 
@@ -131,7 +135,33 @@
   <div class="wrap">
     <div class="label">Made with eden-motion</div>
     <h2>Real 3D, real blur, real sound.</h2>
-    <p class="sub">Two films rendered end to end by the pipeline. Turn the sound on: the stems are voice, music, foley and stingers composed in the music's key.</p>
+    <p class="sub">Every film below was rendered end to end by the pipeline from a company name and a few lines of notes, then checked frame by frame. No generated stills: type, product UI, diagrams and Blender plates. Turn the sound on.</p>
+    <div class="samples">
+      <div class="film" id="eden-motion">
+        <video src="media/sample-eden-motion.mp4" poster="media/poster-eden-motion.jpg" controls playsinline preload="metadata"></video>
+        <div class="meta">
+          <div class="label">Launch film · 16:9 · 39 s · relate style</div>
+          <h3>eden-motion</h3>
+          <p>Metronome cuts on a 24 frame grid, chrome hardware rendered headless in Blender, the website flown through in real depth of field, counters with ghost copies and a logo built from its own bars.</p>
+        </div>
+      </div>
+      <div class="film" id="edenmakers">
+        <video src="media/sample-edenmakers.mp4" poster="media/poster-edenmakers.jpg" controls playsinline preload="metadata"></video>
+        <div class="meta">
+          <div class="label">Studio film · 4:5 · 33 s · launch style</div>
+          <h3>Edenmakers</h3>
+          <p>A feed-first portrait cut: laid out on a 1728 x 2160 stage and delivered at 1080 x 1350, so the type stays supersampled.</p>
+        </div>
+      </div>
+      <div class="film wide" id="hlas-demo">
+        <video src="media/sample-hlas.mp4" poster="media/poster-hlas-demo.jpg" controls playsinline preload="metadata"></video>
+        <div class="meta">
+          <div class="label">Product demo · 16:9 · 36 s · burnwe style</div>
+          <h3>Hlas, dictation not typing</h3>
+          <p>The real app screens put into Blender with a dolly and rack focus, the hold, speak and release moment, and proof numbers taken from the product's own site.</p>
+        </div>
+      </div>
+    </div>
     <div class="films">
       <div class="film vertical" id="hlas">
         <video src="media/hlas-promo.mp4" poster="media/poster-hlas.jpg" controls playsinline preload="metadata"></video>
