@@ -115,9 +115,11 @@ export async function render(projectDir, { quality = "final", fps, shutter = 180
 
   const mix = path.join(projectDir, "audio", "mix.wav");
   const final = out || path.join(renders, draft ? "draft.mp4" : "final.mp4");
-  const vf = draft ? null : finishFilter(sb);
+  // storyboard.output: delivery size when the stage is laid out larger (4:5, 1:1)
+  const scale = Array.isArray(sb.output) ? `scale=${sb.output[0]}:${sb.output[1]}:flags=lanczos` : null;
+  const vf = [scale, draft ? null : finishFilter(sb)].filter(Boolean).join(",") || null;
   if (vf) log(`finish: ${vf}`);
-  const venc = draft ? ["-c:v", "copy"] : [...(vf ? ["-vf", vf] : []), "-c:v", "libx264", "-crf", "16", "-preset", "slow", "-pix_fmt", "yuv420p"];
+  const venc = draft && !vf ? ["-c:v", "copy"] : [...(vf ? ["-vf", vf] : []), "-c:v", "libx264", "-crf", draft ? "20" : "16", "-preset", draft ? "veryfast" : "slow", "-pix_fmt", "yuv420p"];
   if (fs.existsSync(mix)) {
     run("ffmpeg", ["-y", "-v", "error", "-i", video, "-i", mix, "-map", "0:v", "-map", "1:a", ...venc, "-c:a", "aac", "-b:a", "256k", "-t", String(sb.duration), "-movflags", "+faststart", final]);
   } else {

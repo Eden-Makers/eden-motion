@@ -99,6 +99,7 @@ TRANSITIONS:
 ${trans}
 
 STYLE: ${STYLES[brief.style || "burnwe"] || brief.style}
+FRAME: ${brief.format && brief.format !== "16:9" ? `${brief.format} portrait feed frame: stack content vertically, max 2-3 words per display line, no wide rows of more than 3 cards, keep the key object in the middle third` : "16:9"}
 ${refStyle ? `REFERENCE FILM TO MATCH (measured from the client's chosen reference; copy its pacing, type behaviour, transitions and camera, not its content):\n${refStyle}\n` : ""}${direction ? `CREATIVE DIRECTION FOR THIS VARIANT: ${direction}\n` : ""}
 APPLE FRAMEWORK: every choice is intentional; one shot = one idea; each shot has room to breathe; the key object sits in the centre of the frame; backgrounds never compete with the key object; motion is eased and overlapping, never linear; rhythm adapts (speeds up in lists and montages, slows down on the reveal and the proof).
 
@@ -175,8 +176,13 @@ Return ONLY JSON: {"ambience":null,"scenes":[{"i":0,"type":"...","tone":"dark|li
   const last = scenes[scenes.length - 1];
   last.props = last.type === "logo-bars" ? { name: brand.name, ...last.props } : { tagline: brand.tagline, cta: brand.cta, url: brand.url, ...last.props };
 
+  // Frame. Non-16:9 films are laid out on a larger logical canvas and scaled down at the end, so
+  // scenes written for a 1920 px wide stage keep their proportions (and the downscale supersamples).
+  const FORMATS = { "4:5": { width: 1728, height: 2160, output: [1080, 1350] }, "1:1": { width: 1728, height: 1728, output: [1080, 1080] }, "9:16": { width: 1080, height: 1920 } };
+  const frame = FORMATS[brief.format] || {};
   const sb = deepNoDashes({
     theme,
+    ...frame,
     ...(brief.style === "higgsfield" ? { background: "hf-grid" } : {}),
     ...(brief.style === "relate" ? { background: "none", flat: true, fps: brief.fps || 24, shutterPhase: "forward" } : {}),
     duration: total,

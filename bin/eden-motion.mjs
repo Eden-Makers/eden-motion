@@ -211,6 +211,7 @@ async function main() {
       notes: args.notes || null,
       video: !!args.video,
       style: args.style || null,
+      format: args.format || null,
       cutGrid: args["cut-grid"] ? +args["cut-grid"] : null,
       fps: args.fps ? +args.fps : null,
       sfxSource: args["sfx-source"] || null,
