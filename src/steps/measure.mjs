@@ -120,7 +120,17 @@ function tracks(frames) {
   return m;
 }
 
-function analyse(frames, { fps, W, H }) {
+// On-screen words the narrator says while they are up only have to be recognised, not read:
+// the ear carries them (Relate-style 1 s shots live on this).
+const norm = (w) => String(w).toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+function spoken(text, t0, t1, vo) {
+  const toks = String(text).split(/[\s/._-]+/).map(norm).filter(Boolean);
+  if (!toks.length || !vo.length) return false;
+  const said = new Set(vo.filter((w) => w.start >= t0 - 0.6 && w.start <= t1 + 0.3).map((w) => norm(w.word)));
+  return toks.every((tk) => said.has(tk));
+}
+
+function analyse(frames, { fps, W, H, vo = [], k = 1 }) {
   const tr = tracks(frames);
   const reads = [], frame = [], small = [], tails = [];
   const short = Math.min(W, H) / 1080;
@@ -155,7 +165,8 @@ function analyse(frames, { fps, W, H }) {
     for (const [txt, h] of held) {
       if (/\b(undefined|NaN|null)\b|\[object /.test(txt)) reads.push({ t: +(h.k0 / fps).toFixed(2), text: txt.slice(0, 60), hold: 0, need: 0, severity: "fail", issue: "placeholder value on screen" });
       if (isNumeric(txt) || txt.length < 2) continue;
-      const hold = h.frames / fps, need = readNeed(txt);
+      const hold = h.frames / fps;
+      const need = spoken(txt, h.k0 / fps, (h.k0 + h.frames) / fps, vo) ? Math.max(0.3, txt.length / 40) : readNeed(txt);
       if (hold < need) reads.push({ t: +(h.k0 / fps).toFixed(2), text: txt.slice(0, 60), hold: +hold.toFixed(2), need: +need.toFixed(2), severity: hold < 0.6 * need ? "fail" : "warn" });
     }
     // frame edge, safe margin, size (only for text a viewer is meant to read)
@@ -204,7 +215,8 @@ function analyse(frames, { fps, W, H }) {
       const a = seq[i - 1], b = seq[i];
       if (b.k !== a.k + 1 || b.text !== a.text || b.op < 0.3) { close(false); continue; }
       const A = local(a), B = local(b);
-      const d = Math.max(Math.abs(B.l - A.l), Math.abs(B.t - A.t), Math.abs(B.r - A.r), Math.abs(B.b - A.b)) * B.s;
+      // in delivered pixels: a 4:5 stage of 1728 px ships at 1080 (k = 0.625)
+      const d = Math.max(Math.abs(B.l - A.l), Math.abs(B.t - A.t), Math.abs(B.r - A.r), Math.abs(B.b - A.b)) * B.s * k;
       if (d >= 0.05) {
         if (!mv) mv = { k0: a.k, d: [], text: b.text.slice(0, 40) };
         mv.d.push(d);
@@ -347,7 +359,7 @@ export async function measureComp(projectDir, { fps, ink = true, video = null } 
       const [d0, d1] = process.env.EM_MEASURE_DEBUG.split(",").map(Number);
       frames.forEach((bs, k) => k / fps >= d0 && k / fps <= d1 && console.log((k / fps).toFixed(3), bs.map((b) => `"${b.text}" op ${b.op.toFixed(2)} full ${b.full.toFixed(2)} blur ${b.blur} [${b.l.toFixed(0)},${b.t.toFixed(0)},${b.r.toFixed(0)},${b.b.toFixed(0)}]`).join(" | ")));
     }
-    const a = analyse(frames, { fps, W, H });
+    const a = analyse(frames, { fps, W, H, vo: (sb.vo && sb.vo.words) || [], k: Array.isArray(sb.output) ? sb.output[0] / W : 1 });
     a.sceneErrors = await page.evaluate(() => JSON.parse(document.getElementById("em-errors")?.textContent || "[]"));
     a.ink = ink ? await inkCheck(page, holdWindows(frames, { fps, W, H }), { fps, W, H, tmp, video }) : [];
     return a;
