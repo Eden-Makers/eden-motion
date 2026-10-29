@@ -90,6 +90,13 @@
     const TS = sb.transitionSpeed || 1;
     if (TS !== 1) scenes.forEach((s) => s.transition && s.transition.type && (s.transition.duration = (s.transition.duration || 0.6) * TS));
     const CS = sb.cameraSpeed || 1;
+    // A transition may not eat a short shot: cap it at 60% of the shorter neighbour, or a 1.2 s
+    // headline is swallowed by the zoom into the next shot before its last word is typed.
+    scenes.forEach((s, i) => {
+      if (!i || !s.transition || !s.transition.type || s.transition.type === "cut") return;
+      const cap = 0.6 * Math.min(scenes[i - 1].duration, s.duration);
+      s.transition.duration = Math.min(s.transition.duration || 0.6, cap);
+    });
 
     // Background layer gets the whole duration.
     if (EM.backgrounds && EM.backgrounds[sb.background || "auto"]) {
@@ -150,7 +157,15 @@
         rng: EM.rng(s.id || i + 1),
       };
       EM._sceneEnd = end; // helpers (hotType) default their deadline to the current shot
-      def.build(ctx);
+      // One scene with bad props must not take the whole film down (and with it the cues the
+      // audio step reads): show the gap, record it, `measure` fails on it.
+      try {
+        def.build(ctx);
+      } catch (err) {
+        console.error(`scene ${s.id || i} (${s.type}) failed: ${err && err.message}`);
+        (EM.errors = EM.errors || []).push({ scene: s.id || i, type: s.type, t: start, error: String((err && err.message) || err) });
+        inner.replaceChildren(EM.h("div", { class: "em-missing" }, `Scene ${s.type} failed: ${(err && err.message) || err}`));
+      }
       EM._sceneEnd = null;
       // The camera never stops (measured on Burnwe: 0.4-2%/s zoom, 15-60 px/s truck, linear,
       // direction alternating shot to shot). "push" = emphasis push at ~5%/s.
@@ -260,6 +275,11 @@
     cueEl.id = "em-cues";
     cueEl.textContent = JSON.stringify(cues);
     document.body.appendChild(cueEl);
+    const errEl = document.createElement("script");
+    errEl.type = "application/json";
+    errEl.id = "em-errors";
+    errEl.textContent = JSON.stringify(EM.errors || []);
+    document.body.appendChild(errEl);
     const mediaEl = document.createElement("script");
     mediaEl.type = "application/json";
     mediaEl.id = "em-media";

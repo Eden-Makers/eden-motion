@@ -163,6 +163,8 @@
     const BASE = fx.cssVar(el, "--fg") || "#111";
     const kws = (Array.isArray(keyword) ? keyword : keyword ? [keyword] : []).join(" ").toLowerCase().split(/\s+/).filter(Boolean);
     const words = String(text).split(/\s+/).filter(Boolean);
+    // characters still to type from each word on, so a late VO word can be pulled forward
+    const left = words.map((_, wi) => words.slice(wi).join("").length);
     let tt = t, last = t;
     words.forEach((w, wi) => {
       const isKw = kws.includes(w.toLowerCase().replace(/[^\p{L}\p{N}%$+]/gu, ""));
@@ -170,6 +172,8 @@
       el.appendChild(wordEl);
       if (wi < words.length - 1) el.appendChild(document.createTextNode(" "));
       if (wordTimes && wordTimes[wi] != null) tt = Math.max(tt, wordTimes[wi]);
+      // a word the narrator says late still has to finish before the cut: the line must be read
+      if (deadline != null) tt = Math.max(last === t && wi === 0 ? t : last + 1 / cps, Math.min(tt, deadline - left[wi] / cps));
       [...w].forEach((c, ci) => {
         const base = h("span", { class: "em-char" }, c);
         wordEl.appendChild(base);

@@ -46,11 +46,11 @@ function installSampler() {
     tl.totalTime(t, false);
     const memo = new Map();
     const info = (el) => {
-      if (!el || el.nodeType !== 1) return { op: 1, vis: true, blur: false, clip: null, allow: false };
+      if (!el || el.nodeType !== 1) return { op: 1, vis: true, blur: false, clip: null, allow: false, decor: false };
       if (memo.has(el)) return memo.get(el);
       const p = info(el.parentElement);
       const cs = getComputedStyle(el);
-      const r = { op: cs.display === "none" ? 0 : p.op * parseFloat(cs.opacity), vis: p.vis && cs.visibility !== "hidden", blur: p.blur || +(/blur\(([\d.e-]+)px/.exec(cs.filter) || [0, 0])[1] > 0.5, clip: p.clip, allow: p.allow || el.hasAttribute("data-layout-allow-overflow") };
+      const r = { op: cs.display === "none" ? 0 : p.op * parseFloat(cs.opacity), vis: p.vis && cs.visibility !== "hidden", blur: p.blur || +(/blur\(([\d.e-]+)px/.exec(cs.filter) || [0, 0])[1] > 0.5, clip: p.clip, allow: p.allow || el.hasAttribute("data-layout-allow-overflow"), decor: p.decor || el.hasAttribute("data-em-decor") };
       if (cs.overflowX !== "visible" || cs.overflowY !== "visible" || cs.clipPath !== "none") {
         const b = el.getBoundingClientRect();
         const c = p.clip || { l: -1e9, t: -1e9, r: 1e9, b: 1e9 };
@@ -75,7 +75,7 @@ function installSampler() {
         continue;
       }
       const i = info(el);
-      if (!i.vis || i.op < 0.5) continue;
+      if (!i.vis || i.op < 0.5 || i.decor) continue;
       // a character still focusing in (typewriter tail, blur reveal) is not text yet
       if (i.blur) { blurred.add(idOf(blockOf(el))); continue; }
       range.selectNodeContents(n);
@@ -108,7 +108,8 @@ function installSampler() {
 }
 
 // ---- analysis ----------------------------------------------------------------------------------
-const isNumeric = (s) => /^[\d\s.,%$€£+\-x×:]+$/.test(s);
+// counters, with an optional short unit ("12 min", "4 MB", "3x")
+const isNumeric = (s) => /^[\d\s.,%$€£+\-x×:]+(\s?[A-Za-z%]{1,4})?$/.test(s) && /\d/.test(s);
 
 function tracks(frames) {
   const m = new Map();
@@ -341,7 +342,13 @@ export async function measureComp(projectDir, { fps, ink = true, video = null } 
     await page.evaluate(installSampler);
     const frames = [];
     for (let k = 0; k < n; k++) frames.push(await page.evaluate((t) => window.__emSample(t), k / fps));
+    // EM_MEASURE_DEBUG=t0,t1 prints every text block per frame in that window
+    if (process.env.EM_MEASURE_DEBUG) {
+      const [d0, d1] = process.env.EM_MEASURE_DEBUG.split(",").map(Number);
+      frames.forEach((bs, k) => k / fps >= d0 && k / fps <= d1 && console.log((k / fps).toFixed(3), bs.map((b) => `"${b.text}" op ${b.op.toFixed(2)} full ${b.full.toFixed(2)} blur ${b.blur} [${b.l.toFixed(0)},${b.t.toFixed(0)},${b.r.toFixed(0)},${b.b.toFixed(0)}]`).join(" | ")));
+    }
     const a = analyse(frames, { fps, W, H });
+    a.sceneErrors = await page.evaluate(() => JSON.parse(document.getElementById("em-errors")?.textContent || "[]"));
     a.ink = ink ? await inkCheck(page, holdWindows(frames, { fps, W, H }), { fps, W, H, tmp, video }) : [];
     return a;
   }, { width: W, height: H });
@@ -350,6 +357,7 @@ export async function measureComp(projectDir, { fps, ink = true, video = null } 
 
   const sev = (arr) => arr.filter((x) => x.severity === "fail");
   const fails = [];
+  if (result.sceneErrors.length) fails.push(`scenes that failed to build: ${result.sceneErrors.map((e) => `${e.t}s ${e.type}: ${e.error}`).join("; ")}`);
   if (sev(result.reads).length) fails.push(`text not readable: ${sev(result.reads).slice(0, 4).map((r) => `${r.t}s "${r.text}" ${r.issue || `${r.hold}/${r.need}s`}`).join("; ")}`);
   if (sev(result.frame).length) fails.push(`text clipped by the frame edge: ${sev(result.frame).slice(0, 4).map((r) => `${r.t}s "${r.text}"`).join("; ")}`);
   if (sev(result.tails).length) fails.push(`ease tails that freeze (${LIMITS.tailFail}+ frames under ${LIMITS.crawlPx}px): ${sev(result.tails).slice(0, 4).map((r) => `${r.t}s "${r.text}" ${r.tail}f`).join("; ")}`);
