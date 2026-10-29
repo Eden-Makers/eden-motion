@@ -13,6 +13,19 @@ import { loadEnv, REPO } from "../src/lib/env.mjs";
 // over IPv4 the plain way: every API here answers on it.
 dns.setDefaultResultOrder("ipv4first");
 net.setDefaultAutoSelectFamily(false);
+// A dropped connection is not an answer: retry network errors (not HTTP errors, which each API
+// client handles) up to 3 times with backoff, so a flaky Wi-Fi does not end a 30 minute run.
+const netFetch = globalThis.fetch;
+globalThis.fetch = async (url, init) => {
+  for (let i = 0; ; i++) {
+    try {
+      return await netFetch(url, init);
+    } catch (e) {
+      if (i >= 3 || e.name === "AbortError") throw e;
+      await new Promise((r) => setTimeout(r, 1500 * 2 ** i));
+    }
+  }
+};
 
 const HELP = `eden-motion - company name in, finished motion-graphics brand film out
 
