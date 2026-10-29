@@ -50,6 +50,16 @@ can stop at any step, edit, and continue.
 
 ## Showcase
 
+Three films rendered end to end from a company name and a few lines of notes, no generated stills
+(type, product UI, diagrams and Blender plates), each checked frame by frame with `measure`:
+
+| | |
+|---|---|
+| <img src="docs/media/poster-eden-motion.jpg" width="260"> | **eden-motion launch film**, 16:9, 39 s, relate style. Metronome cuts on a 24 frame grid, chrome hardware rendered headless in Blender, the website flown through with real depth of field, a logo built from its own bars. [Watch](https://eden-makers.github.io/eden-motion/#eden-motion) |
+| <img src="docs/media/poster-edenmakers.jpg" width="200"> | **Edenmakers studio film**, 4:5, 33 s, launch style. Laid out on a 1728 x 2160 stage, delivered at 1080 x 1350. [Watch](https://eden-makers.github.io/eden-motion/#edenmakers) |
+| <img src="docs/media/poster-hlas-demo.jpg" width="260"> | **Hlas product demo**, 16:9, 36 s, burnwe style. The real app screens in Blender with a dolly and rack focus, cuts snapped to the music. [Watch](https://eden-makers.github.io/eden-motion/#hlas-demo) |
+Earlier tests:
+
 | | |
 |---|---|
 | <img src="docs/media/hlas-1.jpg" width="260"> <img src="docs/media/hlas-5.jpg" width="260"> | **Hlas, a 43 s vertical promo** for a Czech-first dictation app. Keycaps that drift apart and a Fn key that lights up green are Blender plates; the dictated Czech sentence lands at the cursor on release, exactly like the app; the real app screens are flown in 3D with a rack focus. Music, foley and a logo sting in the music's key. [Watch](https://eden-makers.github.io/eden-motion/#hlas) |
