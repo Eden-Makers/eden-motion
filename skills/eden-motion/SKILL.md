@@ -97,6 +97,11 @@ eden-motion note <slug> "slow every zoom to 0.7x; hard cut into s5; push in on t
    re-render, repeat until the round says PASS (every score 8+, no metric fail); minimum 3 rounds on a
    new film. Scenes that cut inside themselves declare it with `EM.cues.push({t, type: "cut"})`.
    Open the sheets yourself with the Read tool, do not trust the score alone.
+   The same round runs `measure` on the composition: every text block's reading time (one word 0.3 s,
+   a line 0.4 s + chars / 18), text clipped by the frame edge, ease tails that freeze (6+ frames
+   under 0.5 px at the end of a move), and vertical glyph judder measured on the render itself.
+   `measure <slug>` alone needs no render (seconds); `--video renders/final.mp4` adds the render check.
+   Its fails are facts, not taste: fix them before arguing with the rubric.
 6. **Final.** `render <slug>` (motion blur), `critique --file renders/final.mp4` again. Never ship the first render.
 
 Effort: run new films on xhigh (max when the first 3 seconds carry a launch), medium for fixes and re-renders.
@@ -154,7 +159,7 @@ screenshot that swings from flat into a 3D hero angle. Render cost ~1.5 s per 10
 
 ## Motion curves
 
-No linear motion by default (`runtime/SCENE_API.md` rule 14): arrivals `power3.out`/`expo.out`,
+No linear motion by default (`runtime/SCENE_API.md` rules 14-15): arrivals `land` (short plain moves) or `expo.out` (big moves, focus pulls),
 settles `power2.out`, drifts and push-ins `sine.out` (energy first, settles into the cut), camera
 moves across a cut `sine.inOut`. Linear only for typing, time remaps, continuous spins, frame-stepped
 wipes. Blender templates follow the same rule (SINE ease-out keys; `curve=linear` opts out).

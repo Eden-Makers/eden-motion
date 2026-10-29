@@ -91,11 +91,11 @@
       const t0 = start + 0.05;
       // Screenshots carry small real UI text: land bigger and tilted (T26 plane), then push.
       const landScale = parts.shot ? 1.02 : 0.86;
-      tl.fromTo(rig, { y: 380, rotationX: 38, rotationZ: -3, scale: landScale * 0.95, opacity: 0 }, { y: 0, rotationX: parts.shot ? 8 : 0, rotationY: parts.shot ? -8 : 0, rotationZ: 0, scale: landScale, opacity: 1, duration: 1.2, ease: "expo.out" }, t0);
+      tl.fromTo(rig, { y: 380, rotationX: 38, rotationZ: -3, scale: landScale * 0.95, opacity: 0 }, { y: 0, rotationX: parts.shot ? 8 : 0, rotationY: parts.shot ? -8 : 0, rotationZ: 0, scale: landScale, opacity: 1, duration: 1.2, ease: "land" }, t0);
       if (parts.kpiEls) {
         fx.cardIn(tl, parts.kpiEls, t0 + 0.45, { y: 40, rx: 0, z: 0, stagger: 0.07, dur: 0.7 });
         tl.fromTo(parts.bars, { scaleY: 0 }, { scaleY: 1, duration: 0.9, stagger: 0.03, ease: "expo.out", transformOrigin: "50% 100%" }, t0 + 0.7);
-        tl.fromTo(parts.rows, { x: 40, opacity: 0 }, { x: 0, opacity: 1, duration: 0.6, stagger: 0.08, ease: "expo.out" }, t0 + 0.8);
+        tl.fromTo(parts.rows, { x: 40, opacity: 0 }, { x: 0, opacity: 1, duration: 0.6, stagger: 0.08, ease: "land" }, t0 + 0.8);
       }
       // Camera push: bring the focus region's centre to frame centre at scale s.
       const focus = p.focus || (parts.shot ? "top" : "kpis");

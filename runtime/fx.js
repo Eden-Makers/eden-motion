@@ -1,13 +1,19 @@
 /* Motion primitives shared by all scenes. Every helper takes the timeline and an absolute
  * time so scenes stay declarative and seek-safe. Easing vocabulary is deliberately small:
- * expo.out for arrivals, power3.inOut for travel, back.out(1.6) only for pops.
+ * "land" for arrivals, power3.inOut for travel, back.out(1.6) only for pops.
  */
 (function () {
   const EM = window.EM;
   const h = EM.h;
   const fx = (EM.fx = {});
 
-  fx.EASE = { in: "expo.out", travel: "power3.inOut", pop: "back.out(1.7)", soft: "power2.out", snap: "expo.inOut" };
+  // "land": expo's fast start, but it arrives with a little speed left instead of crawling. On a
+  // 24 fps clock expo.out spends its last 6-8 frames under 0.5 px per frame on moves under ~150 px,
+  // which rasterises as the element stopping short, then creeping in (a freeze, not a settle).
+  // Trimmed exponential, k=6: 2-5 crawl frames on the same moves. `eden-motion measure` counts them.
+  gsap.registerEase("land", (p) => (1 - Math.pow(2, -6 * p)) / (1 - Math.pow(2, -6)));
+
+  fx.EASE = { in: "land", travel: "power3.inOut", pop: "back.out(1.7)", soft: "power2.out", snap: "expo.inOut" };
 
   // Split text into word spans (keeps spaces), optional chars. Returns array of spans.
   fx.splitWords = function (el, text, { keyword, keywordClass = "em-kw" } = {}) {
@@ -38,7 +44,7 @@
   };
 
   // Word rise: y + blur + opacity -> rest. The signature Burnwe/Lovable text arrival.
-  fx.riseIn = function (tl, targets, t, { y = 40, blur = 14, dur = 0.7, stagger = 0.06, ease = "expo.out", scale = 1 } = {}) {
+  fx.riseIn = function (tl, targets, t, { y = 40, blur = 14, dur = 0.7, stagger = 0.06, ease = "land", scale = 1 } = {}) {
     const inner = [].concat(targets).map((w) => w.querySelector?.(".em-word-in") || w);
     tl.fromTo(inner, { y, opacity: 0, filter: `blur(${blur}px)`, scale }, { y: 0, opacity: 1, filter: "blur(0px)", scale: 1, duration: dur, stagger, ease }, t);
     return t + dur + stagger * (inner.length - 1);
@@ -47,7 +53,7 @@
   // Words appear exactly when the narrator says them. times[] = absolute seconds.
   fx.riseInAt = function (tl, targets, times, opts = {}) {
     const inner = [].concat(targets).map((w) => w.querySelector?.(".em-word-in") || w);
-    const { y = 36, blur = 12, dur = 0.55, ease = "expo.out" } = opts;
+    const { y = 36, blur = 12, dur = 0.55, ease = "land" } = opts;
     inner.forEach((el, i) => {
       tl.fromTo(el, { y, opacity: 0, filter: `blur(${blur}px)` }, { y: 0, opacity: 1, filter: "blur(0px)", duration: dur, ease }, times[i] ?? times[times.length - 1]);
     });
@@ -128,7 +134,7 @@
   };
 
   // M8 focus-pull entrance: THE default arrival for cards, rows, panels, icons.
-  fx.focusIn = function (tl, targets, t, { dur = 0.42, stagger = 0.14, blur = 16, scale = 1.06, y = 0, ease = "power3.out" } = {}) {
+  fx.focusIn = function (tl, targets, t, { dur = 0.42, stagger = 0.14, blur = 16, scale = 1.06, y = 0, ease = "land" } = {}) {
     tl.fromTo(targets, { opacity: 0, filter: `blur(${blur}px)`, scale, y }, { opacity: 1, filter: "blur(0px)", scale: 1, y: 0, duration: dur, stagger, ease }, t);
     return t + dur + stagger * ([].concat(targets).length - 1);
   };
@@ -187,7 +193,7 @@
   };
 
   // Card arrival in 3D: comes from depth with tilt, settles flat.
-  fx.cardIn = function (tl, targets, t, { dur = 0.9, stagger = 0.08, y = 120, rx = 25, z = -300, ease = "expo.out" } = {}) {
+  fx.cardIn = function (tl, targets, t, { dur = 0.9, stagger = 0.08, y = 120, rx = 25, z = -300, ease = "land" } = {}) {
     tl.fromTo(targets, { y, rotationX: rx, z, opacity: 0 }, { y: 0, rotationX: 0, z: 0, opacity: 1, duration: dur, stagger, ease }, t);
   };
 

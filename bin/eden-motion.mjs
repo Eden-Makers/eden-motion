@@ -44,6 +44,10 @@ STEPS (in order)
   critique     watch-your-own-frames loop: contact/phone/strip sheets + measured pops, dead air,
                variety gaps, hook; harsh 1-10 rubric; appends renders/review_log.md [--no-ai] [--file]
                [--against ref.mp4] scores the reference with the same rubric and prints the delta
+  measure      frame-accurate checks of the composition, no render needed: reading time per text block,
+               text clipped by the frame or outside the safe margin, small text, ease tails that freeze
+               (< 0.5 px/frame), glyph judder and letterform drift under scale -> renders/measure.json [--no-ink]
+               [--video renders/final.mp4: measure the ink windows on the real render too]
   compare      <slug> <ref.mp4> side by side + frame pairs + SSIM vs a reference film [--file]
   review       HTML review sheet (frames per shot, VO, props, prompts, QC) [--deliver <drive folder>]
   build        only build comp/index.html from storyboard.json
@@ -150,6 +154,9 @@ async function step(name, dir, args) {
     case "critique":
       if (args.against) await (await import("../src/steps/critique.mjs")).critiqueAgainst(dir, args.against, { file: args.file, noAi: !!args["no-ai"] });
       else await (await import("../src/steps/critique.mjs")).critique(dir, { file: args.file, noAi: !!args["no-ai"] });
+      break;
+    case "measure":
+      await (await import("../src/steps/measure.mjs")).measure(dir, { fps: args.fps ? +args.fps : undefined, ink: !args["no-ink"], video: args.video ? path.resolve(dir, args.video) : null });
       break;
     case "review":
       await (await import("../src/steps/review.mjs")).review(dir, { deliver: args.deliver || process.env.EDEN_MOTION_DELIVER });

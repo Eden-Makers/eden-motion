@@ -8,6 +8,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { generateJSON, uploadFile, MODELS } from "../lib/gemini.mjs";
 import { readDomJson } from "../lib/browser.mjs";
+import { measureComp } from "./measure.mjs";
 import { log, warn, readJSON, writeJSON, run } from "../lib/util.mjs";
 
 const RUBRIC = ["hook", "phone_readability", "motion", "variety", "composition", "brand", "sound_sync"];
@@ -114,6 +115,14 @@ export async function critique(projectDir, { file, noAi = false } = {}) {
   const fps = Math.round(eval(spawnSync("ffprobe", ["-v", "error", "-select_streams", "v", "-show_entries", "stream=r_frame_rate", "-of", "csv=p=0", file]).stdout.toString().trim() || "60"));
 
   const m = measure(file, sb, { fps, cues });
+  // frame-accurate checks on the composition itself (reading time, frame edge, ease tails, glyph
+  // judder measured on the render): numbers a vision model cannot see
+  const cm = await measureComp(projectDir, { video: file }).catch((e) => (warn(`measure skipped: ${e.message}`), null));
+  if (cm) {
+    writeJSON(path.join(renders, "measure.json"), cm);
+    m.fails.push(...cm.fails);
+    m.composition = cm.summary;
+  }
   const sh = sheets(file, sb, renders, m.strayPops);
   log(`metrics: ${m.pops.length} pops (${m.strayPops.length} away from cuts), ${m.dead.length} dead half-seconds, longest gap ${m.longestGap.len}s`);
   m.fails.forEach((f) => warn(f));
