@@ -37,6 +37,7 @@ STEPS (in order)
                [--ambience "rain on window"] [--no-openverse] [--no-music]
                [--stingers (accent thumps + logo sting composed in code in the music's key; needs uv)]
                no ElevenLabs music? a bed is composed in code as a fallback (audio/music-code.wav)
+  new flags    --format 16:9|4:5|1:1|9:16  --no-images (type, UI, diagrams and Blender plates only)
   sync         snap cuts within 120 ms of a music beat onto the beat (frame grid), then re-mix [--tol 0.12]
   remix        <slug> --music -3 --sfx +2 --ambience off --sfx-foley -4   rebalance stems -> mix.wav (no regeneration)
   preview      build comp/ and open HyperFrames Studio preview
@@ -212,6 +213,7 @@ async function main() {
       video: !!args.video,
       style: args.style || null,
       format: args.format || null,
+      noImages: !!args["no-images"],
       cutGrid: args["cut-grid"] ? +args["cut-grid"] : null,
       fps: args.fps ? +args.fps : null,
       sfxSource: args["sfx-source"] || null,

@@ -48,7 +48,9 @@ export async function storyboard(projectDir, { endHold = 2.2, direction = null, 
   const brand = readJSON(path.join(projectDir, "brand.json"));
   const sc = readJSON(path.join(projectDir, "script.json"));
   const vo = readJSON(path.join(projectDir, "vo.json"));
-  const avail = availableScenes();
+  // --no-images: films built from type, UI, diagrams and Blender plates only (no generated stills)
+  const IMAGE_SCENES = ["media-frame", "montage", "persp-card", "grid-stage"];
+  const avail = availableScenes().filter((k) => !(brief.noImages && IMAGE_SCENES.includes(k)));
   const theme = brief.theme || brand.theme || "saas-light";
 
   // Scene windows: start slightly before the line's first word (visual leads the ear).
@@ -115,7 +117,7 @@ DIRECTION RULES
 - headline and kinetic-type text must use the VO words of that line (a contiguous excerpt or the full line), because words are synced to the narrator one by one. "keyword" must be 1-2 words that appear inside that text.
 - Shots shorter than 1.6 s: use kinetic-type single or headline only.
 - headline text: 2-7 words (the punchiest excerpt of the line). kinetic-type single: 1-5 words, one per spoken word. Longer statements go to a visual scene with a short caption instead.
-- Use real screenshots in ui-window when available; otherwise design a believable dashboard with brand-specific labels.
+${brief.noImages ? "- NO generated images anywhere: never write a \"gen:\" prop. Carry the human or world moments with type, diagrams, UI and clip-3d Blender plates (blender:chrome-object, blender:card-stack, blender:layers-3d).\n" : ""}- Use real screenshots in ui-window when available; otherwise design a believable dashboard with brand-specific labels.
 - Imagery must feel designed, not stock: prefer abstract premium 3D renders (glass, soft materials, light, macro objects that embody the idea) and the brand's real screenshots. NO clichés: no stressed worker at a desk, no handshakes, no team high-fives, no generic office people, no robots. People only if the product is about people, and then editorial and specific.
 - montage items: use the brand's real screenshots first, then abstract renders.
 - card-cloud word: "?" or one calm word, never shouting capitals.
