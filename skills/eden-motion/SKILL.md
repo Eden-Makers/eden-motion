@@ -5,12 +5,12 @@ description: Company name in, finished motion-graphics brand film out (Burnwe / 
 
 # eden-motion
 
-Repo: the clone this skill was installed from (its path is in `.repo-path` next to this file, written by `install.sh`). CLI: `eden-motion` (global) or `node <repo>/bin/eden-motion.mjs`. Engine = HyperFrames (HTML + GSAP, seek-deterministic).
+Repo: the clone this skill was installed from. Installed with `install.sh`: its path is in `.repo-path` next to this file. Installed as a Claude Code plugin (`/plugin install eden-motion@eden-motion`): the repo is the plugin root, two folders above this skill (`<this skill dir>/../..`), and the first run needs `node bin/eden-motion.mjs setup` there (it installs the npm deps). CLI: `eden-motion` (global) or `node <repo>/bin/eden-motion.mjs`. Engine = HyperFrames (HTML + GSAP, seek-deterministic).
 Everything is plain JSON in a project folder, so any harness can run steps, read results and edit them.
 
 ## 0. Setup check (first thing, every new machine)
 ```bash
-cd "$(cat <this skill dir>/.repo-path)" && node bin/eden-motion.mjs doctor --json
+cd "$(cat <this skill dir>/.repo-path 2>/dev/null || echo <this skill dir>/../..)" && node bin/eden-motion.mjs doctor --json
 ```
 Each check has `level` (required | recommended | optional), `status`, `why` and `fix`. If `ready` is
 false or a recommended item is missing, onboard the person before anything else:

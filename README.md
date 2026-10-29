@@ -57,6 +57,19 @@ can stop at any step, edit, and continue.
 
 ## Quick start
 
+**In Claude Code** (two commands, then just ask for a film):
+
+```
+/plugin marketplace add Eden-Makers/eden-motion
+/plugin install eden-motion@eden-motion
+```
+
+Then say *"set up eden-motion"*: the agent runs `doctor`, installs what is missing, has you paste
+API keys into a masked prompt in your own terminal (never into the chat) and renders a 7 s smoke
+test. After that: *"make a 45 second launch film for Linear"*.
+
+**From a terminal** (Claude Code, Codex, Gemini CLI, Cursor, opencode):
+
 ```bash
 git clone https://github.com/Eden-Makers/eden-motion && cd eden-motion
 ./install.sh            # npm deps, skill links for Claude Code / Codex / Agent Skills, global CLI
