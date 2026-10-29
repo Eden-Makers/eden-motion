@@ -29,9 +29,12 @@ false or a recommended item is missing, onboard the person before anything else:
 ```bash
 node bin/eden-motion.mjs new "<Company>" [--url https://site] [--duration 60] [--lang en] \
   [--theme saas-light|saas-dark|glow|cinematic] [--voice brian|george|sarah|alice|matilda|daniel] \
-  [--structure problem-solution|launch|manifesto] [--notes "client notes"] [--dir <projects root>]
+  [--structure problem-solution|launch|manifesto] [--notes "client notes"] [--dir <projects root>] \
+  [--style burnwe|launch|relate|higgsfield] [--format 16:9|4:5|1:1|9:16] [--no-images]
 ```
-Runs: research -> script -> vo -> storyboard -> assets -> audio -> render (final, motion blur) -> qc.
+Runs: research -> script -> vo -> storyboard -> assets -> blender -> audio -> sync -> render (final, motion blur, finish) -> qc.
+`--format 4:5` lays the film out on a 1728x2160 stage and delivers 1080x1350 (1:1 likewise).
+`--no-images` keeps generated stills out (type, UI, diagrams, Blender plates only).
 Project lands in `projects/<slug>/` (or `--dir`). Output: `renders/final.mp4`, `renders/qc.json`, `renders/contact-sheet.jpg`.
 
 **Autopilot is the first draft, not the deliverable.** Always run the director loop (section 3).
@@ -45,9 +48,12 @@ node bin/eden-motion.mjs vo <slug>                     # audio/vo.mp3, vo.json (
 node bin/eden-motion.mjs storyboard <slug>             # storyboard.json  <- READ AND IMPROVE IT
 node bin/eden-motion.mjs assets <slug>                 # resolves "gen:<prompt>" images (Nano Banana Pro 2K)
 node bin/eden-motion.mjs audio <slug>                  # VO + music + ambience + layered SFX -> audio/stems/*.wav + audio/mix.wav
+node bin/eden-motion.mjs sync <slug>                   # cuts within 120 ms of a music beat move onto it, then re-mix
 node bin/eden-motion.mjs remix <slug> --music -3 --sfx +2   # rebalance stems -> mix.wav in seconds
+node bin/eden-motion.mjs measure <slug>                # frame-accurate checks without a render (seconds)
 node bin/eden-motion.mjs render <slug> --draft         # ~1-2 min, no motion blur, for review
-node bin/eden-motion.mjs render <slug>                 # final: adaptive true shutter motion blur (~7 min / 60 s)
+node bin/eden-motion.mjs render <slug>                 # final: adaptive true shutter motion blur (~7 min / 60 s) + finish
+                                                       # finish = grain + soft vignette in ffmpeg; storyboard.finish: subtle|film|clean|false
 node bin/eden-motion.mjs qc <slug>                     # Gemini creative-director review
 node bin/eden-motion.mjs preview <slug>                # HyperFrames Studio (scrub, edit timeline)
 ```
