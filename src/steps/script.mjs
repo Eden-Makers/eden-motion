@@ -34,6 +34,7 @@ RULES
 - Each line is ONE clause that will be ONE shot. Most lines 7-11 words (3-4 s); use 1-4 word punch lines only for the hook or emphasis. Hit the word target: it sets the film length.
 - Concrete over abstract. Name real features from the brand data. No buzzword soup ("revolutionize", "seamless", "unlock", "leverage", "cutting-edge" are banned).
 - Only use numbers present in BRAND.proof or BRAND.facts. If none, the proof line uses customers or a qualitative claim.
+- Never name a company, person or product as a customer, user, partner or example unless BRAND.customers or BRAND.facts names it in that role. Example commands, demo data and competitors on a website are not customers. No testimonials, no "trusted by" lists you cannot source.
 - The brand name must be said by 38% of the runtime at the latest.
 - Last two lines: the tagline, then "<Brand>. <CTA>." (or equivalent in ${lang}).
 - Write for the ear: natural rhythm, contractions, no parentheses, no lists, no em dashes or en dashes, no quotes.
