@@ -76,3 +76,15 @@ ducks music under VO with a sidechain compressor and normalises to -14 LUFS.
 | A fix looks like it did nothing in a preview or sheet | the image was read back from cache. Write each sheet or still to a new filename. |
 | Frame 0 is empty because everything pops in | open mid-action: the first frame must already show the hook. `critique` flags a black still opening. |
 | Videos look frozen or stutter in the render (fine in the browser) | HyperFrames pre-extracts video frames only for `<video>` present in the STATIC html. Scenes must create videos via `EM.video(attrs, cls)`; the build boots the page once, reads the `#em-media` manifest and writes those elements statically (`#em-static-media`), scenes then reuse them by id. Check the render log: `extraction.videoCount` must be > 0. |
+
+## Gotchas learned on a TV launcher product film (2026-11-01)
+| symptom | cause and fix |
+|---|---|
+| Camera aims above the subject in a UI scene | boxes were measured after a tween with `immediateRender` had already scaled the stage. Measure every element at rest, before building any tween. |
+| Tilted UI text jagged even at 3840 px | Chrome rasterizes CSS 3D layers at low resolution. z moves as 2D scale about the vanishing point; real perspective in Blender from flat 8K plates (`references/product-ui-film.md`). |
+| First frame of a heavy UI scene renders black | capture worker warm-up race; render that composition with `--workers 1`. |
+| A zero renders slashed | `tabular-nums` selects the font's `zero.tf`; use a fixed-width box per digit instead. |
+| 4K encode at 140+ Mb/s | per-pixel grain. Generate grain at 1/3 resolution and cap `maxrate` (`tools/lensfx.py`). |
+| Retimed device capture hitches | the recorder skipped beats; slow the app clock 6-10x while recording and fill repeats with optical-flow midframes (`tools/retime.py`), never a crossfade. |
+| A loop over `$NAMES` runs once | zsh does not word-split; run shell loops with `bash -c`. |
+| A contact sheet seems to show a clipped element | the sheet's label box covers the frame corner; label in a strip above each tile, check the raw frame. |

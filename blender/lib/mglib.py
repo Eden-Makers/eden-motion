@@ -492,6 +492,43 @@ def mat_image_screen(name, image_path, emission_strength=1.6, roughness=0.18):
     return mat, tex.image
 
 
+def mat_screen_sequence(name, first_frame_path, frames, offset=0, emission_strength=1.6, roughness=0.18):
+    """A device screen that plays a PNG sequence (e.g. UI plates rendered from an HTML twin of the app).
+    first_frame_path is the first file of a numbered sequence (f_0001.png ...). Blender frame 1 shows
+    file 1 + offset, so start the plates where the UI has already settled. Cubic filtering keeps small
+    UI text crisp on a moving plane. Returns (material, image)."""
+    mat, img = mat_image_screen(name, first_frame_path, emission_strength, roughness)
+    img.source = "SEQUENCE"
+    tex = next(n for n in mat.node_tree.nodes if n.type == "TEX_IMAGE")
+    iu = tex.image_user
+    iu.frame_duration = int(frames)
+    iu.frame_start = 1
+    iu.frame_offset = int(offset)
+    iu.use_auto_refresh = True
+    iu.use_cyclic = False
+    return mat, img
+
+
+def bias_glow(center=(0, 0, 1), width=1.6, height=0.9, depth=0.06, color="#9fc6ff", power=60.0,
+              spread=0.45, name="Bias"):
+    """TV bias lighting: four light strips on the back of a screen that faces -Y, aimed backwards and
+    outwards, so a soft glow falls off from the device edges onto the wall behind it and the body
+    reads as a silhouette in a dark set. Put a wall or backdrop 0.3-0.6 m behind the device to
+    catch it. Keep it gentle (the screen stays the key light). Returns the four light objects."""
+    cx, cy, cz = center
+    by = cy + depth                       # just behind the panel
+    edges = [((cx, by, cz + height / 2), (0, 0, 1), width), ((cx, by, cz - height / 2), (0, 0, -1), width),
+             ((cx - width / 2, by, cz), (-1, 0, 0), height), ((cx + width / 2, by, cz), (1, 0, 0), height)]
+    out = []
+    for i, (loc, outward, length) in enumerate(edges):
+        horizontal = outward[2] != 0
+        lt = area_light(f"{name}{i}", loc, power=power * length, size=length * 0.9 if horizontal else 0.03,
+                        size_y=0.03 if horizontal else length * 0.9, color=color)
+        look_at(lt, (loc[0] + outward[0] * spread, loc[1] + 1.0, loc[2] + outward[2] * spread))
+        out.append(lt)
+    return out
+
+
 # ----------------------------------------------------------------------------
 # shapes for crypto / tech promos
 # ----------------------------------------------------------------------------
@@ -907,6 +944,28 @@ def set_dof(cam, focus=None, fstop=2.0, distance=None):
     elif distance is not None:
         d.focus_object = None
         d.focus_distance = distance
+
+
+def set_anamorphic(cam, ratio=1.6, blades=0):
+    """Anamorphic bokeh: oval highlights in the out-of-focus background (aperture_ratio > 1).
+    blades=0 gives smooth discs (here ovals) instead of polygons."""
+    d = cam.data.dof
+    d.aperture_ratio = ratio
+    d.aperture_blades = blades
+
+
+def vertical_reframe(cam, lens_mult=1.6, shift_x=0.0, shift_y=0.0, res=(1080, 1920)):
+    """Turn a 16:9 shot into its 9:16 version without changing the move: same camera path, the lens
+    multiplied by lens_mult so the subject keeps a similar scale in the narrow frame, the f-stop
+    multiplied by the same factor so the blur keeps its size relative to the subject, and a lens
+    shift that places the subject inside the Reels / Shorts safe zone (essential detail outside the
+    top 12% and bottom 22%). Measure the subject's projected box per shot instead of guessing."""
+    cam.data.lens *= lens_mult
+    cam.data.dof.aperture_fstop *= lens_mult
+    cam.data.shift_x, cam.data.shift_y = shift_x, shift_y
+    cam.data.sensor_fit = "AUTO"
+    r = bpy.context.scene.render
+    r.resolution_x, r.resolution_y = res
 
 
 def cut_to(cam, frame, name=None):
