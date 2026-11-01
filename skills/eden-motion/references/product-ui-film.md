@@ -130,3 +130,22 @@ Crop rules for a 16:9 UI (a row of tiles is always wider than 9:16):
 | A preview sheet "shows" a clipped element | the sheet's own label box covered it. Put labels in a strip above each tile, or verify on the raw frame. |
 | A loop over `$LIST` runs once with the whole string | zsh does not word-split unquoted variables; run the loop in `bash -c`. |
 | Camera aims above the subject | boxes measured after a tween with `immediateRender`; measure at rest first (section 1). |
+
+## 10. Token economy on long multi-agent productions
+
+Measured on a two-day product film session (one main chat, about ten subagents, 3000 model turns,
+`tools/token_usage.py`): about 77% of the cost was cache reads of the long context, 12% cache writes,
+11% output, almost nothing fresh input. Every turn re-reads the whole conversation, so the cost of a
+step grows with the length of the chat, not with the size of the step.
+
+| what burned it | why | do this instead |
+|---|---|---|
+| One chat for the whole production | every later turn re-reads all earlier turns | a fresh chat per phase (capture, promo, verticals) that starts from a short handoff file |
+| QC images (737 frames and contact sheets) | each image stays in context and is re-read on every later turn | one combined grid per check, small tiles, end frames only where framing matters |
+| Forked subagents | a fork inherits the full parent context before it does anything | fresh subagents with a tight brief (goal, paths, rules, done-when); fork only when the history itself is needed |
+| Agent progress pings ("frame 24 of 85") | each message wakes the main chat, and each wake re-reads its whole context | agents report once at the end; long renders run as background jobs that notify only on exit |
+| Big subagents (UI twin builder, Blender set) | hundreds of turns each with their own growing context | split by deliverable, hand off through files, stop an agent once its report is in |
+| Parallel bursts | many agents at once hit the 5-hour limit mid-run | stagger heavy agents; keep one render-bound agent per machine resource |
+
+Check it any time with `python3 tools/token_usage.py --hours 24` (per session and subagent, token
+type, tool, images, hour).

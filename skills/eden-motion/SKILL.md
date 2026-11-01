@@ -178,6 +178,9 @@ Read `references/product-ui-film.md` first. Short version:
   soft grain at 1/3 res, bitrate caps).
 - Every film also gets a 9:16 version that keeps the composition: native portrait renders for the
   twin, `mglib.vertical_reframe` for Blender, eased crop keyframes with no slivers at rest for captures.
+- Long multi-agent runs: most of the cost is re-reading context (section 10 of the reference). Fresh
+  chat per phase, fresh subagents over forks, no progress pings, few small QC images;
+  `tools/token_usage.py` shows where it went.
 ```bash
 uv run --no-project --with numpy==2.2.6 --with opencv-python-headless==4.11.0.86 \
   python tools/lensfx.py renders/final.mp4 renders/final_lens.mp4 --fx fx.json --audio audio/mix.wav
@@ -244,6 +247,7 @@ Read `references/relate-and-1to1.md` first. Short loop:
 - Video clips (optional, for `media-frame` kind video): Seedance 2.0 or Kling 3.0 via Higgsfield/fal/Magnific with the approved still as reference, render 3 s longer than the cut, "no music" in the prompt.
 - No em dashes or en dashes in any copy (the pipeline strips them; check anything you write).
 - Motion law: focus-pull arrivals, no overshoot, camera never still, one accent colour, sync to VO words.
+- Token budget: one chat per phase with a handoff file, subagents report only at the end, QC with one small grid instead of many frames (`tools/token_usage.py` to check).
 - Deliver: `review <slug> --deliver <folder>` copies `renders/final.mp4` + the HTML review sheet to your delivery folder. Never send a film to a client before a human has approved it.
 
 ## References
