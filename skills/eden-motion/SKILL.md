@@ -1,6 +1,6 @@
 ---
 name: eden-motion
-description: Company name in, finished motion-graphics brand film out (Burnwe / Lovable / Google launch-film quality). Researches the brand from its website, writes the script, records an ElevenLabs voiceover with word timings, storyboards 15-20 shots from a library of premium scenes (hot-tail kinetic type, product UI with camera and cursor, prompt box, orbit, stat counters, card chaos, flow lines, glass media frames, logo resolve), generates images with Nano Banana Pro and AI clips via Higgsfield (Seedance 2.0 / Kling 3 / Veo 3.1), offers burnwe / launch / higgsfield / relate visual styles, renders 3D plates headless in Blender (chrome hardware, acrylic card stacks, product CG), mixes layered stems (VO, music, ambience, transition / UI / foley / accent SFX) on exact frames with free CC0 / CC-BY sounds from Openverse picked by a code score, renders with HyperFrames and true shutter motion blur, then self-reviews with Gemini and iterates. Also rebuilds a reference film 1:1 (compare + calibrated critique). Use for "make a motion graphics video for <company>", "explainer video", "SaaS promo", "launch video", "brand film from a website", "motion design like Burnwe/Lovable/Google/Relate", "crypto / fintech promo", "napodob tohle video 1:1", "udělej motion graphic video", "explainer pro firmu".
+description: Company name in, finished motion-graphics brand film out (Burnwe / Lovable / Google launch-film quality). Researches the brand from its website, writes the script, records an ElevenLabs voiceover with word timings, storyboards 15-20 shots from a library of premium scenes (hot-tail kinetic type, product UI with camera and cursor, prompt box, orbit, stat counters, card chaos, flow lines, glass media frames, logo resolve), generates images with Nano Banana Pro and AI clips via Higgsfield (Seedance 2.0 / Kling 3 / Veo 3.1), offers burnwe / launch / higgsfield / relate visual styles, renders 3D plates headless in Blender (chrome hardware, acrylic card stacks, product CG), mixes layered stems (VO, music, ambience, transition / UI / foley / accent SFX) on exact frames with free CC0 / CC-BY sounds from Openverse picked by a code score, renders with HyperFrames and true shutter motion blur, then self-reviews with Gemini and iterates. Also rebuilds a reference film 1:1 (compare + calibrated critique). Also films a real app or device: HTML twin of the UI instead of screen recordings, CG device shots in Blender, b-roll close-ups, lens finish keyed to fast moves, and 9:16 Reels versions that keep the composition. Use for "make a motion graphics video for <company>", "explainer video", "SaaS promo", "launch video", "brand film from a website", "motion design like Burnwe/Lovable/Google/Relate", "crypto / fintech promo", "app promo / product b-roll / UI close-ups", "vertical version for Reels", "napodob tohle video 1:1", "udělej motion graphic video", "explainer pro firmu", "b-roll aplikace".
 ---
 
 # eden-motion
@@ -163,6 +163,31 @@ leaves only a sliver of the focus layer sharp. Assets render unlit, so UI colour
 Typical uses: a product UI flythrough with focus pulls, a wall of stills the camera orbits, a
 screenshot that swings from flat into a 3D hero angle. Render cost ~1.5 s per 1080p frame (EEVEE).
 
+## 4c. Product UI films (a real app or device is the hero)
+
+Read `references/product-ui-film.md` first. Short version:
+- Never film the screen for designed shots. Rebuild the UI as an HTML twin (real layout, fonts,
+  copy; every element its own layer) and animate it like After Effects layers. Screen recordings
+  cropped into cards read as lazy. Measure every box at rest before any tween.
+- CSS 3D text goes soft: do z moves as 2D scale, real perspective in Blender from 8K twin plates.
+- CG device shots: `mglib.mat_screen_sequence` (screen plays the twin plates), `set_anamorphic`,
+  `bias_glow` (backlight so the silhouette reads in the dark). 2560x1440 finals, 960x540 previews
+  for style approval first.
+- Real captures: slow the app clock R times, then `tools/retime.py` (optical-flow gap fill).
+- Finish: `tools/lensfx.py` (barrel + aberration keyed to fast moves in `fx.json`, halation,
+  soft grain at 1/3 res, bitrate caps).
+- Every film also gets a 9:16 version that keeps the composition: native portrait renders for the
+  twin, `mglib.vertical_reframe` for Blender, eased crop keyframes with no slivers at rest for captures.
+- Long multi-agent runs: most of the cost is re-reading context (section 10 of the reference). Fresh
+  chat per phase, fresh subagents over forks, no progress pings, few small QC images;
+  `tools/token_usage.py` shows where it went.
+```bash
+uv run --no-project --with numpy==2.2.6 --with opencv-python-headless==4.11.0.86 \
+  python tools/lensfx.py renders/final.mp4 renders/final_lens.mp4 --fx fx.json --audio audio/mix.wav
+uv run --no-project --with numpy==2.2.6 --with opencv-python-headless==4.11.0.86 \
+  python tools/retime.py capture.webm 8 clip_60fps.mp4 --start 1.0
+```
+
 ## Motion curves
 
 No linear motion by default (`runtime/SCENE_API.md` rules 14-15): arrivals `land` (short plain moves) or `expo.out` (big moves, focus pulls),
@@ -222,6 +247,7 @@ Read `references/relate-and-1to1.md` first. Short loop:
 - Video clips (optional, for `media-frame` kind video): Seedance 2.0 or Kling 3.0 via Higgsfield/fal/Magnific with the approved still as reference, render 3 s longer than the cut, "no music" in the prompt.
 - No em dashes or en dashes in any copy (the pipeline strips them; check anything you write).
 - Motion law: focus-pull arrivals, no overshoot, camera never still, one accent colour, sync to VO words.
+- Token budget: one chat per phase with a handoff file, subagents report only at the end, QC with one small grid instead of many frames (`tools/token_usage.py` to check).
 - Deliver: `review <slug> --deliver <folder>` copies `renders/final.mp4` + the HTML review sheet to your delivery folder. Never send a film to a client before a human has approved it.
 
 ## References
@@ -230,4 +256,5 @@ Read `references/relate-and-1to1.md` first. Short loop:
 - `references/director-brief.md` - the long-brief template (logline, refs, keys, beat sheet, gates, critique loop, deliverables) and the parallel-chapter subagent pattern.
 - `references/pipeline.md` - file formats (brief, brand, script, vo, storyboard), rendering and motion blur internals, troubleshooting.
 - `references/relate-and-1to1.md` - Relate grammar, the 1:1 rebuild loop, Blender 5.2 headless + HyperFrames gotchas.
+- `references/product-ui-film.md` - app and device films: HTML twin of the UI, Blender device CG, slowed-clock capture with optical-flow retime, lens finish keyed to moves, music-led edit, 9:16 reframing rules, the review loop.
 - Repo research: `research/analysis/{burnwe,launch-films,higgsfield,relate,tooling-and-workflows}.md` (full forensic breakdowns, 90+ techniques with parameters, Higgsfield preset map), `research/relate/*.md` (26 per-film shot lists), `research/blender/{PLAYBOOK,tutorials}.md` (12 Blender tutorials distilled).
