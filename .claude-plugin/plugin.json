@@ -1,7 +1,22 @@
 {
   "name": "eden-motion",
-  "version": "0.1.0",
-  "description": "Company name in, finished motion-graphics brand film out. Research, script, ElevenLabs VO, storyboard, Nano Banana Pro images, music + SFX, HyperFrames render with true shutter motion blur, Gemini QC.",
-  "author": { "name": "Edenmakers" },
-  "keywords": ["motion-graphics", "video", "hyperframes", "explainer", "saas", "launch-film"]
+  "version": "0.3.0",
+  "description": "Directed motion design for agents. Company name in, a launch film out: research, script, ElevenLabs VO, storyboard from premium scenes, Blender 3D plates, layered sound on the beat, HyperFrames render with true shutter motion blur, then measured QC and a harsh critique loop.",
+  "author": {
+    "name": "Edenmakers",
+    "url": "https://edenmakers.ai"
+  },
+  "homepage": "https://eden-makers.github.io/eden-motion/",
+  "repository": "https://github.com/Eden-Makers/eden-motion",
+  "keywords": [
+    "motion-graphics",
+    "motion-design",
+    "video",
+    "hyperframes",
+    "blender",
+    "launch-film",
+    "product-demo"
+  ],
+  "icon": ".claude-plugin/icon.png",
+  "license": "Apache-2.0"
 }

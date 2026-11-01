@@ -21,6 +21,7 @@ Then run the director loop: read script.json and storyboard.json, fix, re-render
 | `skills/eden-motion/` | the Agent Skill (symlinked into ~/.claude/skills, ~/.codex/skills, ~/.agents/skills by `install.sh`) |
 | `research/analysis/` | forensic breakdowns of the reference films (70 techniques with parameters) |
 | `sfx-library/` | Pixabay-licensed SFX used by the audio step |
+| `tools/` | out-of-process helpers: `stingers.py` (audio-as-code), `synccheck.mjs`, `lensfx.py` (lens finish keyed to fast moves), `retime.py` (slowed capture to 60 fps, optical-flow gap fill), `token_usage.py` (where the Claude Code tokens went) |
 
 ## Rules when editing code
 - Scenes must stay deterministic: no Math.random (use `ctx.rng`), no Date, no timers, no CSS animations, no `repeat: -1`.

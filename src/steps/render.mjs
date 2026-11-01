@@ -17,6 +17,21 @@ import { log, run, runLive, readJSON, probeDuration } from "../lib/util.mjs";
 
 const HF = ["-y", "hyperframes@0.8.72"];
 
+// Finish: what keeps a browser render from reading as a browser render. Temporal grain breaks the
+// banding in big soft gradients and the dead-clean vector edges; a soft vignette gives the frame a
+// lens. Added in ffmpeg, never drawn in the page (lemo-opuscar mux.sh: frames stay compressible
+// and the measured composition stays clean). No bloom: on light themes it washes the UI out.
+// storyboard.finish: "subtle" (default) | "film" | "clean" | false | { grain: 0-12, vignette: 0-1 }
+const FINISH = { subtle: { grain: 3, vignette: 0.35 }, film: { grain: 6, vignette: 0.6 }, clean: { grain: 1.5, vignette: 0 } };
+export function finishFilter(sb) {
+  if (sb.finish === false) return null;
+  const f = typeof sb.finish === "object" ? sb.finish : FINISH[sb.finish] || (sb.flat ? FINISH.clean : FINISH.subtle);
+  const parts = [];
+  if (f.vignette > 0) parts.push(`vignette=angle=${(0.5 * f.vignette).toFixed(3)}:mode=forward`);
+  if (f.grain > 0) parts.push(`noise=c0s=${f.grain}:c0f=t+u:c1s=${(f.grain / 3).toFixed(1)}:c1f=t+u:c2s=${(f.grain / 3).toFixed(1)}:c2f=t+u`);
+  return parts.length ? parts.join(",") : null;
+}
+
 function segmentGraph(map, fps, shutter, phase = "center", R = 60) {
   // One trim -> (tmix -> select) chain per segment, then concat.
   let F = 0;
@@ -100,10 +115,15 @@ export async function render(projectDir, { quality = "final", fps, shutter = 180
 
   const mix = path.join(projectDir, "audio", "mix.wav");
   const final = out || path.join(renders, draft ? "draft.mp4" : "final.mp4");
+  // storyboard.output: delivery size when the stage is laid out larger (4:5, 1:1)
+  const scale = Array.isArray(sb.output) ? `scale=${sb.output[0]}:${sb.output[1]}:flags=lanczos` : null;
+  const vf = [scale, draft ? null : finishFilter(sb)].filter(Boolean).join(",") || null;
+  if (vf) log(`finish: ${vf}`);
+  const venc = draft && !vf ? ["-c:v", "copy"] : [...(vf ? ["-vf", vf] : []), "-c:v", "libx264", "-crf", draft ? "20" : "16", "-preset", draft ? "veryfast" : "slow", "-pix_fmt", "yuv420p"];
   if (fs.existsSync(mix)) {
-    run("ffmpeg", ["-y", "-v", "error", "-i", video, "-i", mix, "-map", "0:v", "-map", "1:a", "-c:v", draft ? "copy" : "libx264", ...(draft ? [] : ["-crf", "16", "-preset", "slow", "-pix_fmt", "yuv420p"]), "-c:a", "aac", "-b:a", "256k", "-t", String(sb.duration), "-movflags", "+faststart", final]);
+    run("ffmpeg", ["-y", "-v", "error", "-i", video, "-i", mix, "-map", "0:v", "-map", "1:a", ...venc, "-c:a", "aac", "-b:a", "256k", "-t", String(sb.duration), "-movflags", "+faststart", final]);
   } else {
-    run("ffmpeg", ["-y", "-v", "error", "-i", video, "-c:v", "copy", "-t", String(sb.duration), "-movflags", "+faststart", final]);
+    run("ffmpeg", ["-y", "-v", "error", "-i", video, ...(vf ? venc : ["-c:v", "copy"]), "-t", String(sb.duration), "-movflags", "+faststart", final]);
   }
   log(`done -> ${final} (${probeDuration(final).toFixed(2)}s)`);
   return final;

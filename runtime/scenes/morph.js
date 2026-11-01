@@ -498,7 +498,7 @@
   KINDS.tabs = {
     weight: 1.5, surface: "paper", nominal: [480, 92],
     make(s) {
-      const items = (s.items || ["Overview", "Activity", "Settings"]).slice(0, 4);
+      const items = (Array.isArray(s.items) && s.items.length ? s.items : ["Overview", "Activity", "Settings"]).slice(0, 4);
       const H = 92, PAD = 10;
       const mk = (cls) => h("div", { class: "um-tabs-row " + cls, "data-layout-allow-overlap": "", "data-layout-allow-occlusion": "" }, ...items.map((it) => h("span", { class: "um-tab", "data-layout-allow-overlap": "", "data-layout-allow-occlusion": "" }, it)));
       const base = mk("um-tabs-base"), over = mk("um-tabs-over");
@@ -544,7 +544,7 @@
   KINDS.chart = {
     weight: 1.55, surface: "paper", nominal: [660, 420],
     make(s, E) {
-      const vals = (s.values || [4, 6, 5, 8, 7, 10, 9, 12]).slice(0, 16).map(Number);
+      const vals = (Array.isArray(s.values) && s.values.length ? s.values : [4, 6, 5, 8, 7, 10, 9, 12]).slice(0, 16).map(Number);
       const n = vals.length, max = Math.max(...vals, 1);
       const W = 660, H = 420, PX = 36;
       const hasHead = s.title || s.value;
@@ -639,7 +639,7 @@
   KINDS.command = {
     weight: 2.2, surface: "paper", nominal: [740, 450],
     make(s, E) {
-      const res = (s.results || []).slice(0, 6).map((r, i) => (typeof r === "string" ? { label: r } : r));
+      const res = (Array.isArray(s.results) ? s.results : []).slice(0, 6).map((r) => (typeof r === "string" ? { label: r } : { ...r, label: String((r && r.label) || "") }));
       const ICONS = ["file", "user", "chart", "settings", "calendar", "mail"];
       const W = 740, SH = 92, RH = 68, TOP = SH + 1 + 8;
       const HMAX = TOP + RH * Math.max(1, res.length) + 8;

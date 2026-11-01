@@ -104,15 +104,20 @@
       const end = fx.hotType(tl, line, p.text, vt[0], { wordTimes: vt, keyword: p.keyword });
       // measure cumulative widths from real layout (all chars exist, just transparent)
       const wEls = [...line.querySelectorAll(".em-word")];
-      const x0 = wEls[0].offsetLeft;
-      const Wf = line.offsetWidth;
+      // word extents from layout boxes relative to the first word (before any transform is set);
+      // offsetLeft alone came back inconsistent at build time and gave a negative width, i.e. a
+      // scale of -8 that flipped the headline out of frame
+      const lb = line.getBoundingClientRect();
+      const ext = wEls.map((w) => { const r = w.getBoundingClientRect(); return { l: r.left - lb.left, r: r.right - lb.left }; });
+      const x0 = ext[0].l;
+      const Wf = Math.max(line.offsetWidth, ext[ext.length - 1].r - x0);
       // Too long for one readable line (would shrink below ~60%): wrap into a centred block
       // at a fixed size instead of the fit-to-width zoom.
       if (maxW / Wf < 0.6) {
         Object.assign(line.style, { whiteSpace: "normal", width: "1500px", fontSize: Math.round(fs * 0.72) + "px", lineHeight: "1.08" });
         tl.fromTo(line, { scale: 1.04 }, { scale: 1, duration: ctx.dur, ease: "power2.out" }, start);
       } else wEls.forEach((w, i) => {
-        const Wi = w.offsetLeft + w.offsetWidth - x0;
+        const Wi = Math.max(1, ext[i].r - x0);
         const s = Math.min(1, maxW / Wi);
         const x = (s * (Wf - Wi)) / 2;
         if (i === 0) gsap.set(line, { x, scale: s });

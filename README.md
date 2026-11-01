@@ -50,12 +50,35 @@ can stop at any step, edit, and continue.
 
 ## Showcase
 
+Three films rendered end to end from a company name and a few lines of notes, no generated stills
+(type, product UI, diagrams and Blender plates), each checked frame by frame with `measure`:
+
+| | |
+|---|---|
+| <img src="docs/media/poster-eden-motion.jpg" width="260"> | **eden-motion launch film**, 16:9, 39 s, relate style. Metronome cuts on a 24 frame grid, chrome hardware rendered headless in Blender, the website flown through with real depth of field, a logo built from its own bars. [Watch](https://eden-makers.github.io/eden-motion/#eden-motion) |
+| <img src="docs/media/poster-edenmakers.jpg" width="200"> | **Edenmakers studio film**, 4:5, 33 s, launch style. Laid out on a 1728 x 2160 stage, delivered at 1080 x 1350. [Watch](https://eden-makers.github.io/eden-motion/#edenmakers) |
+| <img src="docs/media/poster-hlas-demo.jpg" width="260"> | **Hlas product demo**, 16:9, 36 s, burnwe style. The real app screens in Blender with a dolly and rack focus, cuts snapped to the music. [Watch](https://eden-makers.github.io/eden-motion/#hlas-demo) |
+Earlier tests:
+
 | | |
 |---|---|
 | <img src="docs/media/hlas-1.jpg" width="260"> <img src="docs/media/hlas-5.jpg" width="260"> | **Hlas, a 43 s vertical promo** for a Czech-first dictation app. Keycaps that drift apart and a Fn key that lights up green are Blender plates; the dictated Czech sentence lands at the cursor on release, exactly like the app; the real app screens are flown in 3D with a rack focus. Music, foley and a logo sting in the music's key. [Watch](https://eden-makers.github.io/eden-motion/#hlas) |
 | <img src="docs/media/relate-9.jpg" width="260"> <img src="docs/media/relate-7.jpg" width="260"> | **Editorial metronome test.** Cuts every 24 frames, polarity flips, a chrome block rendered in Cycles, ghost counters, frosted glass letters, a logo built from its own bars. [Watch](https://eden-makers.github.io/eden-motion/#editorial) |
 
 ## Quick start
+
+**In Claude Code** (two commands, then just ask for a film):
+
+```
+/plugin marketplace add Eden-Makers/eden-motion
+/plugin install eden-motion@eden-motion
+```
+
+Then say *"set up eden-motion"*: the agent runs `doctor`, installs what is missing, has you paste
+API keys into a masked prompt in your own terminal (never into the chat) and renders a 7 s smoke
+test. After that: *"make a 45 second launch film for Linear"*.
+
+**From a terminal** (Claude Code, Codex, Gemini CLI, Cursor, opencode):
 
 ```bash
 git clone https://github.com/Eden-Makers/eden-motion && cd eden-motion
@@ -103,6 +126,12 @@ The defaults come from measuring films, not from taste alone: `research/analysis
 breakdowns (90+ techniques with parameters: easing, timing, type, sound), `research/relate/` 26
 per-film shot lists, `research/blender/` a Blender headless playbook, and an analysis of 703 public
 Opus 5.5 video prompts.
+
+## License
+
+Apache License 2.0, copyright Eden Makers s.r.o. See [LICENSE](LICENSE) and [NOTICE](NOTICE):
+the bundled Pixabay sound effects keep their own licence, and the licence grants no rights to the
+Edenmakers, eden-motion or Hlas names and marks.
 
 ## Credits
 

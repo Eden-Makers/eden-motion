@@ -70,10 +70,16 @@
         t += 0.8 + chars.length * 0.04;
       }
 
+      // the end card must leave the tagline readable before the film ends: pull it forward over
+      // the name's settle when the shot is short (reading time as in `eden-motion measure`)
+      const end = start + dur;
+      const tail = (p.cta ? 0.6 : 0) + (p.url ? 0.5 : 0);
       if (p.tagline) {
         const tag = h("div", { class: "em-sub", style: { fontSize: "44px", color: "var(--fg)", fontWeight: 550, marginTop: "-10px" } });
         const ws = fx.splitWords(tag, p.tagline, { keyword: p.keyword });
         wrap.appendChild(tag);
+        const need = 0.4 + p.tagline.length / 18;
+        t = Math.max(start + 0.5, Math.min(t, end - need - 0.6 - tail));
         fx.riseIn(tl, ws, t, { stagger: 0.05, y: 26 });
         t += 0.5;
       }
@@ -93,7 +99,7 @@
       if (p.url) {
         const url = h("div", { class: "em-sub", style: { fontSize: "32px" } }, p.url);
         wrap.appendChild(url);
-        fx.riseIn(tl, url, t + 0.2, { y: 16 });
+        fx.riseIn(tl, url, Math.min(t + 0.2, end - 1.3), { y: 16 });
       }
     },
   });

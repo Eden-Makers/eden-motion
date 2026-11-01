@@ -1,10 +1,31 @@
 #!/usr/bin/env node
 // eden-motion CLI. Every step reads and writes plain JSON in the project folder, so any agent
 // harness (Claude Code, Codex, Gemini CLI, Cursor, a cron job) can run, inspect and edit it.
+import dns from "node:dns";
+import net from "node:net";
 import fs from "node:fs";
 import path from "node:path";
 import { log, slugify, writeJSON, readJSON, run } from "../src/lib/util.mjs";
 import { loadEnv, REPO } from "../src/lib/env.mjs";
+
+// Node's fetch races IPv6 and IPv4 with a 250 ms budget per address; on a slow or flaky network
+// every attempt times out ("fetch failed", ETIMEDOUT after ~2 s) where curl simply waits. Connect
+// over IPv4 the plain way: every API here answers on it.
+dns.setDefaultResultOrder("ipv4first");
+net.setDefaultAutoSelectFamily(false);
+// A dropped connection is not an answer: retry network errors (not HTTP errors, which each API
+// client handles) up to 3 times with backoff, so a flaky Wi-Fi does not end a 30 minute run.
+const netFetch = globalThis.fetch;
+globalThis.fetch = async (url, init) => {
+  for (let i = 0; ; i++) {
+    try {
+      return await netFetch(url, init);
+    } catch (e) {
+      if (i >= 3 || e.name === "AbortError") throw e;
+      await new Promise((r) => setTimeout(r, 1500 * 2 ** i));
+    }
+  }
+};
 
 const HELP = `eden-motion - company name in, finished motion-graphics brand film out
 
@@ -37,6 +58,8 @@ STEPS (in order)
                [--ambience "rain on window"] [--no-openverse] [--no-music]
                [--stingers (accent thumps + logo sting composed in code in the music's key; needs uv)]
                no ElevenLabs music? a bed is composed in code as a fallback (audio/music-code.wav)
+  new flags    --format 16:9|4:5|1:1|9:16  --no-images (type, UI, diagrams and Blender plates only)
+  sync         snap cuts within 120 ms of a music beat onto the beat (frame grid), then re-mix [--tol 0.12]
   remix        <slug> --music -3 --sfx +2 --ambience off --sfx-foley -4   rebalance stems -> mix.wav (no regeneration)
   preview      build comp/ and open HyperFrames Studio preview
   render       --draft (fast, no blur) or final (true shutter motion blur, --slow 4..8) [--shutter-phase center|forward]
@@ -57,7 +80,7 @@ STEPS (in order)
 
 ENV / KEYS: GEMINI_API_KEY, ELEVENLABS_API_KEY (read from env, repo .env or ~/.zshrc)`;
 
-const STEPS = ["research", "script", "vo", "storyboard", "assets", "blender", "audio", "render", "qc", "review"];
+const STEPS = ["research", "script", "vo", "storyboard", "assets", "blender", "audio", "sync", "render", "qc", "review"];
 
 function parseArgs(argv) {
   const out = { _: [] };
@@ -135,6 +158,9 @@ async function step(name, dir, args) {
     case "audio":
       await (await import("../src/steps/audio.mjs")).audio(dir, { noMusic: !!args["no-music"], sfxSource: args["sfx-source"], ambience: args.ambience, openverse: !args["no-openverse"], stingers: args.stingers ? true : undefined, judgeSfx: args["judge-sfx"] ? true : undefined });
       break;
+    case "sync":
+      await (await import("../src/steps/sync.mjs")).sync(dir, { tol: args.tol ? +args.tol : undefined });
+      break;
     case "remix": {
       const { remix, LAYERS } = await import("../src/steps/audio.mjs");
       const gains = Object.fromEntries(Object.entries(args).filter(([k]) => k === "sfx" || LAYERS.includes(k.replace(/-/g, "_"))).map(([k, v]) => [k, v === "off" ? "off" : +v]));
@@ -207,6 +233,8 @@ async function main() {
       notes: args.notes || null,
       video: !!args.video,
       style: args.style || null,
+      format: args.format || null,
+      noImages: !!args["no-images"],
       cutGrid: args["cut-grid"] ? +args["cut-grid"] : null,
       fps: args.fps ? +args.fps : null,
       sfxSource: args["sfx-source"] || null,
@@ -234,6 +262,7 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error("\x1b[31m[eden-motion] " + (e.stack || e.message) + "\x1b[0m");
+  const cause = e.cause ? ` (cause: ${e.cause.code || e.cause.message || e.cause})` : "";
+  console.error("\x1b[31m[eden-motion] " + (e.stack || e.message) + cause + "\x1b[0m");
   process.exit(1);
 });

@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>eden-motion: company name in, finished film out</title>
+<title>eden-motion</title>
 <meta name="description" content="Agent-driven motion graphics: brand films, launch videos and explainers with real 3D from Blender, true motion blur, layered sound and a director loop that watches its own frames. By Edenmakers." />
 <meta property="og:title" content="eden-motion" />
-<meta property="og:description" content="Company name in, finished motion-graphics film out. Real 3D, true motion blur, layered sound, a self-critiquing director loop." />
+<meta property="og:description" content="Directed. Not generated. Motion design for agents by Edenmakers: real 3D, sound on the beat, true motion blur, every frame measured." />
 <meta property="og:image" content="https://eden-makers.github.io/eden-motion/media/hero.jpg" />
 <meta name="twitter:card" content="summary_large_image" />
 <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" />
@@ -54,6 +54,9 @@
   h2 { font-size: clamp(30px, 4vw, 52px); letter-spacing: -0.035em; line-height: 1.04; margin: 12px 0 18px; font-weight: 700; text-wrap: balance; max-width: 20ch; }
   .sub { color: var(--muted); max-width: 62ch; margin: 0 0 40px; }
 
+  .samples { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 28px; align-items: start; margin-bottom: 28px; }
+  .samples .wide { grid-column: 1 / -1; }
+  .heroimg video { display: block; width: 100%; height: auto; background: var(--bg2); }
   .films { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.6fr); gap: 28px; align-items: start; }
   .film { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; min-width: 0; }
   .film video { display: block; width: 100%; height: auto; background: var(--bg2); }
@@ -67,7 +70,7 @@
   .grid16 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
   .grid16 img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 12px; border: 1px solid var(--line); display: block; }
 
-  .features { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .features { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
   .f { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 26px 24px; min-width: 0; }
   .f .n { font-size: 12px; letter-spacing: 0.2em; color: var(--dim); }
   .f h3 { margin: 12px 0 8px; font-size: 20px; letter-spacing: -0.02em; }
@@ -86,6 +89,7 @@
   footer b { color: var(--fg); }
 
   @media (max-width: 900px) {
+    .samples { grid-template-columns: minmax(0, 1fr); }
     .films, .two { grid-template-columns: minmax(0, 1fr); }
     .features { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
     .strip { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -115,14 +119,15 @@
 
 <header class="hero">
   <div class="wrap">
-    <div class="label">Agent-driven motion graphics</div>
-    <h1>Company name in. <em>Finished film out.</em></h1>
-    <p class="lede">eden-motion researches the brand, writes and voices the script, storyboards it from 31 parameterised scenes, renders real 3D in Blender, mixes layered sound, renders with true shutter motion blur, then watches its own frames and fixes what it sees. Built to be driven by Claude Code, Codex or Gemini CLI.</p>
+    <div class="label">Motion design for agents · by Edenmakers</div>
+    <h1>Directed. <em>Not generated.</em></h1>
+    <p class="lede">Give your agent a company name. eden-motion researches the brand, writes and voices the script, storyboards it from 31 scenes, renders real 3D in Blender, puts every cut and every sound on the beat, renders with true shutter motion blur, then measures every frame and fixes what it finds. You get a strong draft to direct, not a template.</p>
     <div class="cta">
-      <a class="btn primary" href="https://github.com/Eden-Makers/eden-motion">View on GitHub ↗</a>
+      <a class="btn primary" href="#start">Install in Claude Code</a>
       <a class="btn" href="#films">Watch the films</a>
+      <a class="btn" href="https://github.com/Eden-Makers/eden-motion">GitHub ↗</a>
     </div>
-    <div class="heroimg"><img src="media/hero.jpg" alt="Frames from a vertical promo made with eden-motion: a glowing Fn keycap in Blender, typing hands, the Hlas mark, a macro eye, real app screens flown in 3D" width="2400" height="1260" /></div>
+    <div class="heroimg"><video src="media/sample-eden-motion.mp4" poster="media/poster-eden-motion.jpg" controls playsinline preload="metadata" aria-label="eden-motion launch film, made with eden-motion"></video></div>
   </div>
 </header>
 
@@ -130,7 +135,33 @@
   <div class="wrap">
     <div class="label">Made with eden-motion</div>
     <h2>Real 3D, real blur, real sound.</h2>
-    <p class="sub">Two films rendered end to end by the pipeline. Turn the sound on: the stems are voice, music, foley and stingers composed in the music's key.</p>
+    <p class="sub">Every film below was rendered end to end by the pipeline from a company name and a few lines of notes, then checked frame by frame. No generated stills: type, product UI, diagrams and Blender plates. Turn the sound on.</p>
+    <div class="samples">
+      <div class="film" id="eden-motion">
+        <video src="media/sample-eden-motion.mp4" poster="media/poster-eden-motion.jpg" controls playsinline preload="metadata"></video>
+        <div class="meta">
+          <div class="label">Launch film · 16:9 · 39 s · relate style</div>
+          <h3>eden-motion</h3>
+          <p>Metronome cuts on a 24 frame grid, chrome hardware rendered headless in Blender, the website flown through in real depth of field, counters with ghost copies and a logo built from its own bars.</p>
+        </div>
+      </div>
+      <div class="film" id="edenmakers">
+        <video src="media/sample-edenmakers.mp4" poster="media/poster-edenmakers.jpg" controls playsinline preload="metadata"></video>
+        <div class="meta">
+          <div class="label">Studio film · 4:5 · 33 s · launch style</div>
+          <h3>Edenmakers</h3>
+          <p>A feed-first portrait cut: laid out on a 1728 x 2160 stage and delivered at 1080 x 1350, so the type stays supersampled.</p>
+        </div>
+      </div>
+      <div class="film wide" id="hlas-demo">
+        <video src="media/sample-hlas.mp4" poster="media/poster-hlas-demo.jpg" controls playsinline preload="metadata"></video>
+        <div class="meta">
+          <div class="label">Product demo · 16:9 · 36 s · burnwe style</div>
+          <h3>Hlas, dictation not typing</h3>
+          <p>The real app screens put into Blender with a dolly and rack focus, the hold, speak and release moment, and proof numbers taken from the product's own site.</p>
+        </div>
+      </div>
+    </div>
     <div class="films">
       <div class="film vertical" id="hlas">
         <video src="media/hlas-promo.mp4" poster="media/poster-hlas.jpg" controls playsinline preload="metadata"></video>
@@ -184,6 +215,8 @@
       <div class="f"><div class="n">04</div><h3>Layered sound</h3><p>Voice, music, ambience and four SFX layers as separate stems, from 5M+ free sounds on Openverse scored in code. <code>remix</code> rebalances in a second.</p></div>
       <div class="f"><div class="n">05</div><h3>A director loop</h3><p>Contact sheets, a phone-size test, frame strips around every cut, measured pops and dead air, a harsh rubric. It never ships the first render.</p></div>
       <div class="f"><div class="n">06</div><h3>Rebuild any reference</h3><p><code>ref</code> measures a film, <code>compare</code> puts yours next to it with SSIM, <code>critique --against</code> scores both with the same rubric.</p></div>
+      <div class="f"><div class="n">07</div><h3>Measured, not eyeballed</h3><p><code>measure</code> steps through every frame: reading time per line, text cut by the frame, ease tails that freeze, glyph judder. It found type snapping 1 px under the camera push and the fix took it from 0.92 px to 0.02 px.</p></div>
+      <div class="f"><div class="n">08</div><h3>Cut on the beat</h3><p><code>sync</code> moves every cut within 120 ms of a music beat onto it, on the frame grid. One-shot sounds land a frame early and pan with the element that makes them.</p></div>
     </div>
   </div>
 </section>
@@ -191,25 +224,38 @@
 <section id="start">
   <div class="wrap">
     <div class="label">Quick start</div>
-    <h2>Five minutes to your first frame.</h2>
+    <h2>Two commands, then ask for a film.</h2>
     <div class="two">
       <div>
-        <h3>Install</h3>
-<pre><span class="c"># macOS, Node 20+, ffmpeg, Chrome</span>
-git clone https://github.com/Eden-Makers/eden-motion
-cd eden-motion && ./install.sh
-eden-motion setup   <span class="c"># keys (masked), checks, smoke render</span>
-eden-motion new <span class="g">"Attio"</span> --url https://attio.com --duration 45</pre>
+        <h3>In Claude Code</h3>
+<pre>/plugin marketplace add Eden-Makers/eden-motion
+/plugin install eden-motion@eden-motion
+<span class="g">&gt;</span> set up eden-motion
+<span class="c"># checks tools, installs what is missing, you paste
+# API keys into a masked prompt (never the chat),
+# then a 7 s smoke render</span>
+<span class="g">&gt;</span> make a 40 second launch film for Linear, 4:5</pre>
       </div>
       <div>
-        <h3>Or ask your agent</h3>
-<pre><span class="c"># the skill is linked into Claude Code, Codex
-# and every Agent Skills harness by install.sh</span>
-<span class="g">&gt;</span> make a 45 second launch video for Linear
-<span class="g">&gt;</span> rebuild this reference 1:1
-<span class="g">&gt;</span> a vertical promo for my app, here is my moodboard</pre>
+        <h3>From a terminal</h3>
+<pre><span class="c"># macOS, Node 20+, ffmpeg, Chrome. Codex, Gemini CLI,
+# Cursor and opencode get the skill too</span>
+git clone https://github.com/Eden-Makers/eden-motion
+cd eden-motion && ./install.sh
+eden-motion setup
+eden-motion new <span class="g">"Attio"</span> --url https://attio.com \
+  --duration 40 --format 4:5 --style relate</pre>
       </div>
     </div>
+  </div>
+</section>
+
+<section id="studio">
+  <div class="wrap">
+    <div class="label">Edenmakers</div>
+    <h2>Need it directed by people?</h2>
+    <p class="sub">eden-motion is how our studio drafts. Launch films, product demos and AI films for brands are directed and finished by the Edenmakers team in Prague.</p>
+    <div class="cta"><a class="btn primary" href="https://edenmakers.ai">Work with Edenmakers ↗</a></div>
   </div>
 </section>
 

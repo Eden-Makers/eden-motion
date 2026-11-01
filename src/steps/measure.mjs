@@ -46,11 +46,11 @@ function installSampler() {
     tl.totalTime(t, false);
     const memo = new Map();
     const info = (el) => {
-      if (!el || el.nodeType !== 1) return { op: 1, vis: true, blur: false, clip: null, allow: false };
+      if (!el || el.nodeType !== 1) return { op: 1, vis: true, blur: false, clip: null, allow: false, decor: false };
       if (memo.has(el)) return memo.get(el);
       const p = info(el.parentElement);
       const cs = getComputedStyle(el);
-      const r = { op: cs.display === "none" ? 0 : p.op * parseFloat(cs.opacity), vis: p.vis && cs.visibility !== "hidden", blur: p.blur || +(/blur\(([\d.e-]+)px/.exec(cs.filter) || [0, 0])[1] > 0.5, clip: p.clip, allow: p.allow || el.hasAttribute("data-layout-allow-overflow") };
+      const r = { op: cs.display === "none" ? 0 : p.op * parseFloat(cs.opacity), vis: p.vis && cs.visibility !== "hidden", blur: p.blur || +(/blur\(([\d.e-]+)px/.exec(cs.filter) || [0, 0])[1] > 0.5, clip: p.clip, allow: p.allow || el.hasAttribute("data-layout-allow-overflow"), decor: p.decor || el.hasAttribute("data-em-decor") };
       if (cs.overflowX !== "visible" || cs.overflowY !== "visible" || cs.clipPath !== "none") {
         const b = el.getBoundingClientRect();
         const c = p.clip || { l: -1e9, t: -1e9, r: 1e9, b: 1e9 };
@@ -75,7 +75,7 @@ function installSampler() {
         continue;
       }
       const i = info(el);
-      if (!i.vis || i.op < 0.5) continue;
+      if (!i.vis || i.op < 0.5 || i.decor) continue;
       // a character still focusing in (typewriter tail, blur reveal) is not text yet
       if (i.blur) { blurred.add(idOf(blockOf(el))); continue; }
       range.selectNodeContents(n);
@@ -108,7 +108,8 @@ function installSampler() {
 }
 
 // ---- analysis ----------------------------------------------------------------------------------
-const isNumeric = (s) => /^[\d\s.,%$€£+\-x×:]+$/.test(s);
+// counters, with an optional short unit ("12 min", "4 MB", "3x")
+const isNumeric = (s) => /^[\d\s.,%$€£+\-x×:]+(\s?[A-Za-z%]{1,4})?$/.test(s) && /\d/.test(s);
 
 function tracks(frames) {
   const m = new Map();
@@ -119,7 +120,17 @@ function tracks(frames) {
   return m;
 }
 
-function analyse(frames, { fps, W, H }) {
+// On-screen words the narrator says while they are up only have to be recognised, not read:
+// the ear carries them (Relate-style 1 s shots live on this).
+const norm = (w) => String(w).toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+function spoken(text, t0, t1, vo) {
+  const toks = String(text).split(/[\s/._-]+/).map(norm).filter(Boolean);
+  if (!toks.length || !vo.length) return false;
+  const said = new Set(vo.filter((w) => w.start >= t0 - 0.6 && w.start <= t1 + 0.3).map((w) => norm(w.word)));
+  return toks.every((tk) => said.has(tk));
+}
+
+function analyse(frames, { fps, W, H, vo = [], k = 1 }) {
   const tr = tracks(frames);
   const reads = [], frame = [], small = [], tails = [];
   const short = Math.min(W, H) / 1080;
@@ -154,7 +165,8 @@ function analyse(frames, { fps, W, H }) {
     for (const [txt, h] of held) {
       if (/\b(undefined|NaN|null)\b|\[object /.test(txt)) reads.push({ t: +(h.k0 / fps).toFixed(2), text: txt.slice(0, 60), hold: 0, need: 0, severity: "fail", issue: "placeholder value on screen" });
       if (isNumeric(txt) || txt.length < 2) continue;
-      const hold = h.frames / fps, need = readNeed(txt);
+      const hold = h.frames / fps;
+      const need = spoken(txt, h.k0 / fps, (h.k0 + h.frames) / fps, vo) ? Math.max(0.3, txt.length / 40) : readNeed(txt);
       if (hold < need) reads.push({ t: +(h.k0 / fps).toFixed(2), text: txt.slice(0, 60), hold: +hold.toFixed(2), need: +need.toFixed(2), severity: hold < 0.6 * need ? "fail" : "warn" });
     }
     // frame edge, safe margin, size (only for text a viewer is meant to read)
@@ -203,7 +215,8 @@ function analyse(frames, { fps, W, H }) {
       const a = seq[i - 1], b = seq[i];
       if (b.k !== a.k + 1 || b.text !== a.text || b.op < 0.3) { close(false); continue; }
       const A = local(a), B = local(b);
-      const d = Math.max(Math.abs(B.l - A.l), Math.abs(B.t - A.t), Math.abs(B.r - A.r), Math.abs(B.b - A.b)) * B.s;
+      // in delivered pixels: a 4:5 stage of 1728 px ships at 1080 (k = 0.625)
+      const d = Math.max(Math.abs(B.l - A.l), Math.abs(B.t - A.t), Math.abs(B.r - A.r), Math.abs(B.b - A.b)) * B.s * k;
       if (d >= 0.05) {
         if (!mv) mv = { k0: a.k, d: [], text: b.text.slice(0, 40) };
         mv.d.push(d);
@@ -297,7 +310,10 @@ function cropOf(win, W, H) {
   return [l, t, r - l, b - t];
 }
 
-async function inkCheck(page, windows, { fps, W, H, tmp, video }) {
+// A window in delivered pixels (4:5 and 1:1 are laid out larger and scaled down at the end).
+const scaleWin = (win, k) => (k === 1 ? win : { ...win, frames: win.frames.map((f) => ({ ...f, l: f.l * k, t: f.t * k, r: f.r * k, b: f.b * k })) });
+
+async function inkCheck(page, windows, { fps, W, H, tmp, video, k = 1 }) {
   const res = [];
   for (const [wi, win] of windows.entries()) {
     const crop = cropOf(win, W, H), [l, t, cw, ch] = crop;
@@ -316,10 +332,16 @@ async function inkCheck(page, windows, { fps, W, H, tmp, video }) {
     // a screenshot and a capture do not always raster the same way
     if (video) {
       const k0 = win.frames[0].k, k1 = k0 + win.frames.length - 1;
-      const vraw = spawnSync("ffmpeg", ["-v", "error", "-i", video, "-vf", `select='between(n\\,${k0}\\,${k1})',crop=${cw}:${ch}:${l}:${t}`, "-fps_mode", "passthrough", "-f", "rawvideo", "-pix_fmt", "gray", "-"], { maxBuffer: 2 ** 30 }).stdout;
-      row.video = inkWindow(vraw, win, crop);
-      if (row.video) row.severity = row.video.severity; // the render is what ships
+      const vwin = scaleWin(win, k), vcrop = cropOf(vwin, Math.round(W * k), Math.round(H * k)), [vl, vt, vw, vh] = vcrop;
+      const vraw = spawnSync("ffmpeg", ["-v", "error", "-i", video, "-vf", `select='between(n\\,${k0}\\,${k1})',crop=${vw}:${vh}:${vl}:${vt}`, "-fps_mode", "passthrough", "-f", "rawvideo", "-pix_fmt", "gray", "-"], { maxBuffer: 2 ** 30 }).stdout;
+      row.video = inkWindow(vraw, vwin, vcrop);
+      // the render is what ships, but its windows also catch encoder noise, a cursor or a word swap
+      // crossing the crop: fail only when the clean screenshot agrees, else ask for a look
+      if (row.video && row.video.severity === "fail") row.severity = r.severity === "ok" ? "warn" : "fail";
     }
+    // display type above ~120 px (at 1080) keeps some glyph jitter under a scale whatever the CSS
+    // (Skia, documented in SCENE_API rule 15): report it, do not fail the film on it
+    if (row.severity === "fail" && win.frames[0].font >= 120 * (Math.min(W, H) / 1080)) row.severity = "warn";
     res.push(row);
   }
   return res;
@@ -341,8 +363,14 @@ export async function measureComp(projectDir, { fps, ink = true, video = null } 
     await page.evaluate(installSampler);
     const frames = [];
     for (let k = 0; k < n; k++) frames.push(await page.evaluate((t) => window.__emSample(t), k / fps));
-    const a = analyse(frames, { fps, W, H });
-    a.ink = ink ? await inkCheck(page, holdWindows(frames, { fps, W, H }), { fps, W, H, tmp, video }) : [];
+    // EM_MEASURE_DEBUG=t0,t1 prints every text block per frame in that window
+    if (process.env.EM_MEASURE_DEBUG) {
+      const [d0, d1] = process.env.EM_MEASURE_DEBUG.split(",").map(Number);
+      frames.forEach((bs, k) => k / fps >= d0 && k / fps <= d1 && console.log((k / fps).toFixed(3), bs.map((b) => `"${b.text}" op ${b.op.toFixed(2)} full ${b.full.toFixed(2)} blur ${b.blur} [${b.l.toFixed(0)},${b.t.toFixed(0)},${b.r.toFixed(0)},${b.b.toFixed(0)}]`).join(" | ")));
+    }
+    const a = analyse(frames, { fps, W, H, vo: (sb.vo && sb.vo.words) || [], k: Array.isArray(sb.output) ? sb.output[0] / W : 1 });
+    a.sceneErrors = await page.evaluate(() => JSON.parse(document.getElementById("em-errors")?.textContent || "[]"));
+    a.ink = ink ? await inkCheck(page, holdWindows(frames, { fps, W, H }), { fps, W, H, tmp, video, k: Array.isArray(sb.output) ? sb.output[0] / W : 1 }) : [];
     return a;
   }, { width: W, height: H });
   if (process.env.EM_MEASURE_KEEP) log(`ink crops kept in ${tmp}`);
@@ -350,6 +378,7 @@ export async function measureComp(projectDir, { fps, ink = true, video = null } 
 
   const sev = (arr) => arr.filter((x) => x.severity === "fail");
   const fails = [];
+  if (result.sceneErrors.length) fails.push(`scenes that failed to build: ${result.sceneErrors.map((e) => `${e.t}s ${e.type}: ${e.error}`).join("; ")}`);
   if (sev(result.reads).length) fails.push(`text not readable: ${sev(result.reads).slice(0, 4).map((r) => `${r.t}s "${r.text}" ${r.issue || `${r.hold}/${r.need}s`}`).join("; ")}`);
   if (sev(result.frame).length) fails.push(`text clipped by the frame edge: ${sev(result.frame).slice(0, 4).map((r) => `${r.t}s "${r.text}"`).join("; ")}`);
   if (sev(result.tails).length) fails.push(`ease tails that freeze (${LIMITS.tailFail}+ frames under ${LIMITS.crawlPx}px): ${sev(result.tails).slice(0, 4).map((r) => `${r.t}s "${r.text}" ${r.tail}f`).join("; ")}`);

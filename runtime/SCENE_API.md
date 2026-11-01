@@ -84,6 +84,8 @@ Tone classes on the scene (`tone-light|dark|cream|black`) re-define the tokens, 
       transform): the engine keeps `transformPerspective` + `rotationX: 0.01` on it so glyphs are
       positioned sub-pixel. Without it text under the camera push snaps 1 px every few frames.
     - Focus pulls may end on `blur(0px)`; the engine drops the filter once the tween lands.
+    - Text that is texture, not copy (a label stack behind glass, a giant cropped word), carries
+      `data-em-decor` on a wrapper so `measure` does not grade it for reading time or framing.
     - Display type above ~120 px keeps ~0.1-0.2 px horizontal jitter under a scale (a Skia limit,
       no CSS fixes it): avoid long slow scales on giant words, prefer a cut or a hold.
 

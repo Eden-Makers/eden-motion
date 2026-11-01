@@ -226,6 +226,8 @@
       svg.innerHTML = `<defs><clipPath id="${id}-clip">${txt(`id="${id}-ct"`)}</clipPath></defs>
         <g clip-path="url(#${id}-clip)"><rect x="-400" y="0" width="5000" height="1080" filter="url(#emr-frost)" opacity="0.8"/></g>
         ${txt(`id="${id}-rim" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="3" filter="url(#emr-rim)"`)}`;
+      // the label stack and the giant cropped word are texture, not copy: `measure` skips them
+      [plate, clipWrap, svg].forEach((el) => el.setAttribute("data-em-decor", ""));
       ctx.cam.append(plate, clipWrap, svg);
       const swapEvery = (p.swapFrames || 4) / FPS();
       prox(tl, start, dur, (q) => {
