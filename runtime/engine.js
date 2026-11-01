@@ -90,6 +90,13 @@
     const TS = sb.transitionSpeed || 1;
     if (TS !== 1) scenes.forEach((s) => s.transition && s.transition.type && (s.transition.duration = (s.transition.duration || 0.6) * TS));
     const CS = sb.cameraSpeed || 1;
+    // A transition may not eat a short shot: cap it at 60% of the shorter neighbour, or a 1.2 s
+    // headline is swallowed by the zoom into the next shot before its last word is typed.
+    scenes.forEach((s, i) => {
+      if (!i || !s.transition || !s.transition.type || s.transition.type === "cut") return;
+      const cap = 0.6 * Math.min(scenes[i - 1].duration, s.duration);
+      s.transition.duration = Math.min(s.transition.duration || 0.6, cap);
+    });
 
     // Background layer gets the whole duration.
     if (EM.backgrounds && EM.backgrounds[sb.background || "auto"]) {
@@ -115,6 +122,11 @@
       }
       const inner = EM.h("div", { class: "em-cam" });
       el.appendChild(inner);
+      // Text under a 2D scale snaps its glyphs to whole pixels vertically: on a slow camera push the
+      // type sits still, then jumps 1 px every few frames (measured: 0.92 px peak-to-peak sawtooth).
+      // An invisible perspective tilt makes the layer 3D, and Skia then positions glyphs sub-pixel on
+      // both axes (0.02 px). Needs perspective() in the transform itself; static text is unchanged.
+      gsap.set(inner, { transformPerspective: 2000, rotationX: 0.01 });
       stage.appendChild(el);
       const start = s.start;
       const end = s.start + s.duration;
@@ -145,7 +157,15 @@
         rng: EM.rng(s.id || i + 1),
       };
       EM._sceneEnd = end; // helpers (hotType) default their deadline to the current shot
-      def.build(ctx);
+      // One scene with bad props must not take the whole film down (and with it the cues the
+      // audio step reads): show the gap, record it, `measure` fails on it.
+      try {
+        def.build(ctx);
+      } catch (err) {
+        console.error(`scene ${s.id || i} (${s.type}) failed: ${err && err.message}`);
+        (EM.errors = EM.errors || []).push({ scene: s.id || i, type: s.type, t: start, error: String((err && err.message) || err) });
+        inner.replaceChildren(EM.h("div", { class: "em-missing" }, `Scene ${s.type} failed: ${(err && err.message) || err}`));
+      }
       EM._sceneEnd = null;
       // The camera never stops (measured on Burnwe: 0.4-2%/s zoom, 15-60 px/s truck, linear,
       // direction alternating shot to shot). "push" = emphasis push at ~5%/s.
@@ -183,6 +203,16 @@
       fn({ tl, prev, next, at: s.start - d / 2, d, opts: s.transition, sb });
       (EM.cues = EM.cues || []).push({ t: s.start - d / 2, type: "whoosh", dur: d });
     });
+
+    // A focus pull ends on filter "blur(0px)", which still gives the element its own render
+    // surface: rastered apart from the camera layer it snaps on its own and judders under the
+    // camera push. Drop the filter once the tween has landed (a set, so seeking back restores it).
+    const unfilter = (parent, offset) => parent.getChildren(false, true, true).forEach((c) => {
+      if (c instanceof gsap.core.Timeline) return unfilter(c, offset + c.startTime());
+      const f = c.vars && c.vars.filter;
+      if (typeof f === "string" && /^blur\(0(px)?\)$/.test(f.trim())) tl.set(c.targets(), { filter: "none" }, offset + c.endTime());
+    });
+    unfilter(tl, 0);
 
     const total = sb.duration;
     tl.set({}, {}, total); // pin length
@@ -245,6 +275,11 @@
     cueEl.id = "em-cues";
     cueEl.textContent = JSON.stringify(cues);
     document.body.appendChild(cueEl);
+    const errEl = document.createElement("script");
+    errEl.type = "application/json";
+    errEl.id = "em-errors";
+    errEl.textContent = JSON.stringify(EM.errors || []);
+    document.body.appendChild(errEl);
     const mediaEl = document.createElement("script");
     mediaEl.type = "application/json";
     mediaEl.id = "em-media";

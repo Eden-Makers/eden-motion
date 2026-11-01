@@ -1,0 +1,15 @@
+{
+  "name": "eden-motion",
+  "description": "Edenmakers motion design for agents: eden-motion turns a company name into a directed launch film.",
+  "owner": {
+    "name": "Edenmakers",
+    "url": "https://edenmakers.ai"
+  },
+  "plugins": [
+    {
+      "name": "eden-motion",
+      "source": "./",
+      "description": "Directed motion design for agents: launch films and product demos from a company name, with Blender plates, beat-synced sound and measured QC."
+    }
+  ]
+}

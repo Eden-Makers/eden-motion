@@ -48,7 +48,9 @@ export async function storyboard(projectDir, { endHold = 2.2, direction = null, 
   const brand = readJSON(path.join(projectDir, "brand.json"));
   const sc = readJSON(path.join(projectDir, "script.json"));
   const vo = readJSON(path.join(projectDir, "vo.json"));
-  const avail = availableScenes();
+  // --no-images: films built from type, UI, diagrams and Blender plates only (no generated stills)
+  const IMAGE_SCENES = ["media-frame", "montage", "persp-card", "grid-stage"];
+  const avail = availableScenes().filter((k) => !(brief.noImages && IMAGE_SCENES.includes(k)));
   const theme = brief.theme || brand.theme || "saas-light";
 
   // Scene windows: start slightly before the line's first word (visual leads the ear).
@@ -99,6 +101,7 @@ TRANSITIONS:
 ${trans}
 
 STYLE: ${STYLES[brief.style || "burnwe"] || brief.style}
+FRAME: ${brief.format && brief.format !== "16:9" ? `${brief.format} portrait feed frame: stack content vertically, max 2-3 words per display line, no wide rows of more than 3 cards, keep the key object in the middle third` : "16:9"}
 ${refStyle ? `REFERENCE FILM TO MATCH (measured from the client's chosen reference; copy its pacing, type behaviour, transitions and camera, not its content):\n${refStyle}\n` : ""}${direction ? `CREATIVE DIRECTION FOR THIS VARIANT: ${direction}\n` : ""}
 APPLE FRAMEWORK: every choice is intentional; one shot = one idea; each shot has room to breathe; the key object sits in the centre of the frame; backgrounds never compete with the key object; motion is eased and overlapping, never linear; rhythm adapts (speeds up in lists and montages, slows down on the reveal and the proof).
 
@@ -114,7 +117,7 @@ DIRECTION RULES
 - headline and kinetic-type text must use the VO words of that line (a contiguous excerpt or the full line), because words are synced to the narrator one by one. "keyword" must be 1-2 words that appear inside that text.
 - Shots shorter than 1.6 s: use kinetic-type single or headline only.
 - headline text: 2-7 words (the punchiest excerpt of the line). kinetic-type single: 1-5 words, one per spoken word. Longer statements go to a visual scene with a short caption instead.
-- Use real screenshots in ui-window when available; otherwise design a believable dashboard with brand-specific labels.
+${brief.noImages ? "- NO generated images anywhere: never write a \"gen:\" prop. Carry the human or world moments with type, diagrams, UI and clip-3d Blender plates (blender:chrome-object, blender:card-stack, blender:layers-3d).\n" : ""}${avail.includes("clip-3d") ? "- Real 3D sells the film: use 2-3 clip-3d Blender plates, one per idea. When real screenshots exist (assets/ui-*.jpg), make the product hero a blender:layers-3d plate of them with a dolly and rack focus.\n" : ""}- Use real screenshots in ui-window when available; otherwise design a believable dashboard with brand-specific labels.
 - Imagery must feel designed, not stock: prefer abstract premium 3D renders (glass, soft materials, light, macro objects that embody the idea) and the brand's real screenshots. NO clichés: no stressed worker at a desk, no handshakes, no team high-fives, no generic office people, no robots. People only if the product is about people, and then editorial and specific.
 - montage items: use the brand's real screenshots first, then abstract renders.
 - card-cloud word: "?" or one calm word, never shouting capitals.
@@ -175,8 +178,13 @@ Return ONLY JSON: {"ambience":null,"scenes":[{"i":0,"type":"...","tone":"dark|li
   const last = scenes[scenes.length - 1];
   last.props = last.type === "logo-bars" ? { name: brand.name, ...last.props } : { tagline: brand.tagline, cta: brand.cta, url: brand.url, ...last.props };
 
+  // Frame. Non-16:9 films are laid out on a larger logical canvas and scaled down at the end, so
+  // scenes written for a 1920 px wide stage keep their proportions (and the downscale supersamples).
+  const FORMATS = { "4:5": { width: 1728, height: 2160, output: [1080, 1350] }, "1:1": { width: 1728, height: 1728, output: [1080, 1080] }, "9:16": { width: 1080, height: 1920 } };
+  const frame = FORMATS[brief.format] || {};
   const sb = deepNoDashes({
     theme,
+    ...frame,
     ...(brief.style === "higgsfield" ? { background: "hf-grid" } : {}),
     ...(brief.style === "relate" ? { background: "none", flat: true, fps: brief.fps || 24, shutterPhase: "forward" } : {}),
     duration: total,

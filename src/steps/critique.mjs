@@ -8,6 +8,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { generateJSON, uploadFile, MODELS } from "../lib/gemini.mjs";
 import { readDomJson } from "../lib/browser.mjs";
+import { measureComp } from "./measure.mjs";
 import { log, warn, readJSON, writeJSON, run } from "../lib/util.mjs";
 
 const RUBRIC = ["hook", "phone_readability", "motion", "variety", "composition", "brand", "sound_sync"];
@@ -114,6 +115,14 @@ export async function critique(projectDir, { file, noAi = false } = {}) {
   const fps = Math.round(eval(spawnSync("ffprobe", ["-v", "error", "-select_streams", "v", "-show_entries", "stream=r_frame_rate", "-of", "csv=p=0", file]).stdout.toString().trim() || "60"));
 
   const m = measure(file, sb, { fps, cues });
+  // frame-accurate checks on the composition itself (reading time, frame edge, ease tails, glyph
+  // judder measured on the render): numbers a vision model cannot see
+  const cm = await measureComp(projectDir, { video: file }).catch((e) => (warn(`measure skipped: ${e.message}`), null));
+  if (cm) {
+    writeJSON(path.join(renders, "measure.json"), cm);
+    m.fails.push(...cm.fails);
+    m.composition = cm.summary;
+  }
   const sh = sheets(file, sb, renders, m.strayPops);
   log(`metrics: ${m.pops.length} pops (${m.strayPops.length} away from cuts), ${m.dead.length} dead half-seconds, longest gap ${m.longestGap.len}s`);
   m.fails.forEach((f) => warn(f));
@@ -124,11 +133,12 @@ export async function critique(projectDir, { file, noAi = false } = {}) {
     ai = await generateJSON(
       `You are a harsh motion director, not a proud author. Review this ${sb.duration.toFixed(1)} s film for ${brand.name || "the brand"}.
 Attached: the video, a contact sheet (2 fps), a phone test (1 fps at 360 px wide) and strips of 12 consecutive frames around every cut.
+Calibrated scale, use it literally: 5 = student work, 6 = template / looks like a stock HTML or Remotion render, 7 = professional, 8 = agency (Burnwe, Relate, Google launch films), 9 = award shortlist. Anything that reads as an AI template or a default browser animation caps that axis at 6 and is a critical problem.
 Score 1-10 each: hook (first 2 s) · phone_readability (text at 360 px) · motion (springs, overlap, no linear slides, no dead frames) · variety (a new thing every 2-4 s) · composition · brand (one accent, real product UI, correct logo) · sound_sync (hits land on cuts and actions).
 Hunt specifically for: text overlapping during swaps, anything sliding instead of easing, corner labels and frame borders, centered title on a gradient, everything fading in, blurry scaled text, glow on UI chrome, generic particle bursts, a beat with nothing happening, a flash or stray frame at a cut, a stutter at a loop seam, invented UI where the real product should be.
 Measured by the pipeline (trust these numbers): ${JSON.stringify({ strayPops: m.strayPops, dead: m.dead, longestGap: m.longestGap, hook: m.hook })}
 Scenes: ${JSON.stringify(sb.scenes.map((s) => ({ id: s.id, type: s.type, t: `${s.start.toFixed(2)}-${(s.start + s.duration).toFixed(2)}` })))}
-Return ONLY JSON: {"scores":{${RUBRIC.map((k) => `"${k}":1-10`).join(",")}},"problems":[{"t":"mm:ss.s","scene":"id","problem":"concrete","fix":"specific change"}] (the 3 worst, worst first),"keep":["what works, mm:ss"]}`,
+Return ONLY JSON: {"scores":{${RUBRIC.map((k) => `"${k}":1-10`).join(",")}},"problems":[{"t":"mm:ss.s","scene":"id","problem":"concrete","fix":"specific change with numbers (px, s, ease, colour), never 'make it better'"}] (the 3 worst, worst first; at least one aimed at a moment that would make a motion designer stop scrolling),"keep":["what works, mm:ss"]}`,
       { model: MODELS.vision, parts, temperature: 0.3 }
     );
   }

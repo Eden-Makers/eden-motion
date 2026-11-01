@@ -1,16 +1,16 @@
 ---
 name: eden-motion
-description: Company name in, finished motion-graphics brand film out (Burnwe / Lovable / Google launch-film quality). Researches the brand from its website, writes the script, records an ElevenLabs voiceover with word timings, storyboards 15-20 shots from a library of premium scenes (hot-tail kinetic type, product UI with camera and cursor, prompt box, orbit, stat counters, card chaos, flow lines, glass media frames, logo resolve), generates images with Nano Banana Pro and AI clips via Higgsfield (Seedance 2.0 / Kling 3 / Veo 3.1), offers burnwe / launch / higgsfield / relate visual styles, renders 3D plates headless in Blender (chrome hardware, acrylic card stacks, product CG), mixes layered stems (VO, music, ambience, transition / UI / foley / accent SFX) on exact frames with free CC0 / CC-BY sounds from Openverse picked by a code score, renders with HyperFrames and true shutter motion blur, then self-reviews with Gemini and iterates. Also rebuilds a reference film 1:1 (compare + calibrated critique). Use for "make a motion graphics video for <company>", "explainer video", "SaaS promo", "launch video", "brand film from a website", "motion design like Burnwe/Lovable/Google/Relate", "crypto / fintech promo", "napodob tohle video 1:1", "udělej motion graphic video", "explainer pro firmu".
+description: Company name in, finished motion-graphics brand film out (Burnwe / Lovable / Google launch-film quality). Researches the brand from its website, writes the script, records an ElevenLabs voiceover with word timings, storyboards 15-20 shots from a library of premium scenes (hot-tail kinetic type, product UI with camera and cursor, prompt box, orbit, stat counters, card chaos, flow lines, glass media frames, logo resolve), generates images with Nano Banana Pro and AI clips via Higgsfield (Seedance 2.0 / Kling 3 / Veo 3.1), offers burnwe / launch / higgsfield / relate visual styles, renders 3D plates headless in Blender (chrome hardware, acrylic card stacks, product CG), mixes layered stems (VO, music, ambience, transition / UI / foley / accent SFX) on exact frames with free CC0 / CC-BY sounds from Openverse picked by a code score, renders with HyperFrames and true shutter motion blur, then self-reviews with Gemini and iterates. Also rebuilds a reference film 1:1 (compare + calibrated critique). Also films a real app or device: HTML twin of the UI instead of screen recordings, CG device shots in Blender, b-roll close-ups, lens finish keyed to fast moves, and 9:16 Reels versions that keep the composition. Use for "make a motion graphics video for <company>", "explainer video", "SaaS promo", "launch video", "brand film from a website", "motion design like Burnwe/Lovable/Google/Relate", "crypto / fintech promo", "app promo / product b-roll / UI close-ups", "vertical version for Reels", "napodob tohle video 1:1", "udělej motion graphic video", "explainer pro firmu", "b-roll aplikace".
 ---
 
 # eden-motion
 
-Repo: the clone this skill was installed from (its path is in `.repo-path` next to this file, written by `install.sh`). CLI: `eden-motion` (global) or `node <repo>/bin/eden-motion.mjs`. Engine = HyperFrames (HTML + GSAP, seek-deterministic).
+Repo: the clone this skill was installed from. Installed with `install.sh`: its path is in `.repo-path` next to this file. Installed as a Claude Code plugin (`/plugin install eden-motion@eden-motion`): the repo is the plugin root, two folders above this skill (`<this skill dir>/../..`), and the first run needs `node bin/eden-motion.mjs setup` there (it installs the npm deps). CLI: `eden-motion` (global) or `node <repo>/bin/eden-motion.mjs`. Engine = HyperFrames (HTML + GSAP, seek-deterministic).
 Everything is plain JSON in a project folder, so any harness can run steps, read results and edit them.
 
 ## 0. Setup check (first thing, every new machine)
 ```bash
-cd "$(cat <this skill dir>/.repo-path)" && node bin/eden-motion.mjs doctor --json
+cd "$(cat <this skill dir>/.repo-path 2>/dev/null || echo <this skill dir>/../..)" && node bin/eden-motion.mjs doctor --json
 ```
 Each check has `level` (required | recommended | optional), `status`, `why` and `fix`. If `ready` is
 false or a recommended item is missing, onboard the person before anything else:
@@ -29,9 +29,12 @@ false or a recommended item is missing, onboard the person before anything else:
 ```bash
 node bin/eden-motion.mjs new "<Company>" [--url https://site] [--duration 60] [--lang en] \
   [--theme saas-light|saas-dark|glow|cinematic] [--voice brian|george|sarah|alice|matilda|daniel] \
-  [--structure problem-solution|launch|manifesto] [--notes "client notes"] [--dir <projects root>]
+  [--structure problem-solution|launch|manifesto] [--notes "client notes"] [--dir <projects root>] \
+  [--style burnwe|launch|relate|higgsfield] [--format 16:9|4:5|1:1|9:16] [--no-images]
 ```
-Runs: research -> script -> vo -> storyboard -> assets -> audio -> render (final, motion blur) -> qc.
+Runs: research -> script -> vo -> storyboard -> assets -> blender -> audio -> sync -> render (final, motion blur, finish) -> qc.
+`--format 4:5` lays the film out on a 1728x2160 stage and delivers 1080x1350 (1:1 likewise).
+`--no-images` keeps generated stills out (type, UI, diagrams, Blender plates only).
 Project lands in `projects/<slug>/` (or `--dir`). Output: `renders/final.mp4`, `renders/qc.json`, `renders/contact-sheet.jpg`.
 
 **Autopilot is the first draft, not the deliverable.** Always run the director loop (section 3).
@@ -45,9 +48,12 @@ node bin/eden-motion.mjs vo <slug>                     # audio/vo.mp3, vo.json (
 node bin/eden-motion.mjs storyboard <slug>             # storyboard.json  <- READ AND IMPROVE IT
 node bin/eden-motion.mjs assets <slug>                 # resolves "gen:<prompt>" images (Nano Banana Pro 2K)
 node bin/eden-motion.mjs audio <slug>                  # VO + music + ambience + layered SFX -> audio/stems/*.wav + audio/mix.wav
+node bin/eden-motion.mjs sync <slug>                   # cuts within 120 ms of a music beat move onto it, then re-mix
 node bin/eden-motion.mjs remix <slug> --music -3 --sfx +2   # rebalance stems -> mix.wav in seconds
+node bin/eden-motion.mjs measure <slug>                # frame-accurate checks without a render (seconds)
 node bin/eden-motion.mjs render <slug> --draft         # ~1-2 min, no motion blur, for review
-node bin/eden-motion.mjs render <slug>                 # final: adaptive true shutter motion blur (~7 min / 60 s)
+node bin/eden-motion.mjs render <slug>                 # final: adaptive true shutter motion blur (~7 min / 60 s) + finish
+                                                       # finish = grain + soft vignette in ffmpeg; storyboard.finish: subtle|film|clean|false
 node bin/eden-motion.mjs qc <slug>                     # Gemini creative-director review
 node bin/eden-motion.mjs preview <slug>                # HyperFrames Studio (scrub, edit timeline)
 ```
@@ -97,6 +103,11 @@ eden-motion note <slug> "slow every zoom to 0.7x; hard cut into s5; push in on t
    re-render, repeat until the round says PASS (every score 8+, no metric fail); minimum 3 rounds on a
    new film. Scenes that cut inside themselves declare it with `EM.cues.push({t, type: "cut"})`.
    Open the sheets yourself with the Read tool, do not trust the score alone.
+   The same round runs `measure` on the composition: every text block's reading time (one word 0.3 s,
+   a line 0.4 s + chars / 18), text clipped by the frame edge, ease tails that freeze (6+ frames
+   under 0.5 px at the end of a move), and vertical glyph judder measured on the render itself.
+   `measure <slug>` alone needs no render (seconds); `--video renders/final.mp4` adds the render check.
+   Its fails are facts, not taste: fix them before arguing with the rubric.
 6. **Final.** `render <slug>` (motion blur), `critique --file renders/final.mp4` again. Never ship the first render.
 
 Effort: run new films on xhigh (max when the first 3 seconds carry a launch), medium for fixes and re-renders.
@@ -152,9 +163,34 @@ leaves only a sliver of the focus layer sharp. Assets render unlit, so UI colour
 Typical uses: a product UI flythrough with focus pulls, a wall of stills the camera orbits, a
 screenshot that swings from flat into a 3D hero angle. Render cost ~1.5 s per 1080p frame (EEVEE).
 
+## 4c. Product UI films (a real app or device is the hero)
+
+Read `references/product-ui-film.md` first. Short version:
+- Never film the screen for designed shots. Rebuild the UI as an HTML twin (real layout, fonts,
+  copy; every element its own layer) and animate it like After Effects layers. Screen recordings
+  cropped into cards read as lazy. Measure every box at rest before any tween.
+- CSS 3D text goes soft: do z moves as 2D scale, real perspective in Blender from 8K twin plates.
+- CG device shots: `mglib.mat_screen_sequence` (screen plays the twin plates), `set_anamorphic`,
+  `bias_glow` (backlight so the silhouette reads in the dark). 2560x1440 finals, 960x540 previews
+  for style approval first.
+- Real captures: slow the app clock R times, then `tools/retime.py` (optical-flow gap fill).
+- Finish: `tools/lensfx.py` (barrel + aberration keyed to fast moves in `fx.json`, halation,
+  soft grain at 1/3 res, bitrate caps).
+- Every film also gets a 9:16 version that keeps the composition: native portrait renders for the
+  twin, `mglib.vertical_reframe` for Blender, eased crop keyframes with no slivers at rest for captures.
+- Long multi-agent runs: most of the cost is re-reading context (section 10 of the reference). Fresh
+  chat per phase, fresh subagents over forks, no progress pings, few small QC images;
+  `tools/token_usage.py` shows where it went.
+```bash
+uv run --no-project --with numpy==2.2.6 --with opencv-python-headless==4.11.0.86 \
+  python tools/lensfx.py renders/final.mp4 renders/final_lens.mp4 --fx fx.json --audio audio/mix.wav
+uv run --no-project --with numpy==2.2.6 --with opencv-python-headless==4.11.0.86 \
+  python tools/retime.py capture.webm 8 clip_60fps.mp4 --start 1.0
+```
+
 ## Motion curves
 
-No linear motion by default (`runtime/SCENE_API.md` rule 14): arrivals `power3.out`/`expo.out`,
+No linear motion by default (`runtime/SCENE_API.md` rules 14-15): arrivals `land` (short plain moves) or `expo.out` (big moves, focus pulls),
 settles `power2.out`, drifts and push-ins `sine.out` (energy first, settles into the cut), camera
 moves across a cut `sine.inOut`. Linear only for typing, time remaps, continuous spins, frame-stepped
 wipes. Blender templates follow the same rule (SINE ease-out keys; `curve=linear` opts out).
@@ -211,6 +247,7 @@ Read `references/relate-and-1to1.md` first. Short loop:
 - Video clips (optional, for `media-frame` kind video): Seedance 2.0 or Kling 3.0 via Higgsfield/fal/Magnific with the approved still as reference, render 3 s longer than the cut, "no music" in the prompt.
 - No em dashes or en dashes in any copy (the pipeline strips them; check anything you write).
 - Motion law: focus-pull arrivals, no overshoot, camera never still, one accent colour, sync to VO words.
+- Token budget: one chat per phase with a handoff file, subagents report only at the end, QC with one small grid instead of many frames (`tools/token_usage.py` to check).
 - Deliver: `review <slug> --deliver <folder>` copies `renders/final.mp4` + the HTML review sheet to your delivery folder. Never send a film to a client before a human has approved it.
 
 ## References
@@ -219,4 +256,5 @@ Read `references/relate-and-1to1.md` first. Short loop:
 - `references/director-brief.md` - the long-brief template (logline, refs, keys, beat sheet, gates, critique loop, deliverables) and the parallel-chapter subagent pattern.
 - `references/pipeline.md` - file formats (brief, brand, script, vo, storyboard), rendering and motion blur internals, troubleshooting.
 - `references/relate-and-1to1.md` - Relate grammar, the 1:1 rebuild loop, Blender 5.2 headless + HyperFrames gotchas.
+- `references/product-ui-film.md` - app and device films: HTML twin of the UI, Blender device CG, slowed-clock capture with optical-flow retime, lens finish keyed to moves, music-led edit, 9:16 reframing rules, the review loop.
 - Repo research: `research/analysis/{burnwe,launch-films,higgsfield,relate,tooling-and-workflows}.md` (full forensic breakdowns, 90+ techniques with parameters, Higgsfield preset map), `research/relate/*.md` (26 per-film shot lists), `research/blender/{PLAYBOOK,tutorials}.md` (12 Blender tutorials distilled).

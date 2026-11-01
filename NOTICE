@@ -1,0 +1,15 @@
+eden-motion
+Copyright 2026 Eden Makers s.r.o.
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+The following parts are not covered by that licence:
+
+- sfx-library/: sound effects from Pixabay under the Pixabay Content License.
+  See sfx-library/CREDITS.md.
+- Names, logos and marks in the sample films and stills in docs/media/
+  (Edenmakers, eden-motion, Hlas) belong to their owners. The Apache License
+  grants no trademark rights (section 6).
+
+The measured motion-quality method in src/steps/measure.mjs follows the public
+notes of snapcn (https://github.com/shadcn-labs/snapcn, MIT).

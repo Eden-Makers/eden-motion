@@ -189,6 +189,7 @@ ${sceneCss.map((f) => `<link rel="stylesheet" href="runtime/scenes/${f}" />`).jo
 <style>
 :root { ${tokens.join(" ")} --W: ${W}px; --H: ${H}px; }
 #root { width: ${W}px; height: ${H}px; }
+${H > W ? `/* portrait: scenes are composed for a wide stage; zoom them so the content uses the width */\n#stage { transform: scale(${sb.portraitZoom || 1.15}); transform-origin: 50% 50%; }` : ""}
 html[data-theme] { ${themeOverrides.join(" ")} }
 </style>
 </head>

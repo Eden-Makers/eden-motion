@@ -70,12 +70,24 @@ Tone classes on the scene (`tone-light|dark|cream|black`) re-define the tokens, 
 11. Never put `will-change` on anything the camera scales (text and images rasterise at the initial scale and render blurry).
 12. Text that swaps inside a morphing container gets its own enter and exit timing (exit ~0.12 s before enter) or the two overlap.
 13. For values that change target many times (a morphing container), use `EM.spring.track` (sum of closed-form spring responses, pure function of time) instead of chained tweens.
-14. No linear motion by default. Every move gets a curve: arrivals `power3.out`/`expo.out`, settles
+14. No linear motion by default. Every move gets a curve: arrivals `land` (registered in fx.js) or `expo.out` for big moves, settles
     `power2.out`, push-ins and drifts over a shot `sine.out` (energy first, settles into the cut),
     camera moves that cross a cut `sine.inOut`, two-point moves `power2.inOut`. `ease: "none"` only
     for: constant typing, time remaps, continuous spins/orbits/loops, frame-stepped wipes, and proxy
     drivers whose `fn` applies its own easing. A subtle `back.out(1.2)` or `EM.spring` is allowed for
     one small accent per film (a chip, a cursor click), never for type or cameras.
+15. Measured, not eyeballed (`eden-motion measure <slug>`, also run inside `critique`):
+    - Plain moves under ~150 px that land without a focus pull use `land`, not `expo.out`: at 24 fps
+      expo spends its last 6-8 frames under 0.5 px per frame and the element visibly stops short.
+      A move that ends while it is still blurring in is fine (the focus change is the motion).
+    - Do not override the camera's transform on `.em-cam` (`gsap.set(cam, {clearProps})`, a CSS
+      transform): the engine keeps `transformPerspective` + `rotationX: 0.01` on it so glyphs are
+      positioned sub-pixel. Without it text under the camera push snaps 1 px every few frames.
+    - Focus pulls may end on `blur(0px)`; the engine drops the filter once the tween lands.
+    - Text that is texture, not copy (a label stack behind glass, a giant cropped word), carries
+      `data-em-decor` on a wrapper so `measure` does not grade it for reading time or framing.
+    - Display type above ~120 px keeps ~0.1-0.2 px horizontal jitter under a scale (a Skia limit,
+      no CSS fixes it): avoid long slow scales on giant words, prefer a cut or a hold.
 
 ## Springs and cuts
 - `EM.spring.response(t, preset | {freq, damping})`, presets in `EM.spring.PRESETS`: `ui`, `snappy`, `default`, `heavy`, `playful`, `glide`.

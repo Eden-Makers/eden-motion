@@ -37,7 +37,10 @@ html[data-theme="cinematic"] {
 
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
-#root { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); }
+/* Type in motion: on Linux (FreeType hinting) glyph stems re-snap every frame under a scale and the
+ * letters "boil"; geometricPrecision turns hinting off. No measurable effect on macOS renders, where
+ * the vertical snapping is fixed by the engine's 3D camera instead (engine.js, em-cam). */
+#root { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); text-rendering: geometricPrecision; }
 #bg, #stage, .em-scene, .em-cam { position: absolute; inset: 0; }
 #bg { overflow: hidden; }
 #stage { perspective: 2200px; }
