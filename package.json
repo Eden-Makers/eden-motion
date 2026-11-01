@@ -1,6 +1,6 @@
 {
   "name": "eden-motion",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Company name in, finished motion-graphics brand film out. Agent-driven pipeline on HyperFrames + Gemini + ElevenLabs with true shutter motion blur.",
   "type": "module",
   "bin": {
