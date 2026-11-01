@@ -164,7 +164,7 @@ export async function audio(projectDir, { musicPrompt, noMusic = false, sfxSourc
     try {
       const g = beatGrid(musicIn);
       const T = reveal ? revealT + 0.2 : null;
-      if (T != null && musicIn !== codeBed) { // the code bed is composed onto the logo already
+      if (T != null && musicIn !== codeBed && !sb.musicLocked) { // the code bed is composed onto the logo already; a locked (client) track is never shifted
         const cands = g.onsets.filter((o) => o.t >= T && o.t <= T + 1.6);
         const hit = cands.sort((a, b) => b.v - a.v)[0];
         if (hit) trimStart = +(hit.t - T).toFixed(3);
@@ -176,7 +176,8 @@ export async function audio(projectDir, { musicPrompt, noMusic = false, sfxSourc
     }
     const mk = add(musicIn);
     // music out 1.2 s before the end, fade in 0.4 s
-    const fadeOut = Math.max(0, D - 2.6);
+    // a locked track plays as delivered (the picture is cut to it): only a short safety fade at the very end
+    const fadeOut = sb.musicLocked ? Math.max(0, D - 0.3) : Math.max(0, D - 2.6);
     // Music dips (the main dynamic device of the references): under the TURN/pivot line and
     // under prompt typing, returning on the answer. VO ducking happens in remix (sidechain).
     const dips = sb.scenes
@@ -185,7 +186,7 @@ export async function audio(projectDir, { musicPrompt, noMusic = false, sfxSourc
       .map(({ s }) => `volume=enable='between(t,${(s.start + 0.1).toFixed(2)},${(s.start + s.duration - 0.35).toFixed(2)})':volume=0.4`);
     // explicit dips from the storyboard: musicDips [{from, to, gain (dB)}], e.g. under a voice line
     (sb.musicDips || []).forEach((d) => dips.push(`volume=enable='between(t,${(+d.from).toFixed(2)},${(+d.to).toFixed(2)})':volume=${Math.pow(10, (+d.gain || -4) / 20).toFixed(3)}`));
-    filters.push(`[${mk}:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=start=${trimStart},asetpts=PTS-STARTPTS,atrim=0:${D.toFixed(2)},afade=t=in:d=0.4,afade=t=out:st=${fadeOut.toFixed(2)}:d=1.4,volume=${musicIn === codeBed ? 0 : -9}dB${dips.length ? "," + dips.join(",") : ""}[music]`);
+    filters.push(`[${mk}:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=start=${trimStart},asetpts=PTS-STARTPTS,atrim=0:${D.toFixed(2)},afade=t=in:d=0.4,afade=t=out:st=${fadeOut.toFixed(2)}:d=${sb.musicLocked ? 0.3 : 1.4},volume=${musicIn === codeBed ? 0 : -9}dB${dips.length ? "," + dips.join(",") : ""}[music]`);
     byLayer.music.push("[music]");
   }
   // ambience bed (storyboard "ambience" or --ambience): looped, faded, far under everything
@@ -223,7 +224,7 @@ export async function audio(projectDir, { musicPrompt, noMusic = false, sfxSourc
       if (f) place(f.file, s.start + (+snd.at || 0.15), +snd.gain || -6, `f${i}_${j}`, "sfx_foley", { pitch: 1 });
     }
   }
-  if (reveal) {
+  if (reveal && sb.accents !== false) {
     place(lib.riser[0], revealT + 0.1, -9, "riser", "sfx_accents");
     place(lib.hit[0], revealT + 0.2, -10, "impact", "sfx_accents");
   }
