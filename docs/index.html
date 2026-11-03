@@ -4,193 +4,253 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>eden-motion</title>
-<meta name="description" content="Agent-driven motion graphics: brand films, launch videos and explainers with real 3D from Blender, true motion blur, layered sound and a director loop that watches its own frames. By Edenmakers." />
+<meta name="description" content="Directed motion design for agents by Edenmakers: product films, launch films and b-roll with real 3D from Blender, sound on the beat, true motion blur, and every frame measured." />
 <meta property="og:title" content="eden-motion" />
 <meta property="og:description" content="Directed. Not generated. Motion design for agents by Edenmakers: real 3D, sound on the beat, true motion blur, every frame measured." />
-<meta property="og:image" content="https://eden-makers.github.io/eden-motion/media/hero.jpg" />
+<meta property="og:image" content="https://eden-makers.github.io/eden-motion/media/og.jpg" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:image" content="https://eden-makers.github.io/eden-motion/media/og.jpg" />
 <meta name="twitter:card" content="summary_large_image" />
-<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" />
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500&display=swap" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" />
 <style>
+  /* Direction: an edit bay at night. Ink neutrals, the Edenmakers green as the one accent,
+     the films are the only rich thing on the page, timecodes in mono as the signature. */
   :root {
-    --bg: hsl(0 0% 6%);
-    --bg2: hsl(0 0% 12%);
-    --card: hsl(0 0% 9%);
-    --line: hsl(0 0% 98% / 0.08);
-    --fg: hsl(0 0% 98%);
-    --muted: hsl(0 0% 64%);
-    --dim: hsl(0 0% 46%);
-    --accent: hsl(153 100% 45%);
-    --ink: hsl(0 0% 6%);
-    --r: 20px;
-    --pad: max(20px, env(safe-area-inset-left, 0px));
+    --bg: #0b0d10;
+    --card: #11141a;
+    --raised: #1a1e26;
+    --line: rgb(238 240 245 / 0.08);
+    --fg: #eef0f5;
+    --fg2: #a3a9b8;
+    --muted: #7d8597;
+    --accent: #00e17a;
+    --on-accent: #07120c;
+    --sans: "Satoshi", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --gutter-l: max(24px, env(safe-area-inset-left, 0px));
+    --gutter-r: max(24px, env(safe-area-inset-right, 0px));
+    color-scheme: dark;
   }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
-  body { margin: 0; background: var(--bg); color: var(--fg); font-family: "Satoshi", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; line-height: 1.5; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
   a { color: inherit; }
-  .wrap { max-width: 1180px; margin: 0 auto; padding-left: var(--pad); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
-  .label { font-size: 12px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); }
-  nav { position: sticky; top: 0; z-index: 10; background: hsl(0 0% 6% / 0.78); backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
-  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 64px; }
-  .logo { font-weight: 700; letter-spacing: -0.02em; font-size: 18px; text-decoration: none; display: flex; align-items: center; gap: 10px; }
-  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 18px var(--accent); }
-  .navlinks { display: flex; gap: 22px; font-size: 14px; color: var(--muted); }
-  .navlinks a { text-decoration: none; }
+  a:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding-left: var(--gutter-l); padding-right: var(--gutter-r); }
+  .tc { font-family: var(--mono); font-size: 12px; line-height: 16px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  nav { position: sticky; top: 0; z-index: 10; background: rgb(11 13 16 / 0.92); border-bottom: 1px solid var(--line); }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 64px; gap: 24px; }
+  .logo { display: flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 500; text-decoration: none; }
+  .logo i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .navlinks { display: flex; align-items: center; gap: 24px; font-size: 14px; color: var(--fg2); }
+  .navlinks a { text-decoration: none; transition: color 160ms var(--ease); }
   .navlinks a:hover { color: var(--fg); }
 
-  header.hero { position: relative; overflow: hidden; padding-block: 88px 40px; }
-  header.hero::before { content: ""; position: absolute; inset: -20% -10% auto; height: 120%; background: radial-gradient(50% 45% at 50% 60%, hsl(153 100% 45% / 0.13), transparent 70%); pointer-events: none; }
-  h1 { font-size: clamp(44px, 7.4vw, 96px); line-height: 0.98; letter-spacing: -0.045em; font-weight: 700; margin: 18px 0 22px; text-wrap: balance; max-width: 13ch; }
+  header.hero { padding-block: 96px 0; }
+  .hero-text { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 48px; align-items: last baseline; }
+  h1 { margin: 0; font-size: clamp(44px, 6.6vw, 80px); line-height: 1.02; letter-spacing: -0.03em; font-weight: 500; text-wrap: balance; }
   h1 em { font-style: normal; color: var(--accent); }
-  .lede { font-size: clamp(17px, 1.6vw, 21px); color: var(--muted); max-width: 60ch; margin: 0 0 32px; }
+  .lede { margin: 0 0 24px; font-size: 18px; line-height: 28px; color: var(--fg2); max-width: 36rem; }
   .cta { display: flex; flex-wrap: wrap; gap: 12px; }
-  .btn { display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; border-radius: 999px; font-weight: 700; font-size: 15px; text-decoration: none; border: 1px solid var(--line); }
-  .btn.primary { background: var(--accent); color: var(--ink); border-color: transparent; }
-  .btn:hover { transform: translateY(-1px); }
-  .heroimg { margin-top: 56px; border-radius: 28px; overflow: hidden; border: 1px solid var(--line); }
-  .heroimg img { display: block; width: 100%; height: auto; }
+  .btn { display: inline-flex; align-items: center; height: 44px; padding: 0 20px; border-radius: 10px; font-size: 15px; font-weight: 500; text-decoration: none; border: 1px solid var(--line); background: var(--raised); color: var(--fg); transition: background-color 160ms var(--ease), border-color 160ms var(--ease); }
+  .btn:hover { border-color: rgb(238 240 245 / 0.16); }
+  .btn.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+  .btn.primary:hover { background: #22ea8c; }
+  .btn:active { transform: scale(0.98); }
+  .hero-film { margin-top: 64px; }
 
-  section { padding-block: 84px; border-top: 1px solid var(--line); }
-  h2 { font-size: clamp(30px, 4vw, 52px); letter-spacing: -0.035em; line-height: 1.04; margin: 12px 0 18px; font-weight: 700; text-wrap: balance; max-width: 20ch; }
-  .sub { color: var(--muted); max-width: 62ch; margin: 0 0 40px; }
+  section { padding-block: 96px; border-top: 1px solid var(--line); }
+  .head { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 48px; align-items: last baseline; margin-bottom: 40px; }
+  .kicker { margin: 0 0 12px; }
+  h2 { margin: 0; font-size: clamp(32px, 4vw, 48px); line-height: 1.08; letter-spacing: -0.02em; font-weight: 500; text-wrap: balance; }
+  .sub { margin: 0; color: var(--fg2); max-width: 36rem; }
 
-  .samples { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 28px; align-items: start; margin-bottom: 28px; }
-  .samples .wide { grid-column: 1 / -1; }
-  .heroimg video { display: block; width: 100%; height: auto; background: var(--bg2); }
-  .films { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.6fr); gap: 28px; align-items: start; }
-  .film { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; min-width: 0; }
-  .film video { display: block; width: 100%; height: auto; background: var(--bg2); }
-  .film .meta { padding: 18px 20px 22px; }
-  .film h3 { margin: 6px 0 8px; font-size: 21px; letter-spacing: -0.02em; }
-  .film p { margin: 0; color: var(--muted); font-size: 15px; }
+  .film { background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; min-width: 0; }
+  .film video { display: block; width: 100%; height: auto; background: #000; }
   .film.vertical video { aspect-ratio: 9 / 16; object-fit: cover; }
+  .meta { padding: 20px 24px 24px; display: grid; gap: 8px; }
+  .meta h3 { margin: 0; font-size: 18px; line-height: 24px; font-weight: 500; }
+  .meta p { margin: 0; color: var(--fg2); font-size: 15px; line-height: 22px; max-width: 62ch; }
+  .hero-film .film { border-radius: 20px; }
 
-  .strip { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 12px; margin-top: 28px; }
-  .strip img { width: 100%; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 14px; border: 1px solid var(--line); display: block; }
-  .grid16 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
-  .grid16 img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 12px; border: 1px solid var(--line); display: block; }
+  /* column ratios: a 9:16 next to a 16:9 (1 : 2.9) and a 4:5 next to a 16:9 (2.22 : 1) end level */
+  .product { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2.9fr); gap: 24px; align-items: start; margin-bottom: 24px; }
+  .grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; margin-bottom: 24px; }
+  .grid-sample { display: grid; grid-template-columns: minmax(0, 2.22fr) minmax(0, 1fr); gap: 24px; align-items: start; margin-bottom: 24px; }
+  .stills { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .stills img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 12px; border: 1px solid var(--line); display: block; }
 
-  .features { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
-  .f { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 26px 24px; min-width: 0; }
-  .f .n { font-size: 12px; letter-spacing: 0.2em; color: var(--dim); }
-  .f h3 { margin: 12px 0 8px; font-size: 20px; letter-spacing: -0.02em; }
-  .f p { margin: 0; color: var(--muted); font-size: 15px; }
-  .f code { color: var(--fg); font-size: 13.5px; }
+  .proof { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin-bottom: 40px; }
+  .proof > div { padding: 24px 24px 24px 0; display: grid; gap: 4px; }
+  .proof > div + div { padding-left: 24px; border-left: 1px solid var(--line); }
+  .fig { font-size: 40px; line-height: 1; font-weight: 500; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .fig b { font-weight: 500; color: var(--accent); }
+  .proof p { margin: 0; color: var(--fg2); font-size: 14px; line-height: 20px; }
 
-  pre { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 22px 24px; overflow-x: auto; font-size: 14px; line-height: 1.7; color: hsl(0 0% 86%); margin: 0; }
-  pre .c { color: var(--dim); }
+  .features { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 48px; }
+  .f { padding-block: 24px; border-top: 1px solid var(--line); display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 24px; }
+  .f h3 { margin: 0; font-size: 16px; line-height: 22px; font-weight: 500; }
+  .f p { margin: 0; color: var(--fg2); font-size: 15px; line-height: 22px; }
+  code { font-family: var(--mono); font-size: 13px; color: var(--fg); }
+
+  .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+  .two > div { min-width: 0; display: grid; gap: 12px; align-content: start; }
+  .two h3 { margin: 0; font-size: 15px; font-weight: 500; color: var(--fg2); }
+  pre { margin: 0; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px 24px; overflow-x: auto; font-family: var(--mono); font-size: 13px; line-height: 22px; color: #cdd2dc; }
+  pre .c { color: var(--muted); }
   pre .g { color: var(--accent); }
-  .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
-  .two > div { min-width: 0; }
-  .two h3 { font-size: 15px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); font-weight: 500; margin: 0 0 12px; }
 
-  footer { border-top: 1px solid var(--line); padding-block: 48px 64px; color: var(--muted); font-size: 14px; }
-  footer .wrap { display: flex; flex-wrap: wrap; gap: 18px; justify-content: space-between; align-items: center; }
-  footer b { color: var(--fg); }
+  .license { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; margin-bottom: 40px; }
+  .license > div { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 24px; display: grid; gap: 8px; align-content: start; }
+  .license h3 { margin: 0; font-size: 18px; line-height: 24px; font-weight: 500; }
+  .license p { margin: 0; color: var(--fg2); font-size: 15px; line-height: 22px; }
 
-  @media (max-width: 900px) {
-    .samples { grid-template-columns: minmax(0, 1fr); }
-    .films, .two { grid-template-columns: minmax(0, 1fr); }
-    .features { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-    .strip { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    .grid16 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  footer { border-top: 1px solid var(--line); padding-block: 40px 64px; color: var(--fg2); font-size: 14px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 16px 32px; justify-content: space-between; }
+  footer b { color: var(--fg); font-weight: 500; }
+
+  @media (max-width: 960px) {
+    .hero-text, .head { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+    .product, .grid2, .grid-sample, .two, .license { grid-template-columns: minmax(0, 1fr); }
+    .product .film.vertical { max-width: 360px; }
+    .features { grid-template-columns: minmax(0, 1fr); }
+    .stills { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .navlinks .hide-s { display: none; }
   }
-  @media (max-width: 560px) {
-    .features { grid-template-columns: minmax(0, 1fr); }
-    header.hero { padding-block: 56px 24px; }
-    section { padding-block: 60px; }
+  @media (max-width: 600px) {
+    header.hero { padding-block: 56px 0; }
+    section { padding-block: 64px; }
+    .hero-film { margin-top: 40px; }
+    .proof { grid-template-columns: minmax(0, 1fr); }
+    .proof > div + div { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); }
+    .f { grid-template-columns: minmax(0, 1fr); gap: 8px; }
   }
-  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .btn:hover { transform: none; } }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .btn:active { transform: none; } }
 </style>
 </head>
 <body>
 <nav>
   <div class="wrap">
-    <a class="logo" href="#"><span class="dot"></span>eden-motion</a>
+    <a class="logo" href="#"><i></i>eden-motion</a>
     <div class="navlinks">
       <a href="#films">Films</a>
-      <a class="hide-s" href="#features">Features</a>
-      <a class="hide-s" href="#start">Quick start</a>
-      <a href="https://github.com/Eden-Makers/eden-motion">GitHub ↗</a>
+      <a class="hide-s" href="#inside">Inside</a>
+      <a class="hide-s" href="#start">Install</a>
+      <a class="hide-s" href="#license">License</a>
+      <a href="https://github.com/Eden-Makers/eden-motion">GitHub</a>
     </div>
   </div>
 </nav>
 
 <header class="hero">
   <div class="wrap">
-    <div class="label">Motion design for agents · by Edenmakers</div>
-    <h1>Directed. <em>Not generated.</em></h1>
-    <p class="lede">Give your agent a company name. eden-motion researches the brand, writes and voices the script, storyboards it from 31 scenes, renders real 3D in Blender, puts every cut and every sound on the beat, renders with true shutter motion blur, then measures every frame and fixes what it finds. You get a strong draft to direct, not a template.</p>
-    <div class="cta">
-      <a class="btn primary" href="#start">Install in Claude Code</a>
-      <a class="btn" href="#films">Watch the films</a>
-      <a class="btn" href="https://github.com/Eden-Makers/eden-motion">GitHub ↗</a>
+    <div class="hero-text">
+      <div>
+        <p class="tc kicker">Motion design for agents, by Edenmakers</p>
+        <h1>Directed. <em>Not&nbsp;generated.</em></h1>
+      </div>
+      <div>
+        <p class="lede">Give your agent an app or a company name. eden-motion writes the film, rebuilds the UI in code, shoots real 3D in Blender, cuts everything on the beat and measures every frame before you see it.</p>
+        <div class="cta">
+          <a class="btn primary" href="#start">Install in Claude Code</a>
+          <a class="btn" href="#films">Watch the films</a>
+        </div>
+      </div>
     </div>
-    <div class="heroimg"><video src="media/sample-eden-motion.mp4" poster="media/poster-eden-motion.jpg" controls playsinline preload="metadata" aria-label="eden-motion launch film, made with eden-motion"></video></div>
+    <div class="hero-film">
+      <div class="film">
+        <video src="media/tvhome-promo.mp4" poster="media/poster-tvhome-promo.jpg" controls playsinline preload="metadata" aria-label="Product film for a TV home screen, made with eden-motion"></video>
+        <div class="meta">
+          <span class="tc">00:31 · 16:9 · 30 fps · product film</span>
+          <h3>GedyHome, a TV home screen without ads</h3>
+        </div>
+      </div>
+    </div>
   </div>
 </header>
 
 <section id="films">
   <div class="wrap">
-    <div class="label">Made with eden-motion</div>
-    <h2>Real 3D, real blur, real sound.</h2>
-    <p class="sub">Every film below was rendered end to end by the pipeline from a company name and a few lines of notes, then checked frame by frame. No generated stills: type, product UI, diagrams and Blender plates. Turn the sound on.</p>
-    <div class="samples">
+    <div class="head">
+      <div>
+        <p class="tc kicker">Made with eden-motion</p>
+        <h2>One product, filmed three ways</h2>
+      </div>
+      <p class="sub">No screen recording. The launcher UI was rebuilt as an HTML twin, so the type stays sharp at 3x zoom in 4K. A real Blender camera sweeps through it with depth of field, the Reels cut recomposes instead of cropping, and the b-roll shoots the TV like a product.</p>
+    </div>
+
+    <div class="product" id="tvhome">
+      <div class="film vertical">
+        <video src="media/tvhome-promo-9x16.mp4" poster="media/poster-tvhome-9x16.jpg" controls playsinline preload="metadata"></video>
+        <div class="meta">
+          <span class="tc">00:31 · 9:16 · Reels cut</span>
+          <h3>Same film, recomposed</h3>
+          <p>Reframed for the phone instead of cropped out of the wide cut.</p>
+        </div>
+      </div>
+      <div class="film">
+        <video src="media/tvhome-broll.mp4" poster="media/poster-tvhome-broll.jpg" controls playsinline preload="metadata" muted></video>
+        <div class="meta">
+          <span class="tc">00:22 · 16:9 · Blender and HyperFrames · b-roll</span>
+          <h3>The TV, shot like a product</h3>
+          <p>A CG television with the real UI as its screen: turn-on in the dark, a corner macro, a rack focus from the remote, subpixels, glass slabs and a living room, cut between UI close-ups composed in 3D space.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="head" id="samples">
+      <div>
+        <p class="tc kicker">From a name and a few lines of notes</p>
+        <h2>Rendered end to end</h2>
+      </div>
+      <p class="sub">Research, script, voice, storyboard, Blender plates, sound and render in one run. No generated stills: type, product UI, diagrams and 3D.</p>
+    </div>
+
+    <div class="grid-sample">
       <div class="film" id="eden-motion">
         <video src="media/sample-eden-motion.mp4" poster="media/poster-eden-motion.jpg" controls playsinline preload="metadata"></video>
         <div class="meta">
-          <div class="label">Launch film · 16:9 · 39 s · relate style</div>
-          <h3>eden-motion</h3>
-          <p>Metronome cuts on a 24 frame grid, chrome hardware rendered headless in Blender, the website flown through in real depth of field, counters with ghost copies and a logo built from its own bars.</p>
+          <span class="tc">00:39 · 16:9 · 24 fps · relate style</span>
+          <h3>eden-motion launch film</h3>
+          <p>Metronome cuts on a 24 frame grid, chrome hardware rendered headless in Blender, the website flown through with real depth of field and a logo built from its own bars.</p>
         </div>
       </div>
       <div class="film" id="edenmakers">
         <video src="media/sample-edenmakers.mp4" poster="media/poster-edenmakers.jpg" controls playsinline preload="metadata"></video>
         <div class="meta">
-          <div class="label">Studio film · 4:5 · 33 s · launch style</div>
-          <h3>Edenmakers</h3>
-          <p>A feed-first portrait cut: laid out on a 1728 x 2160 stage and delivered at 1080 x 1350, so the type stays supersampled.</p>
-        </div>
-      </div>
-      <div class="film wide" id="hlas-demo">
-        <video src="media/sample-hlas.mp4" poster="media/poster-hlas-demo.jpg" controls playsinline preload="metadata"></video>
-        <div class="meta">
-          <div class="label">Product demo · 16:9 · 36 s · burnwe style</div>
-          <h3>Hlas, dictation not typing</h3>
-          <p>The real app screens put into Blender with a dolly and rack focus, the hold, speak and release moment, and proof numbers taken from the product's own site.</p>
+          <span class="tc">00:33 · 4:5 · launch style</span>
+          <h3>Edenmakers studio film</h3>
+          <p>A feed-first portrait cut, laid out on a 1728 x 2160 stage and delivered at 1080 x 1350.</p>
         </div>
       </div>
     </div>
-    <div class="films">
-      <div class="film vertical" id="hlas">
-        <video src="media/hlas-promo.mp4" poster="media/poster-hlas.jpg" controls playsinline preload="metadata"></video>
+
+    <div class="grid2">
+      <div class="film" id="app-demo">
+        <video src="media/sample-hlas.mp4" poster="media/poster-hlas-demo.jpg" controls playsinline preload="metadata"></video>
         <div class="meta">
-          <div class="label">Vertical promo · 43 s</div>
-          <h3>Hlas, dictation not typing</h3>
-          <p>Keycaps drift apart and a Fn key lights up green (Blender plates); the dictated Czech sentence lands at the cursor on release, exactly like the app; the real screens fly in 3D with a rack focus.</p>
+          <span class="tc">00:36 · 16:9 · burnwe style</span>
+          <h3>A dictation app</h3>
+          <p>Real app screens in Blender with a dolly and rack focus, proof numbers taken from the product's own site.</p>
         </div>
       </div>
       <div class="film" id="editorial">
         <video src="media/relate-test.mp4" poster="media/relate-9.jpg" controls playsinline preload="metadata"></video>
         <div class="meta">
-          <div class="label">Editorial style · 13 s</div>
+          <span class="tc">00:13 · 16:9 · 24 fps · editorial test</span>
           <h3>A metronome edit</h3>
-          <p>Hard cuts every 24 frames, polarity flips, a machined chrome block rendered in Cycles, rolling counters with ghost copies, frosted glass letters and a logo built from its own bars.</p>
+          <p>Hard cuts every 24 frames, polarity flips, a machined chrome block rendered in Cycles, rolling counters with ghost copies and frosted glass letters.</p>
         </div>
       </div>
     </div>
-    <div class="strip">
-      <img src="media/hlas-6.jpg" alt="Typing hands on a dark keyboard" loading="lazy" />
-      <img src="media/hlas-7.jpg" alt="Dictation window with a listening pill" loading="lazy" />
-      <img src="media/hlas-2.jpg" alt="The Czech sentence landing at the cursor" loading="lazy" />
-      <img src="media/hlas-3.jpg" alt="Macro eye reflecting the green pill" loading="lazy" />
-      <img src="media/hlas-8.jpg" alt="Proof card: 4 MB" loading="lazy" />
-      <img src="media/hlas-4.jpg" alt="Real app screens flown in 3D" loading="lazy" />
-      <img src="media/hlas-1.jpg" alt="A Fn keycap glowing green" loading="lazy" />
-      <img src="media/hlas-5.jpg" alt="The Hlas mark and lockup" loading="lazy" />
-    </div>
-    <div class="grid16">
+
+    <div class="stills">
       <img src="media/relate-9.jpg" alt="Chrome block rendered in Blender" loading="lazy" />
       <img src="media/relate-2.jpg" alt="Rolling counters with ghost copies" loading="lazy" />
       <img src="media/relate-5.jpg" alt="Frosted glass letters" loading="lazy" />
@@ -203,66 +263,85 @@
   </div>
 </section>
 
-<section id="features">
+<section id="inside">
   <div class="wrap">
-    <div class="label">What is inside</div>
-    <h2>A studio pipeline, not a template.</h2>
-    <p class="sub">Every step is plain JSON in a project folder, so an agent or a human can stop anywhere, edit, and continue.</p>
+    <div class="head">
+      <div>
+        <p class="tc kicker">Inside</p>
+        <h2>A studio pipeline, not a template</h2>
+      </div>
+      <p class="sub">Every step is plain JSON in a project folder, so an agent or a person can stop anywhere, change it and carry on.</p>
+    </div>
+
+    <div class="proof">
+      <div><span class="fig">0.92 <span class="tc">to</span> <b>0.02</b> px</span><p>Text judder under the camera push, measured on the render</p></div>
+      <div><span class="fig">120 ms</span><p>How far a cut may move to land on the music's beat</p></div>
+      <div><span class="fig">31</span><p>Scenes in four styles, plus three Blender templates</p></div>
+    </div>
+
     <div class="features">
-      <div class="f"><div class="n">01</div><h3>31 scenes, 4 styles</h3><p>Kinetic and editorial type, product UI with camera and cursor, counters, diagrams, glass orbs, logo lockups. Styles: SaaS explainer, launch film, grid promo, editorial metronome.</p></div>
-      <div class="f"><div class="n">02</div><h3>Real 3D from Blender</h3><p><code>blender:</code> props render headless plates. <code>layers-3d</code> puts your screenshots and stills into real space for true depth of field, rack focus and parallax.</p></div>
-      <div class="f"><div class="n">03</div><h3>True motion blur</h3><p>Time is stretched where things move fast, sub-frames are captured and averaged with a real 180 degree shutter. Smear only where it belongs.</p></div>
-      <div class="f"><div class="n">04</div><h3>Layered sound</h3><p>Voice, music, ambience and four SFX layers as separate stems, from 5M+ free sounds on Openverse scored in code. <code>remix</code> rebalances in a second.</p></div>
-      <div class="f"><div class="n">05</div><h3>A director loop</h3><p>Contact sheets, a phone-size test, frame strips around every cut, measured pops and dead air, a harsh rubric. It never ships the first render.</p></div>
-      <div class="f"><div class="n">06</div><h3>Rebuild any reference</h3><p><code>ref</code> measures a film, <code>compare</code> puts yours next to it with SSIM, <code>critique --against</code> scores both with the same rubric.</p></div>
-      <div class="f"><div class="n">07</div><h3>Measured, not eyeballed</h3><p><code>measure</code> steps through every frame: reading time per line, text cut by the frame, ease tails that freeze, glyph judder. It found type snapping 1 px under the camera push and the fix took it from 0.92 px to 0.02 px.</p></div>
-      <div class="f"><div class="n">08</div><h3>Cut on the beat</h3><p><code>sync</code> moves every cut within 120 ms of a music beat onto it, on the frame grid. One-shot sounds land a frame early and pan with the element that makes them.</p></div>
+      <div class="f"><h3>Product films</h3><p>An HTML twin of your UI instead of a screen recording, CG device shots in Blender, b-roll close-ups, a lens finish only on the fast moves and a 9:16 cut that keeps the composition.</p></div>
+      <div class="f"><h3>Real 3D from Blender</h3><p><code>blender:</code> props render headless plates. <code>layers-3d</code> puts screenshots into real space for depth of field, rack focus and parallax.</p></div>
+      <div class="f"><h3>True motion blur</h3><p>Time stretches where things move fast, sub-frames are captured and averaged through a 180 degree shutter. Smear only where it belongs.</p></div>
+      <div class="f"><h3>Sound on the beat</h3><p>Voice, music, ambience and four SFX layers as stems. <code>sync</code> snaps cuts to the beat, one-shots land a frame early and pan with what makes them.</p></div>
+      <div class="f"><h3>Measured, not eyeballed</h3><p><code>measure</code> steps through every frame: reading time per line, text cut by the frame, ease tails that freeze, glyph judder.</p></div>
+      <div class="f"><h3>A director loop</h3><p>Contact sheets, a phone-size test, frame strips around every cut and a calibrated rubric. It never ships the first render.</p></div>
+      <div class="f"><h3>Rebuild any reference</h3><p><code>ref</code> measures a film, <code>compare</code> puts yours next to it with SSIM, <code>critique --against</code> scores both the same way.</p></div>
+      <div class="f"><h3>Any frame</h3><p>16:9, 4:5, 1:1 and 9:16. Portrait films are laid out on a larger stage and scaled down, so type stays supersampled.</p></div>
     </div>
   </div>
 </section>
 
 <section id="start">
   <div class="wrap">
-    <div class="label">Quick start</div>
-    <h2>Two commands, then ask for a film.</h2>
+    <div class="head">
+      <div>
+        <p class="tc kicker">Install</p>
+        <h2>Two commands, then ask for a film</h2>
+      </div>
+      <p class="sub">The agent checks your tools, installs what is missing and asks for API keys in a masked prompt in your own terminal, never in the chat.</p>
+    </div>
     <div class="two">
       <div>
         <h3>In Claude Code</h3>
 <pre>/plugin marketplace add Eden-Makers/eden-motion
 /plugin install eden-motion@eden-motion
 <span class="g">&gt;</span> set up eden-motion
-<span class="c"># checks tools, installs what is missing, you paste
-# API keys into a masked prompt (never the chat),
-# then a 7 s smoke render</span>
 <span class="g">&gt;</span> make a 40 second launch film for Linear, 4:5</pre>
       </div>
       <div>
         <h3>From a terminal</h3>
-<pre><span class="c"># macOS, Node 20+, ffmpeg, Chrome. Codex, Gemini CLI,
-# Cursor and opencode get the skill too</span>
+<pre><span class="c"># macOS, Node 20+, ffmpeg, Chrome</span>
 git clone https://github.com/Eden-Makers/eden-motion
-cd eden-motion && ./install.sh
+cd eden-motion &amp;&amp; ./install.sh
 eden-motion setup
-eden-motion new <span class="g">"Attio"</span> --url https://attio.com \
-  --duration 40 --format 4:5 --style relate</pre>
+eden-motion new <span class="g">"Attio"</span> --url https://attio.com --format 4:5</pre>
       </div>
     </div>
   </div>
 </section>
 
-<section id="studio">
+<section id="license">
   <div class="wrap">
-    <div class="label">Edenmakers</div>
-    <h2>Need it directed by people?</h2>
-    <p class="sub">eden-motion is how our studio drafts. Launch films, product demos and AI films for brands are directed and finished by the Edenmakers team in Prague.</p>
-    <div class="cta"><a class="btn primary" href="https://edenmakers.ai">Work with Edenmakers ↗</a></div>
+    <div class="head">
+      <div>
+        <p class="tc kicker">License</p>
+        <h2>Free for small studios</h2>
+      </div>
+      <p class="sub">Source-available under the PolyForm Small Business License 1.0.0. Versions up to 0.3.0 stay available under Apache 2.0.</p>
+    </div>
+    <div class="license">
+      <div><h3>Free, also for client work</h3><p>Individuals, freelancers, nonprofits and companies with fewer than 100 people and under 1M USD revenue last year.</p></div>
+      <div><h3>Commercial license</h3><p>Larger companies license eden-motion from Edenmakers. The same team directs and finishes films for brands in Prague.</p></div>
+    </div>
+    <div class="cta"><a class="btn primary" href="https://edenmakers.ai">Talk to Edenmakers</a></div>
   </div>
 </section>
 
 <footer>
   <div class="wrap">
-    <div><b>eden-motion</b> by <a href="https://edenmakers.ai">Edenmakers</a>, an AI film and advertising studio in Prague. Directed. Not generated.</div>
-    <div>Built on HyperFrames, GSAP, Blender, ffmpeg and Openverse.</div>
+    <div><b>eden-motion</b> by <a href="https://edenmakers.ai">Edenmakers</a>, an AI film and advertising studio in Prague</div>
+    <div>Built on HyperFrames, GSAP, Blender, ffmpeg and Openverse</div>
   </div>
 </footer>
 </body>

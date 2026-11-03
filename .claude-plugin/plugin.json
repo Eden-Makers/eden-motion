@@ -1,6 +1,6 @@
 {
   "name": "eden-motion",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Directed motion design for agents. Company name in, a launch film out: research, script, ElevenLabs VO, storyboard from premium scenes, Blender 3D plates, layered sound on the beat, HyperFrames render with true shutter motion blur, then measured QC and a harsh critique loop.",
   "author": {
     "name": "Edenmakers",
@@ -18,5 +18,5 @@
     "product-demo"
   ],
   "icon": ".claude-plugin/icon.png",
-  "license": "Apache-2.0"
+  "license": "PolyForm-Small-Business-1.0.0"
 }
