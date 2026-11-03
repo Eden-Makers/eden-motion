@@ -50,20 +50,26 @@ can stop at any step, edit, and continue.
 
 ## Showcase
 
-Three films rendered end to end from a company name and a few lines of notes, no generated stills
-(type, product UI, diagrams and Blender plates), each checked frame by frame with `measure`:
+<img src="docs/media/og.jpg" width="720" alt="eden-motion: Directed. Not generated.">
+
+**Product film for a real app.** A 31 s promo for GedyHome, a TV home screen without ads: the UI
+rebuilt as an HTML twin instead of a screen recording, a Blender camera sweep through it with real
+depth of field, every move on the beat, plus a 9:16 Reels cut that keeps the composition and a
+b-roll set of the TV shot in Blender. [Watch](https://eden-makers.github.io/eden-motion/#tvhome)
 
 | | |
 |---|---|
-| <img src="docs/media/poster-eden-motion.jpg" width="260"> | **eden-motion launch film**, 16:9, 39 s, relate style. Metronome cuts on a 24 frame grid, chrome hardware rendered headless in Blender, the website flown through with real depth of field, a logo built from its own bars. [Watch](https://eden-makers.github.io/eden-motion/#eden-motion) |
+| <img src="docs/media/poster-tvhome-promo.jpg" width="260"> | **Product film**, 16:9, 31 s. HTML twin of the launcher, Blender sweep, lens finish keyed to the fast moves. |
+| <img src="docs/media/poster-tvhome-broll.jpg" width="260"> | **B-roll**, 22 s. CG television in Blender with the real UI as its screen: turn-on, corner macro, remote rack focus, subpixels, living room. |
+
+Rendered end to end from a company name and a few lines of notes, no generated stills, each checked
+frame by frame with `measure`:
+
+| | |
+|---|---|
+| <img src="docs/media/poster-eden-motion.jpg" width="260"> | **eden-motion launch film**, 16:9, 39 s, relate style. Metronome cuts on a 24 frame grid, chrome hardware rendered headless in Blender, a logo built from its own bars. [Watch](https://eden-makers.github.io/eden-motion/#eden-motion) |
 | <img src="docs/media/poster-edenmakers.jpg" width="200"> | **Edenmakers studio film**, 4:5, 33 s, launch style. Laid out on a 1728 x 2160 stage, delivered at 1080 x 1350. [Watch](https://eden-makers.github.io/eden-motion/#edenmakers) |
-| <img src="docs/media/poster-hlas-demo.jpg" width="260"> | **Hlas product demo**, 16:9, 36 s, burnwe style. The real app screens in Blender with a dolly and rack focus, cuts snapped to the music. [Watch](https://eden-makers.github.io/eden-motion/#hlas-demo) |
-Earlier tests:
-
-| | |
-|---|---|
-| <img src="docs/media/hlas-1.jpg" width="260"> <img src="docs/media/hlas-5.jpg" width="260"> | **Hlas, a 43 s vertical promo** for a Czech-first dictation app. Keycaps that drift apart and a Fn key that lights up green are Blender plates; the dictated Czech sentence lands at the cursor on release, exactly like the app; the real app screens are flown in 3D with a rack focus. Music, foley and a logo sting in the music's key. [Watch](https://eden-makers.github.io/eden-motion/#hlas) |
-| <img src="docs/media/relate-9.jpg" width="260"> <img src="docs/media/relate-7.jpg" width="260"> | **Editorial metronome test.** Cuts every 24 frames, polarity flips, a chrome block rendered in Cycles, ghost counters, frosted glass letters, a logo built from its own bars. [Watch](https://eden-makers.github.io/eden-motion/#editorial) |
+| <img src="docs/media/poster-hlas-demo.jpg" width="260"> | **App demo**, 16:9, 36 s, burnwe style. Real app screens in Blender with a dolly and rack focus. [Watch](https://eden-makers.github.io/eden-motion/#app-demo) |
 
 ## Quick start
 
@@ -129,9 +135,15 @@ Opus 5.5 video prompts.
 
 ## License
 
-Apache License 2.0, copyright Eden Makers s.r.o. See [LICENSE](LICENSE) and [NOTICE](NOTICE):
-the bundled Pixabay sound effects keep their own licence, and the licence grants no rights to the
-Edenmakers, eden-motion or Hlas names and marks.
+[PolyForm Small Business 1.0.0](LICENSE), copyright Eden Makers s.r.o. Source-available, not open source.
+
+- **Free**, also for client work, if you are an individual, a freelancer, a nonprofit, or a company
+  with fewer than 100 people and under 1M USD revenue last year.
+- **Larger companies** need a commercial license: talk to [Edenmakers](https://edenmakers.ai).
+- Versions up to 0.3.0 were released under Apache 2.0 and stay available under it.
+
+The bundled Pixabay sound effects, the music in the sample films and every name and logo in them
+keep their own terms; see [NOTICE](NOTICE).
 
 ## Credits
 
