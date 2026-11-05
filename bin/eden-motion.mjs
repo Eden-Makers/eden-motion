@@ -72,6 +72,9 @@ STEPS (in order)
                text clipped by the frame or outside the safe margin, small text, ease tails that freeze
                (< 0.5 px/frame), glyph judder and letterform drift under scale -> renders/measure.json [--no-ink]
                [--video renders/final.mp4: measure the ink windows on the real render too]
+  study        <style> <films|urls|folder|list.txt>   measure reference films into styles/<style>/profile.json
+               (shot lengths, rhythm, metronome grid, flashes, events per second, holds, polarity flips,
+               cuts on the beat, look); <style> --against <slug|video> scores a film against it per axis
   compare      <slug> <ref.mp4> side by side + frame pairs + SSIM vs a reference film [--file]
   review       HTML review sheet (frames per shot, VO, props, prompts, QC) [--deliver <drive folder>]
   build        only build comp/index.html from storyboard.json
@@ -248,6 +251,11 @@ async function main() {
     if (!args["no-run"]) {
       for (const s of STEPS) await step(s === "render" && args.draft ? "render" : s, dir, args);
     }
+    return;
+  }
+
+  if (cmd === "study") {
+    await (await import("../src/steps/study.mjs")).study(target, args._.slice(2), { against: args.against, keepShots: !!args["keep-shots"] });
     return;
   }
 

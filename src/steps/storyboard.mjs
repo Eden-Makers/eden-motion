@@ -7,6 +7,7 @@ import { generateJSON } from "../lib/gemini.mjs";
 import { SCENES, TRANSITIONS } from "../lib/catalog.mjs";
 import { REPO } from "../lib/env.mjs";
 import { log, warn, readJSON, writeJSON, deepNoDashes } from "../lib/util.mjs";
+import { profilePath, profilePrompt } from "./study.mjs";
 
 // Visual grammars measured from the references (research/analysis/*.md).
 const STYLES = {
@@ -63,10 +64,34 @@ export async function storyboard(projectDir, { endHold = 2.2, direction = null, 
     return { start: +start.toFixed(3), end: +end.toFixed(3) };
   });
 
-  // Metronome mode (Relate): shots on a fixed grid regardless of VO phrasing; each shot inherits
-  // the line playing at its midpoint. brief.cutGrid in seconds (1.0 = 24 frames at 24 fps).
-  const grid = +(brief.cutGrid || (brief.style === "relate" ? 1.0 : 0));
+  // A measured style (styles/<style>/profile.json, from `eden-motion study`) decides the shot plan.
+  const prof = brief.style && fs.existsSync(profilePath(brief.style)) ? readJSON(profilePath(brief.style)) : null;
+  // Metronome mode: shots on a fixed grid regardless of VO phrasing; each shot inherits the line
+  // playing at its midpoint. brief.cutGrid in seconds (1.0 = 24 frames at 24 fps). A measured
+  // style gets a grid only when at least half of its edited references cut on one (Relate: 3 of 16).
+  const measuredGrid = prof && prof.metronome && prof.metronome.films * 2 >= (prof.edited || 0) ? prof.metronome.median : 0;
+  const grid = +(brief.cutGrid || (brief.style === "relate" ? (prof ? measuredGrid : 1.0) : 0));
   let units = lines.map((l, i) => ({ li: i, start: windows[i].start, end: windows[i].end }));
+  // No grid but references cut faster than the narration: split each line into shots whose
+  // lengths cycle through the references' pooled shot lengths (deterministic, varied like theirs).
+  const sl = prof && prof.shotLengths;
+  if (!(grid > 0) && sl && sl.median && sl.median < 2.2) {
+    const cycle = [sl.median, sl.p25, sl.p75, sl.median, sl.p25, Math.min(sl.p90, 4)].map((v) => Math.max(0.5, v));
+    let k = 0;
+    units = [];
+    windows.forEach((w, li) => {
+      // the end card stays one shot
+      if (li === lines.length - 1) return units.push({ li, start: w.start, end: w.end });
+      let t = w.start;
+      while (w.end - t > 1e-3) {
+        let len = cycle[k++ % cycle.length];
+        if (w.end - (t + len) < 0.5) len = w.end - t;
+        units.push({ li, start: +t.toFixed(3), end: +(t + len).toFixed(3) });
+        t += len;
+      }
+    });
+    log(`measured shot plan (${brief.style}, median ${sl.median} s): ${units.length} shots`);
+  }
   if (grid > 0) {
     units = [];
     // snap the end card onto the grid (no sliver shot before it), keep it at least 2.4 s
@@ -91,7 +116,7 @@ BRAND: ${JSON.stringify({ name: brand.name, tagline: brand.tagline, one_liner: b
 AVAILABLE BRAND ASSETS: ${JSON.stringify(assets)}
 THEME: ${theme}
 
-SHOTS (${grid > 0 ? "metronome cuts on a fixed grid, several shots can share one narration line" : "one per narration line"}, timing is fixed):
+SHOTS (${grid > 0 ? "metronome cuts on a fixed grid, several shots can share one narration line" : units.length > lines.length ? "cut to the measured shot lengths of this style, several shots can share one narration line" : "one per narration line"}, timing is fixed):
 ${units.map((u, i) => { const l = lines[u.li]; return `${i}. [${u.start.toFixed(2)}-${u.end.toFixed(2)}s, ${(u.end - u.start).toFixed(1)}s] line=${u.li} beat=${l.beat} tone=${l.tone} suggested=${l.scene} VO: "${l.text}" | idea: ${l.visual}`; }).join("\n")}
 
 SCENE CATALOG (type: props schema + purpose):
@@ -101,6 +126,7 @@ TRANSITIONS:
 ${trans}
 
 STYLE: ${STYLES[brief.style || "burnwe"] || brief.style}
+${prof ? profilePrompt(brief.style) + " Where the style description above disagrees with these numbers, the numbers win." : ""}
 FRAME: ${brief.format && brief.format !== "16:9" ? `${brief.format} portrait feed frame: stack content vertically, max 2-3 words per display line, no wide rows of more than 3 cards, keep the key object in the middle third` : "16:9"}
 ${refStyle ? `REFERENCE FILM TO MATCH (measured from the client's chosen reference; copy its pacing, type behaviour, transitions and camera, not its content):\n${refStyle}\n` : ""}${direction ? `CREATIVE DIRECTION FOR THIS VARIANT: ${direction}\n` : ""}
 APPLE FRAMEWORK: every choice is intentional; one shot = one idea; each shot has room to breathe; the key object sits in the centre of the frame; backgrounds never compete with the key object; motion is eased and overlapping, never linear; rhythm adapts (speeds up in lists and montages, slows down on the reveal and the proof).
@@ -122,7 +148,7 @@ ${brief.noImages ? "- NO generated images anywhere: never write a \"gen:\" prop.
 - montage items: use the brand's real screenshots first, then abstract renders.
 - card-cloud word: "?" or one calm word, never shouting capitals.
 - For images use "gen:<prompt>": a full Nano Banana Pro prompt, photographic or 3D, premium, brand colours ${JSON.stringify(brand.colors || {})}, and ALWAYS end with "no text, no letters, no logos". Max 5 generated images in the whole film.
-${brief.video ? `- You MAY use up to 2 AI video clips in media-frame: props {kind:"video", src:"genvideo:<detailed still prompt> || <camera + motion direction, single shot>"}. Use them for the most cinematic human/world moments only.\n` : ""}- tone: keep the line's tone (dark/light); for theme glow you may use "cream", for cinematic use "black"${brief.style === "relate" ? '; RELATE: use "paper" and "black" alternating nearly every shot, "stage" for UI cards' : ""}. The last shot must be ${brief.style === "relate" ? "logo-bars" : "logo-reveal"}.
+${brief.video ? `- You MAY use up to 2 AI video clips in media-frame: props {kind:"video", src:"genvideo:<detailed still prompt> || <camera + motion direction, single shot>"}. Use them for the most cinematic human/world moments only.\n` : ""}- tone: keep the line's tone (dark/light); for theme glow you may use "cream", for cinematic use "black"${brief.style === "relate" ? (prof && prof.axes.polarityFlips ? `; RELATE: tones "paper", "black" and "stage" (UI cards); flip between dark and light on about ${Math.round(prof.axes.polarityFlips.median * 100)}% of cuts and keep about ${Math.round((prof.axes.darkShare ? prof.axes.darkShare.median : 0.2) * 100)}% of shots dark, never every shot` : '; RELATE: use "paper" and "black" alternating nearly every shot, "stage" for UI cards') : ""}. The last shot must be ${brief.style === "relate" ? "logo-bars" : "logo-reveal"}.
 - transitions: mostly "cut" (60%+). Use zoom-through into the reveal, push-left between features, at most 1 whip, at most 1 wipe. Transition duration 0.4-0.7.
 - camera: omit (auto drift) or "push" for emphasis shots.
 - sound (optional, at most one shot in three): a signature foley sound for a PHYSICAL event on screen (an object lands, metal clinks, a card slides, paper folds, a coin drops, glass taps). {"q":"2-4 word search, concrete and literal, e.g. metal screw drop","at":seconds from shot start when the event happens,"gain":-8..-3}. Never for text, UI or abstract shots: those already get whooshes, clicks and pops.
@@ -174,6 +200,20 @@ Return ONLY JSON: {"ambience":null,"scenes":[{"i":0,"type":"...","tone":"dark|li
       if (s.props.sub && s.props.sub.endsWith("...")) delete s.props.sub;
     }
   });
+  // Relate polarity from the measured profile. The model flips nearly every shot whatever the
+  // prompt says, the references do not: long light runs and short dark runs put the flip rate and
+  // the dark share inside the references' range. Stage (UI) shots stay stage and count as light.
+  if (brief.style === "relate" && prof && prof.axes.polarityFlips && prof.axes.darkShare) {
+    const f = Math.max(0.05, prof.axes.polarityFlips.median), d = Math.max(0.05, prof.axes.darkShare.median);
+    const darkRun = Math.max(1, Math.round(d / (f / 2))), lightRun = Math.max(2, Math.round((1 - d) / (f / 2)));
+    let dark = false, left = Math.ceil(lightRun / 2);
+    for (const s of scenes) {
+      if (left <= 0 || (dark && s.tone === "stage")) { dark = !dark; left = dark ? darkRun : lightRun; }
+      if (s.tone !== "stage") s.tone = dark ? "black" : "paper";
+      left--;
+    }
+    log(`relate tones from profile: light runs of ${lightRun}, dark runs of ${darkRun}`);
+  }
   // logo-reveal defaults
   const last = scenes[scenes.length - 1];
   last.props = last.type === "logo-bars" ? { name: brand.name, ...last.props } : { tagline: brand.tagline, cta: brand.cta, url: brand.url, ...last.props };
@@ -188,6 +228,7 @@ Return ONLY JSON: {"ambience":null,"scenes":[{"i":0,"type":"...","tone":"dark|li
     ...(brief.style === "higgsfield" ? { background: "hf-grid" } : {}),
     ...(brief.style === "relate" ? { background: "none", flat: true, fps: brief.fps || 24, shutterPhase: "forward" } : {}),
     duration: total,
+    ...(prof ? { styleProfile: brief.style } : {}),
     ...(typeof plan.ambience === "string" && plan.ambience.trim() ? { ambience: plan.ambience.trim() } : {}),
     brand: {},
     vo: { file: vo.file, words: vo.words },

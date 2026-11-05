@@ -46,7 +46,7 @@ export function deepNoDashes(obj) {
 export function run(cmd, args, opts = {}) {
   const r = spawnSync(cmd, args, { encoding: "utf8", maxBuffer: 1 << 28, ...opts });
   if (r.status !== 0 && !opts.allowFail) {
-    throw new Error(`${cmd} ${args.join(" ")} failed (${r.status}):\n${(r.stderr || "").slice(-3000)}`);
+    throw new Error(`${cmd} ${args.join(" ")} failed (${r.status ?? r.signal ?? r.error?.code}):\n${r.error ? r.error.message + "\n" : ""}${(r.stderr || "").slice(-3000)}`);
   }
   return r;
 }

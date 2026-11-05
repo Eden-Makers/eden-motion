@@ -123,6 +123,20 @@ export async function critique(projectDir, { file, noAi = false } = {}) {
     m.fails.push(...cm.fails);
     m.composition = cm.summary;
   }
+  // a measured style: how far this render is from its reference films, axis by axis (advice for
+  // the director, not a fail: a film may leave the references' range on purpose)
+  if (sb.styleProfile) {
+    try {
+      const { compareToProfile, measureFilm, profilePath } = await import("./study.mjs");
+      const st = { style: sb.styleProfile, ...compareToProfile(measureFilm(file), readJSON(profilePath(sb.styleProfile))) };
+      writeJSON(path.join(renders, `study-${sb.styleProfile}.json`), st);
+      m.style = { score: st.score, off: st.rows.filter((r) => r.state === "off").map((r) => `${r.label} ${r.value} (refs ${r.p25}-${r.p75})`) };
+      log(`style ${sb.styleProfile}: ${st.on} of ${st.rows.length} axes inside the references' range`);
+      m.style.off.forEach((o) => warn(`off style: ${o}`));
+    } catch (e) {
+      warn(`style distance skipped: ${e.message.slice(0, 120)}`);
+    }
+  }
   const sh = sheets(file, sb, renders, m.strayPops);
   log(`metrics: ${m.pops.length} pops (${m.strayPops.length} away from cuts), ${m.dead.length} dead half-seconds, longest gap ${m.longestGap.len}s`);
   m.fails.forEach((f) => warn(f));

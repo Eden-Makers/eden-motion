@@ -19,6 +19,7 @@ Then run the director loop: read script.json and storyboard.json, fix, re-render
 | `runtime/` | the in-browser engine: `engine.js`, `fx.js` (motion primitives), `transitions.js`, `backgrounds.js`, `base.css`, `scenes/*.js|css` |
 | `runtime/SCENE_API.md` | contract for writing scenes |
 | `skills/eden-motion/` | the Agent Skill (symlinked into ~/.claude/skills, ~/.codex/skills, ~/.agents/skills by `install.sh`) |
+| `styles/<style>/` | measured style profiles from `study` (profile.json read by storyboard and critique, profile.md for humans) |
 | `research/analysis/` | forensic breakdowns of the reference films (70 techniques with parameters) |
 | `sfx-library/` | Pixabay-licensed SFX used by the audio step |
 | `tools/` | out-of-process helpers: `stingers.py` (audio-as-code), `synccheck.mjs`, `lensfx.py` (lens finish keyed to fast moves), `retime.py` (slowed capture to 60 fps, optical-flow gap fill), `token_usage.py` (where the Claude Code tokens went) |
