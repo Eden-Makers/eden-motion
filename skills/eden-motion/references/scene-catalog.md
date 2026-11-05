@@ -89,3 +89,14 @@ cathrynlavery/diagram-design (MIT).
 
 Helpers on `fx`: `cornerMarks(parent)` (place / hide, dash entry) and `scramble(tl, el, from, to, t, rng)`.
 Rules: see `research/analysis/editorial-launch.md`.
+
+## Agent launch pack (measured from a 60 fps voice-AI agent launch film)
+
+| scene | use | props |
+|---|---|---|
+| `tool-swap` | integrations: static line, tool name and mesh gradient hard-cut together, optional orb close | `stem`, `items: [{name, colors}]`, `orb` |
+| `inline-orb` | a sentence with a gradient orb in its gap | `left`, `right`, `colors`, `size` |
+| `split-lockup` | line squeezes to the centre, bars split and reveal the wordmark, product name in the accent | `line`, `name`, `product` |
+
+Helper on `fx`: `squeeze(tl, el, t0, t1)` (clip from both sides with two dots riding the edges).
+Rules: see `research/analysis/agent-launch.md`.
