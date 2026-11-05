@@ -1,0 +1,297 @@
+{
+  "style": "launch",
+  "created": "2026-11-05T17:26:29.535Z",
+  "hyperframes": "0.9.15",
+  "axes": {
+    "shotMedian": {
+      "p25": 2.375,
+      "median": 2.73,
+      "p75": 3.545,
+      "min": 1.78,
+      "max": 3.7,
+      "n": 5
+    },
+    "shotP90": {
+      "p25": 4.81,
+      "median": 6.639,
+      "p75": 7.538,
+      "min": 3.666,
+      "max": 10.422,
+      "n": 5
+    },
+    "shotCV": {
+      "p25": 0.601,
+      "median": 0.669,
+      "p75": 0.809,
+      "min": 0.558,
+      "max": 0.829,
+      "n": 5
+    },
+    "cutsPer10s": {
+      "p25": 1.996,
+      "median": 2.332,
+      "p75": 2.976,
+      "min": 1.64,
+      "max": 4.864,
+      "n": 5
+    },
+    "onGrid": {
+      "p25": 0,
+      "median": 0,
+      "p75": 0,
+      "min": 0,
+      "max": 0,
+      "n": 5
+    },
+    "flashesPerMin": {
+      "p25": 0,
+      "median": 0,
+      "p75": 0.998,
+      "min": 0,
+      "max": 1.883,
+      "n": 5
+    },
+    "eventsPerSec": {
+      "p25": 0.415,
+      "median": 0.595,
+      "p75": 0.765,
+      "min": 0.399,
+      "max": 0.784,
+      "n": 5
+    },
+    "holdShare": {
+      "p25": 0.277,
+      "median": 0.385,
+      "p75": 0.587,
+      "min": 0.241,
+      "max": 0.686,
+      "n": 5
+    },
+    "longestHold": {
+      "p25": 1.6,
+      "median": 3.17,
+      "p75": 7.44,
+      "min": 1.5,
+      "max": 8.4,
+      "n": 5
+    },
+    "polarityFlips": {
+      "p25": 0,
+      "median": 0,
+      "p75": 0.065,
+      "min": 0,
+      "max": 0.167,
+      "n": 5
+    },
+    "darkShare": {
+      "p25": 0.769,
+      "median": 0.844,
+      "p75": 0.917,
+      "min": 0.75,
+      "max": 1,
+      "n": 5
+    },
+    "luma": {
+      "p25": 23.9,
+      "median": 25.1,
+      "p75": 29.9,
+      "min": 20.4,
+      "max": 40.6,
+      "n": 5
+    },
+    "contrast": {
+      "p25": 28.6,
+      "median": 31.5,
+      "p75": 38.8,
+      "min": 27.4,
+      "max": 42,
+      "n": 5
+    },
+    "saturation": {
+      "p25": 0.07,
+      "median": 0.162,
+      "p75": 0.281,
+      "min": 0.011,
+      "max": 0.624,
+      "n": 5
+    },
+    "cutsOnBeat": {
+      "p25": 0.042,
+      "median": 0.083,
+      "p75": 0.155,
+      "min": 0,
+      "max": 0.226,
+      "n": 3
+    },
+    "cutsOnOnset": {
+      "p25": 0.083,
+      "median": 0.226,
+      "p75": 0.333,
+      "min": 0,
+      "max": 0.364,
+      "n": 5
+    }
+  },
+  "edited": 5,
+  "shotLengths": {
+    "p10": 1.03,
+    "p25": 1.31,
+    "median": 2.13,
+    "p75": 3.72,
+    "p90": 5.1,
+    "n": 71
+  },
+  "metronome": null,
+  "films": [
+    {
+      "source": "01-@Framer-6xJWQRVl9nw.mp4",
+      "metrics": {
+        "duration": 36.966,
+        "fps": 24,
+        "shots": 12,
+        "shotMedian": 2.375,
+        "shotP10": 0.756,
+        "shotP90": 4.81,
+        "shotCV": 0.809,
+        "cutsPer10s": 2.976,
+        "metronome": null,
+        "onGrid": 0,
+        "flashesPerMin": 0,
+        "eventsPerSec": 0.595,
+        "holdShare": 0.385,
+        "longestHold": 3.17,
+        "polarityFlips": 0,
+        "darkShare": 0.917,
+        "luma": 20.4,
+        "contrast": 31.5,
+        "saturation": 0.162,
+        "bwShare": 0.31,
+        "warmth": 0.9,
+        "bpm": 103.4,
+        "beatConfidence": 0.217,
+        "cutsOnBeat": null,
+        "cutsOnOnset": 0.364
+      }
+    },
+    {
+      "source": "03-@Framer-Hm0A2O30gWY.mp4",
+      "metrics": {
+        "duration": 60.116,
+        "fps": 29.97,
+        "shots": 13,
+        "shotMedian": 3.7,
+        "shotP10": 1.694,
+        "shotP90": 10.422,
+        "shotCV": 0.829,
+        "cutsPer10s": 1.996,
+        "metronome": null,
+        "onGrid": 0,
+        "flashesPerMin": 0.998,
+        "eventsPerSec": 0.399,
+        "holdShare": 0.587,
+        "longestHold": 7.44,
+        "polarityFlips": 0.167,
+        "darkShare": 0.769,
+        "luma": 25.1,
+        "contrast": 38.8,
+        "saturation": 0.07,
+        "bwShare": 0.41,
+        "warmth": -1.7,
+        "bpm": 99.7,
+        "beatConfidence": 0.409,
+        "cutsOnBeat": 0.083,
+        "cutsOnOnset": 0.083
+      }
+    },
+    {
+      "source": "04-@raycastapp-Mi173xGb0ZA.mp4",
+      "metrics": {
+        "duration": 38.592,
+        "fps": 30,
+        "shots": 10,
+        "shotMedian": 2.73,
+        "shotP10": 1.946,
+        "shotP90": 6.639,
+        "shotCV": 0.669,
+        "cutsPer10s": 2.332,
+        "metronome": null,
+        "onGrid": 0,
+        "flashesPerMin": 0,
+        "eventsPerSec": 0.415,
+        "holdShare": 0.686,
+        "longestHold": 8.4,
+        "polarityFlips": 0,
+        "darkShare": 1,
+        "luma": 23.9,
+        "contrast": 27.4,
+        "saturation": 0.011,
+        "bwShare": 0.82,
+        "warmth": 0.6,
+        "bpm": null,
+        "beatConfidence": 0.078,
+        "cutsOnBeat": null,
+        "cutsOnOnset": 0
+      }
+    },
+    {
+      "source": "06-@addxstudio-9FlQZyVzINo.mp4",
+      "metrics": {
+        "duration": 63.739,
+        "fps": 30,
+        "shots": 32,
+        "shotMedian": 1.78,
+        "shotP10": 1.003,
+        "shotP90": 3.666,
+        "shotCV": 0.558,
+        "cutsPer10s": 4.864,
+        "metronome": null,
+        "onGrid": 0,
+        "flashesPerMin": 1.883,
+        "eventsPerSec": 0.784,
+        "holdShare": 0.241,
+        "longestHold": 1.6,
+        "polarityFlips": 0.065,
+        "darkShare": 0.844,
+        "luma": 40.6,
+        "contrast": 42,
+        "saturation": 0.281,
+        "bwShare": 0.03,
+        "warmth": -19.5,
+        "bpm": 119.9,
+        "beatConfidence": 0.591,
+        "cutsOnBeat": 0.226,
+        "cutsOnOnset": 0.226
+      }
+    },
+    {
+      "source": "14-relate_studio-2041863865567244288.mp4",
+      "metrics": {
+        "duration": 18.297,
+        "fps": 30,
+        "shots": 4,
+        "shotMedian": 3.545,
+        "shotP10": 2.429,
+        "shotP90": 7.538,
+        "shotCV": 0.601,
+        "cutsPer10s": 1.64,
+        "metronome": null,
+        "onGrid": 0,
+        "flashesPerMin": 0,
+        "eventsPerSec": 0.765,
+        "holdShare": 0.277,
+        "longestHold": 1.5,
+        "polarityFlips": 0,
+        "darkShare": 0.75,
+        "luma": 29.9,
+        "contrast": 28.6,
+        "saturation": 0.624,
+        "bwShare": 0.06,
+        "warmth": -20.3,
+        "bpm": 102.2,
+        "beatConfidence": 0.454,
+        "cutsOnBeat": 0,
+        "cutsOnOnset": 0.333
+      }
+    }
+  ]
+}

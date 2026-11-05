@@ -1,39 +1,39 @@
 {
   "style": "relate",
-  "created": "2026-11-05T12:23:13.494Z",
+  "created": "2026-11-05T17:26:29.569Z",
   "hyperframes": "0.9.15",
   "axes": {
     "shotMedian": {
-      "p25": 0.885,
+      "p25": 0.948,
       "median": 1.26,
-      "p75": 2.218,
+      "p75": 2.652,
       "min": 0.37,
       "max": 4.85,
-      "n": 16
+      "n": 18
     },
     "shotP90": {
-      "p25": 1.977,
-      "median": 4.915,
-      "p75": 6.385,
+      "p25": 2.207,
+      "median": 5.551,
+      "p75": 6.782,
       "min": 0.77,
       "max": 8.431,
-      "n": 16
+      "n": 18
     },
     "shotCV": {
-      "p25": 0.436,
+      "p25": 0.443,
       "median": 0.712,
-      "p75": 1.187,
+      "p75": 1.191,
       "min": 0.039,
       "max": 1.737,
-      "n": 16
+      "n": 18
     },
     "cutsPer10s": {
-      "p25": 2.943,
-      "median": 4.105,
-      "p75": 7.164,
-      "min": 1.859,
+      "p25": 2.83,
+      "median": 4.041,
+      "p75": 6.487,
+      "min": 1.64,
       "max": 12.314,
-      "n": 16
+      "n": 18
     },
     "onGrid": {
       "p25": 0,
@@ -41,7 +41,7 @@
       "p75": 0,
       "min": 0,
       "max": 0.909,
-      "n": 16
+      "n": 18
     },
     "flashesPerMin": {
       "p25": 0,
@@ -49,103 +49,193 @@
       "p75": 0,
       "min": 0,
       "max": 9.91,
-      "n": 26
+      "n": 29
     },
     "eventsPerSec": {
-      "p25": 0.42,
-      "median": 0.712,
-      "p75": 1.177,
+      "p25": 0.457,
+      "median": 0.7,
+      "p75": 1.09,
       "min": 0,
       "max": 1.75,
-      "n": 26
+      "n": 29
     },
     "holdShare": {
-      "p25": 0.096,
-      "median": 0.237,
-      "p75": 0.473,
+      "p25": 0.111,
+      "median": 0.277,
+      "p75": 0.479,
       "min": 0,
       "max": 1,
-      "n": 26
+      "n": 29
     },
     "longestHold": {
-      "p25": 0.74,
-      "median": 1.84,
-      "p75": 2.885,
+      "p25": 0.77,
+      "median": 1.93,
+      "p75": 3.1,
       "min": 0,
       "max": 7.6,
-      "n": 26
+      "n": 29
     },
     "polarityFlips": {
       "p25": 0,
       "median": 0.257,
-      "p75": 0.362,
+      "p75": 0.395,
       "min": 0,
       "max": 0.5,
-      "n": 16
+      "n": 18
     },
     "darkShare": {
       "p25": 0,
-      "median": 0.183,
-      "p75": 0.293,
+      "median": 0.211,
+      "p75": 0.308,
       "min": 0,
       "max": 0.875,
-      "n": 16
+      "n": 18
     },
     "luma": {
-      "p25": 103.475,
-      "median": 149.7,
-      "p75": 180.45,
+      "p25": 102.3,
+      "median": 152.3,
+      "p75": 182.7,
       "min": 23.2,
-      "max": 215.5,
-      "n": 26
+      "max": 239,
+      "n": 29
     },
     "contrast": {
-      "p25": 43.1,
-      "median": 56,
-      "p75": 67.875,
+      "p25": 40.4,
+      "median": 55.2,
+      "p75": 66,
       "min": 24.3,
       "max": 105.3,
-      "n": 26
+      "n": 29
     },
     "saturation": {
-      "p25": 0.124,
-      "median": 0.231,
-      "p75": 0.444,
+      "p25": 0.119,
+      "median": 0.238,
+      "p75": 0.452,
       "min": 0,
       "max": 0.726,
-      "n": 26
+      "n": 29
     },
     "cutsOnBeat": {
-      "p25": 0.132,
-      "median": 0.278,
-      "p75": 0.384,
+      "p25": 0.044,
+      "median": 0.199,
+      "p75": 0.343,
       "min": 0,
       "max": 0.692,
-      "n": 8
+      "n": 10
     },
     "cutsOnOnset": {
       "p25": 0,
-      "median": 0.143,
-      "p75": 0.407,
+      "median": 0.194,
+      "p75": 0.383,
       "min": 0,
       "max": 0.808,
-      "n": 16
+      "n": 18
     }
   },
-  "edited": 16,
+  "edited": 18,
   "shotLengths": {
-    "p10": 0.122,
+    "p10": 0.13,
     "p25": 0.58,
     "median": 1,
-    "p75": 2.13,
-    "p90": 5.632,
-    "n": 193
+    "p75": 2.275,
+    "p90": 5.67,
+    "n": 215
   },
   "metronome": {
     "median": 0.733,
     "films": 3
   },
   "films": [
+    {
+      "source": "13-relate_studio-2104546001872719872.mp4",
+      "metrics": {
+        "duration": 42.091,
+        "fps": 30,
+        "shots": 18,
+        "shotMedian": 1.185,
+        "shotP10": 0.13,
+        "shotP90": 5.565,
+        "shotCV": 1.495,
+        "cutsPer10s": 4.039,
+        "metronome": null,
+        "onGrid": 0,
+        "flashesPerMin": 0,
+        "eventsPerSec": 0.641,
+        "holdShare": 0.29,
+        "longestHold": 5.47,
+        "polarityFlips": 0.412,
+        "darkShare": 0.278,
+        "luma": 162.2,
+        "contrast": 40.1,
+        "saturation": 0.238,
+        "bwShare": 0.14,
+        "warmth": -5.9,
+        "bpm": 111,
+        "beatConfidence": 0.444,
+        "cutsOnBeat": 0.176,
+        "cutsOnOnset": 0.294
+      }
+    },
+    {
+      "source": "14-relate_studio-2041863865567244288.mp4",
+      "metrics": {
+        "duration": 18.297,
+        "fps": 30,
+        "shots": 4,
+        "shotMedian": 3.545,
+        "shotP10": 2.429,
+        "shotP90": 7.538,
+        "shotCV": 0.601,
+        "cutsPer10s": 1.64,
+        "metronome": null,
+        "onGrid": 0,
+        "flashesPerMin": 0,
+        "eventsPerSec": 0.765,
+        "holdShare": 0.277,
+        "longestHold": 1.5,
+        "polarityFlips": 0,
+        "darkShare": 0.75,
+        "luma": 29.9,
+        "contrast": 28.6,
+        "saturation": 0.624,
+        "bwShare": 0.06,
+        "warmth": -20.3,
+        "bpm": 102.2,
+        "beatConfidence": 0.454,
+        "cutsOnBeat": 0,
+        "cutsOnOnset": 0.333
+      }
+    },
+    {
+      "source": "15-relate_studio-2005645379539283968.mp4",
+      "metrics": {
+        "duration": 37.077,
+        "fps": 60,
+        "shots": 1,
+        "shotMedian": 37.08,
+        "shotP10": 37.08,
+        "shotP90": 37.08,
+        "shotCV": 0,
+        "cutsPer10s": 0,
+        "metronome": null,
+        "onGrid": 0,
+        "flashesPerMin": 1.618,
+        "eventsPerSec": 0.674,
+        "holdShare": 0.479,
+        "longestHold": 3.83,
+        "polarityFlips": 0,
+        "darkShare": 0,
+        "luma": 239,
+        "contrast": 31.9,
+        "saturation": 0.024,
+        "bwShare": 0.72,
+        "warmth": 1,
+        "bpm": 92,
+        "beatConfidence": 0.349,
+        "cutsOnBeat": null,
+        "cutsOnOnset": null
+      }
+    },
     {
       "source": "193.mp4",
       "metrics": {
