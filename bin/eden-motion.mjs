@@ -7,6 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { log, slugify, writeJSON, readJSON, run } from "../src/lib/util.mjs";
 import { loadEnv, REPO } from "../src/lib/env.mjs";
+import { HF } from "../src/lib/hf.mjs";
 
 // Node's fetch races IPv6 and IPv4 with a 250 ms budget per address; on a slow or flaky network
 // every attempt times out ("fetch failed", ETIMEDOUT after ~2 s) where curl simply waits. Connect
@@ -189,7 +190,7 @@ async function step(name, dir, args) {
       break;
     case "preview": {
       const comp = await (await import("../src/steps/build.mjs")).build(dir, { slow: 1 });
-      run("npx", ["-y", "hyperframes@0.8.72", "preview", "--background"], { cwd: comp, stdio: "inherit" });
+      run("npx", [...HF, "preview", "--background"], { cwd: comp, stdio: "inherit" });
       break;
     }
     default:

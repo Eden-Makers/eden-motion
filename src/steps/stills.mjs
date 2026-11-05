@@ -6,6 +6,7 @@ import path from "node:path";
 import { build } from "./build.mjs";
 import { generateJSON, inlineImage, MODELS } from "../lib/gemini.mjs";
 import { log, run, readJSON, writeJSON } from "../lib/util.mjs";
+import { HF } from "../lib/hf.mjs";
 
 export async function stills(projectDir, { storyboardFile = "storyboard.json", review = true, tag = "" } = {}) {
   const sbPath = path.join(projectDir, storyboardFile);
@@ -21,7 +22,7 @@ export async function stills(projectDir, { storyboardFile = "storyboard.json", r
   });
   const snapDir = path.join(comp, "snapshots");
   fs.rmSync(snapDir, { recursive: true, force: true });
-  run("npx", ["-y", "hyperframes@0.8.72", "snapshot", "--at", times.join(",")], { cwd: comp });
+  run("npx", [...HF, "snapshot", "--at", times.join(",")], { cwd: comp });
   const out = path.join(projectDir, "renders", "stills" + (tag ? "-" + tag : ""));
   fs.rmSync(out, { recursive: true, force: true });
   fs.mkdirSync(out, { recursive: true });

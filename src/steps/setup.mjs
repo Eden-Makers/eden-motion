@@ -9,6 +9,7 @@ import path from "node:path";
 import readline from "node:readline";
 import { REPO, loadEnv } from "../lib/env.mjs";
 import { run, log, warn } from "../lib/util.mjs";
+import { HF } from "../lib/hf.mjs";
 
 const which = (t) => run("which", [t], { allowFail: true }).status === 0;
 const ver = (cmd, args, re) => {
@@ -152,7 +153,7 @@ export async function smokeTest() {
   const comp = await build(dir, { slow: 1, out: "comp" });
   const snap = path.join(comp, "snapshots");
   fs.rmSync(snap, { recursive: true, force: true });
-  const r = run("npx", ["-y", "hyperframes@0.8.72", "snapshot", "--at", "1.2,3.6"], { cwd: comp, allowFail: true });
+  const r = run("npx", [...HF, "snapshot", "--at", "1.2,3.6"], { cwd: comp, allowFail: true });
   const pngs = fs.existsSync(snap) ? fs.readdirSync(snap).filter((f) => f.endsWith(".png")) : [];
   if (r.status !== 0 || pngs.length < 2) throw new Error("snapshot failed: " + String(r.stderr || "").slice(-300));
   return path.join(snap, pngs.sort()[pngs.length - 1]);
