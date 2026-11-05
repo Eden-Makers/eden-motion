@@ -77,3 +77,15 @@ Helpers in `runtime/scenes/reply.js` for custom scenes: `fx.hotWord`, `fx.humanT
 `axes {x,y}` + `corners` for quadrant, `hub` for flywheel, `actors` for sequence. Strokes draw on,
 labels focus-pull in, one accent on the focus item, slow sine.out push. Taxonomy and taste from
 cathrynlavery/diagram-design (MIT).
+
+## Editorial launch pack (measured from an image-model launch film)
+
+| scene | use | props |
+|---|---|---|
+| `label-flash` | cold open: one category word per image, 0.4-0.6 s each, corner marks enter as dashes | `items: [{label, src}]`, `size` |
+| `scatter-line` | a sentence scattered over a grid with image tiles, collapses into one line, optional scramble into the title | `text`, `tiles`, `then`, `size` |
+| `type-behind` | giant word rising from below, product cut-out in front of the type | `src`, `front`, `word`, `size`, `color` |
+| `frame-grow` | selected image frame widens while the word under it opens its tracking | `src`, `word`, `ghost`, `anchor` |
+
+Helpers on `fx`: `cornerMarks(parent)` (place / hide, dash entry) and `scramble(tl, el, from, to, t, rng)`.
+Rules: see `research/analysis/editorial-launch.md`.
