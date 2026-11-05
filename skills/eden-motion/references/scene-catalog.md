@@ -48,6 +48,16 @@ Every scene type the engine ships, with props (as given to the storyboard model)
 | `pixel-dissolve` | Higgsfield: next shot revealed through a grid of pixel blocks in accent/lime. duration 0.5. |
 | `grid-reflow` | Higgsfield: cells slide along grid lines into the next layout. duration 0.55. |
 
+## Launch type pack (research/analysis/launch-type.md)
+| type | props / use |
+|---|---|
+| `type-reply` | { line, reply, size?: px, dots?: true } statement already there, answer typed in muted grey with an accent caret at a human rhythm (0.045-0.11 s a char), caret blinks 3 times, block eases to 0.97 into the cut. Claim + payoff, 3-4 times a film. |
+| `slot-line` | { text: "Apps {card} and {pill} agents", cards: [{title, sub?}], pills: [{label}], dots?: true } words land in the accent and cool to their role colour (connectors grey), the line opens, a card and a pill roll through real examples every ~0.13 s. |
+| `word-swap` | { stem, words: [2-4] } left-anchored line, last word typed, deleted, retyped. One promise, several objects. |
+| `status-roll` | { lines: [6-14], side?: {title, items} } agent working log, a line every ~0.08 s, newest dark, list scrolls; optional panel of what was read. |
+
+Helpers in `runtime/scenes/reply.js` for custom scenes: `fx.hotWord`, `fx.humanType`, `fx.blinkOut`, `fx.sweep` (accent band across a line), `fx.dotLattice` (22 px dot ground).
+
 ## Relate pack (`--style relate`, research/analysis/relate.md)
 | type | props / use |
 |---|---|
