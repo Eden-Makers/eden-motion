@@ -7,6 +7,10 @@
  * inline-orb: a sentence with a grained gradient orb sitting in the gap between two halves
  *   ("Improve (orb) your agents"); the orb breathes, then the halves close over it.
  *   props: { left: "Improve", right: "your agents", colors?: [c1, c2, c3], size?: px }
+ * squeeze-tile: the intro chain. Two pause bars grow, split into two dots that ride out while a short line
+ *   opens from its centre; the line squeezes back into a square, the square becomes a tile whose gradient
+ *   changes every ~0.27 s with tiny caps status labels around it, then the tile grows to fill the frame.
+ *   props: { line: "Your agents", labels: ["ANALYZING CALLS", ...] (4-10), tiles?: [[c1,c2,c3]] }
  * split-lockup: a line squeezes into the centre from both sides with two dots riding the edges, becomes two
  *   bars, the bars split and reveal the wordmark from the centre, the lockup slides left and the product name
  *   arrives in the accent.  props: { line?: "Elevate your customer experiences", name: "Brand", product?: "Agents" }
@@ -127,6 +131,71 @@
         tl.to(wm, { x: -(nmW + prW) / 2, duration: 0.4, ease: "power3.inOut" }, t + 1.1);
         tl.to(wm, { clipPath: "inset(0 0px 0 0px)", duration: 0.7, ease: "power2.out" }, t + 1.2);
       }
+    },
+  });
+
+  EM.scene("squeeze-tile", {
+    ownsCamera: true,
+    build(ctx) {
+      const p = ctx.props, { tl, start, end, dur, rng } = ctx;
+      const ink = fx.cssVar(ctx.cam, "--fg") || "#141414";
+      const box = h("div", { style: "position:absolute;inset:0;overflow:hidden" });
+      ctx.cam.appendChild(box);
+      const k = Math.min(1, dur / 4.5); // measured on a 4.5 s intro, scaled to the slot
+      const T = (s) => start + s * k;
+      // pause bars
+      const bars = [-1, 1].map((sd) => { const b = h("div", { style: `position:absolute;left:50%;top:50%;width:20px;height:44px;margin:-22px 0 0 -10px;border-radius:2px;background:${ink}` }); box.appendChild(b); gsap.set(b, { x: sd * 18, autoAlpha: 0 }); return b; });
+      bars.forEach((b, i) => {
+        const sd = i ? 1 : -1;
+        tl.set(b, { autoAlpha: 1 }, T(0.1));
+        tl.to(b, { height: 71, marginTop: -35, width: 16, marginLeft: -8, duration: 0.2 * k, ease: "power2.out" }, T(0.1));
+        tl.to(b, { width: 13, height: 57, marginTop: -28, duration: 0.6 * k, ease: "sine.inOut" }, T(0.3));
+        tl.to(b, { x: sd * 60, duration: 0.2 * k, ease: "power2.in" }, T(0.8));
+        // become dots riding out to the frame edges
+        tl.to(b, { x: sd * 700, width: 12, height: 13, marginTop: -6, marginLeft: -6, duration: 0.6 * k, ease: "expo.out" }, T(1.0));
+        tl.to(b, { x: sd * 30, duration: 0.25 * k, ease: "power3.in" }, T(1.78));
+        tl.set(b, { autoAlpha: 0 }, T(2.03));
+      });
+      const ln = h("div", { style: `position:absolute;left:50%;top:50%;font:500 50px var(--font-display);color:${ink};letter-spacing:-0.02em;white-space:nowrap` }, p.line || "Your models");
+      box.appendChild(ln);
+      gsap.set(ln, { xPercent: -50, yPercent: -50, autoAlpha: 0, clipPath: "inset(0 50% 0 50%)" });
+      tl.set(ln, { autoAlpha: 1 }, T(1.0));
+      tl.to(ln, { clipPath: "inset(0 0% 0 0%)", duration: 0.14 * k, ease: "power2.out" }, T(1.0));
+      tl.to(ln, { clipPath: "inset(0 50% 0 50%)", duration: 0.25 * k, ease: "power2.in" }, T(1.78));
+      tl.set(ln, { autoAlpha: 0 }, T(2.03));
+      // the square seeds the tile
+      const PAL = p.tiles && p.tiles.length ? p.tiles : [["#9db4d6", "#2b3a7c", "#c7d3e6"], ["#e7b6d0", "#8a1a52", "#f0d9e5"], ["#ead9b5", "#c79a55", "#f4ead8"], ["#bcd3dd", "#7f9fb8", "#e6eef2"], ["#4d6fb0", "#18264f", "#9fb3d8"]];
+      const tile = h("div", { style: `position:absolute;left:50%;top:50%;width:320px;height:300px;margin:-150px 0 0 -160px;overflow:hidden;background:${ink}` });
+      const tbg = h("div", { style: "position:absolute;inset:-20%;filter:blur(18px)" });
+      tile.appendChild(tbg); tile.appendChild(grain());
+      box.appendChild(tile);
+      gsap.set(tile, { scale: 0.06, autoAlpha: 0 });
+      tl.set(tile, { autoAlpha: 1 }, T(1.97));
+      tl.to(tile, { scale: 0.24, duration: 0.1 * k, ease: "power2.in" }, T(1.97));
+      tl.to(tile, { scale: 1, duration: 0.12 * k, ease: "power2.out" }, T(2.07));
+      const t0 = T(2.2), t1 = end - 0.45;
+      const step = 0.27;
+      let n = 0;
+      for (let t = t0; t < end; t += step) tl.set(tbg, { background: mesh(PAL[n++ % PAL.length]) }, t);
+      tl.set(tbg, { background: mesh(PAL[0]) }, T(1.97));
+      // tile grows in steps (measured 320 -> 388 -> 424 -> 458 -> 528 -> 564 px), then fills the frame
+      [1.21, 1.32, 1.43, 1.65, 1.76].forEach((sc, i) => tl.to(tile, { scale: sc, duration: 0.08, ease: "power2.out" }, t0 + (i + 1) * ((t1 - t0) / 6)));
+      tl.to(tile, { scale: 6.4, duration: 0.42, ease: "power3.in" }, t1);
+      // tiny caps status labels around the tile
+      const labels = (p.labels || []).slice(0, 10);
+      const slots = [[260, 322], [1395, 223], [1395, 360], [260, 498], [1395, 525], [1395, 632], [260, 699], [1395, 902], [260, 860], [1395, 780]];
+      labels.forEach((txt, i) => {
+        const [x, y] = slots[i];
+        const el = h("div", { style: `position:absolute;left:${x}px;top:${y}px;display:flex;gap:10px;align-items:center;font:500 13px var(--font-body);letter-spacing:0.12em;text-transform:uppercase;color:${ink};opacity:.75;white-space:nowrap` });
+        el.appendChild(h("span", { style: `width:6px;height:12px;background:${ink};display:inline-block` }));
+        el.appendChild(h("span", {}, txt));
+        box.appendChild(el);
+        gsap.set(el, { autoAlpha: 0 });
+        const ta = t0 + 0.05 + i * 0.07 + rng() * 0.05;
+        tl.set(el, { autoAlpha: 1 }, ta);
+        tl.fromTo(el, { y: 6 }, { y: -10 - rng() * 20, duration: t1 - ta, ease: "none", immediateRender: false }, ta);
+        tl.set(el, { autoAlpha: 0 }, t1 + 0.1);
+      });
     },
   });
 })();
