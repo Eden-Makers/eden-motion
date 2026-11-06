@@ -1,0 +1,327 @@
+{
+  "style": "burnwe",
+  "created": "2026-11-05T17:26:29.505Z",
+  "hyperframes": "0.9.15",
+  "axes": {
+    "shotMedian": {
+      "p25": 1.894,
+      "median": 2.15,
+      "p75": 2.38,
+      "min": 1.23,
+      "max": 2.52,
+      "n": 6
+    },
+    "shotP90": {
+      "p25": 5.457,
+      "median": 5.636,
+      "p75": 6.461,
+      "min": 4.726,
+      "max": 7.834,
+      "n": 6
+    },
+    "shotCV": {
+      "p25": 0.777,
+      "median": 0.798,
+      "p75": 0.817,
+      "min": 0.728,
+      "max": 1.451,
+      "n": 6
+    },
+    "cutsPer10s": {
+      "p25": 3.098,
+      "median": 3.265,
+      "p75": 3.41,
+      "min": 2.141,
+      "max": 3.939,
+      "n": 6
+    },
+    "onGrid": {
+      "p25": 0,
+      "median": 0,
+      "p75": 0,
+      "min": 0,
+      "max": 0,
+      "n": 6
+    },
+    "flashesPerMin": {
+      "p25": 0,
+      "median": 0,
+      "p75": 0,
+      "min": 0,
+      "max": 2.303,
+      "n": 6
+    },
+    "eventsPerSec": {
+      "p25": 0.654,
+      "median": 0.747,
+      "p75": 0.905,
+      "min": 0.553,
+      "max": 1.021,
+      "n": 6
+    },
+    "holdShare": {
+      "p25": 0.342,
+      "median": 0.411,
+      "p75": 0.472,
+      "min": 0.241,
+      "max": 0.594,
+      "n": 6
+    },
+    "longestHold": {
+      "p25": 2.24,
+      "median": 3.175,
+      "p75": 4.86,
+      "min": 2.2,
+      "max": 6.67,
+      "n": 6
+    },
+    "polarityFlips": {
+      "p25": 0.125,
+      "median": 0.195,
+      "p75": 0.333,
+      "min": 0,
+      "max": 0.5,
+      "n": 6
+    },
+    "darkShare": {
+      "p25": 0.057,
+      "median": 0.074,
+      "p75": 0.084,
+      "min": 0,
+      "max": 0.421,
+      "n": 6
+    },
+    "luma": {
+      "p25": 173.6,
+      "median": 183.4,
+      "p75": 199.05,
+      "min": 158,
+      "max": 223.5,
+      "n": 6
+    },
+    "contrast": {
+      "p25": 30.325,
+      "median": 32.55,
+      "p75": 34.175,
+      "min": 28,
+      "max": 40.4,
+      "n": 6
+    },
+    "saturation": {
+      "p25": 0.088,
+      "median": 0.103,
+      "p75": 0.11,
+      "min": 0.054,
+      "max": 0.137,
+      "n": 6
+    },
+    "cutsOnBeat": {
+      "p25": 0.278,
+      "median": 0.278,
+      "p75": 0.278,
+      "min": 0.278,
+      "max": 0.278,
+      "n": 1
+    },
+    "cutsOnOnset": {
+      "p25": 0.231,
+      "median": 0.269,
+      "p75": 0.403,
+      "min": 0.182,
+      "max": 0.5,
+      "n": 6
+    }
+  },
+  "edited": 6,
+  "shotLengths": {
+    "p10": 0.67,
+    "p25": 1.23,
+    "median": 2.1,
+    "p75": 3.67,
+    "p90": 7.12,
+    "n": 121
+  },
+  "metronome": null,
+  "films": [
+    {
+      "source": "02-@Framer-bv936eeoxmQ.mp4",
+      "metrics": {
+        "duration": 59.095,
+        "fps": 30,
+        "shots": 19,
+        "shotMedian": 2.23,
+        "shotP10": 0.998,
+        "shotP90": 6.714,
+        "shotCV": 0.775,
+        "cutsPer10s": 3.046,
+        "metronome": null,
+        "onGrid": 0,
+        "flashesPerMin": 0,
+        "eventsPerSec": 0.643,
+        "holdShare": 0.432,
+        "longestHold": 6.67,
+        "polarityFlips": 0.111,
+        "darkShare": 0.053,
+        "luma": 158,
+        "contrast": 40.4,
+        "saturation": 0.106,
+        "bwShare": 0.2,
+        "warmth": 5.2,
+        "bpm": 129.1,
+        "beatConfidence": 0.236,
+        "cutsOnBeat": null,
+        "cutsOnOnset": 0.278
+      }
+    },
+    {
+      "source": "05-@Burnwe-PBp7_1J2iH8.mp4",
+      "metrics": {
+        "duration": 56.053,
+        "fps": 25,
+        "shots": 13,
+        "shotMedian": 2.52,
+        "shotP10": 1.64,
+        "shotP90": 7.834,
+        "shotCV": 0.728,
+        "cutsPer10s": 2.141,
+        "metronome": null,
+        "onGrid": 0,
+        "flashesPerMin": 0,
+        "eventsPerSec": 0.553,
+        "holdShare": 0.325,
+        "longestHold": 5.12,
+        "polarityFlips": 0.167,
+        "darkShare": 0.077,
+        "luma": 202.6,
+        "contrast": 29.6,
+        "saturation": 0.137,
+        "bwShare": 0.14,
+        "warmth": 29.3,
+        "bpm": null,
+        "beatConfidence": 0.128,
+        "cutsOnBeat": null,
+        "cutsOnOnset": 0.5
+      }
+    },
+    {
+      "source": "07-ElevenLabs-2107500551735037953.mp4",
+      "metrics": {
+        "duration": 67.2,
+        "fps": 60,
+        "shots": 23,
+        "shotMedian": 2.43,
+        "shotP10": 0.67,
+        "shotP90": 4.726,
+        "shotCV": 0.817,
+        "cutsPer10s": 3.274,
+        "metronome": null,
+        "onGrid": 0,
+        "flashesPerMin": 0,
+        "eventsPerSec": 0.938,
+        "holdShare": 0.594,
+        "longestHold": 4.08,
+        "polarityFlips": 0.5,
+        "darkShare": 0.087,
+        "luma": 188.4,
+        "contrast": 34.7,
+        "saturation": 0.111,
+        "bwShare": 0.31,
+        "warmth": 3.3,
+        "bpm": null,
+        "beatConfidence": 0.034,
+        "cutsOnBeat": null,
+        "cutsOnOnset": 0.182
+      }
+    },
+    {
+      "source": "08-abdullah4204k-2111150441853755392.mp4",
+      "metrics": {
+        "duration": 52.096,
+        "fps": 30,
+        "shots": 19,
+        "shotMedian": 1.23,
+        "shotP10": 0.224,
+        "shotP90": 5.702,
+        "shotCV": 1.451,
+        "cutsPer10s": 3.455,
+        "metronome": null,
+        "onGrid": 0,
+        "flashesPerMin": 2.303,
+        "eventsPerSec": 0.806,
+        "holdShare": 0.241,
+        "longestHold": 2.23,
+        "polarityFlips": 0.222,
+        "darkShare": 0.421,
+        "luma": 172,
+        "contrast": 32.5,
+        "saturation": 0.084,
+        "bwShare": 0.1,
+        "warmth": -2.5,
+        "bpm": null,
+        "beatConfidence": 0.149,
+        "cutsOnBeat": null,
+        "cutsOnOnset": 0.444
+      }
+    },
+    {
+      "source": "10-ZaroAI_-2070084717743902720.mp4",
+      "metrics": {
+        "duration": 68.544,
+        "fps": 30,
+        "shots": 28,
+        "shotMedian": 1.835,
+        "shotP10": 0.63,
+        "shotP90": 5.42,
+        "shotCV": 0.815,
+        "cutsPer10s": 3.939,
+        "metronome": null,
+        "onGrid": 0,
+        "flashesPerMin": 0,
+        "eventsPerSec": 1.021,
+        "holdShare": 0.391,
+        "longestHold": 2.2,
+        "polarityFlips": 0.37,
+        "darkShare": 0.071,
+        "luma": 178.4,
+        "contrast": 28,
+        "saturation": 0.099,
+        "bwShare": 0.54,
+        "warmth": 6.8,
+        "bpm": 130.5,
+        "beatConfidence": 0.27,
+        "cutsOnBeat": null,
+        "cutsOnOnset": 0.259
+      }
+    },
+    {
+      "source": "12-abdullah4204k-2043546050464792576.mp4",
+      "metrics": {
+        "duration": 55.287,
+        "fps": 30,
+        "shots": 19,
+        "shotMedian": 2.07,
+        "shotP10": 1.266,
+        "shotP90": 5.57,
+        "shotCV": 0.782,
+        "cutsPer10s": 3.256,
+        "metronome": null,
+        "onGrid": 0,
+        "flashesPerMin": 0,
+        "eventsPerSec": 0.687,
+        "holdShare": 0.486,
+        "longestHold": 2.27,
+        "polarityFlips": 0,
+        "darkShare": 0,
+        "luma": 223.5,
+        "contrast": 32.6,
+        "saturation": 0.054,
+        "bwShare": 0.13,
+        "warmth": -0.6,
+        "bpm": 111.9,
+        "beatConfidence": 0.339,
+        "cutsOnBeat": 0.278,
+        "cutsOnOnset": 0.222
+      }
+    }
+  ]
+}

@@ -242,6 +242,25 @@ Read `references/relate-and-1to1.md` first. Short loop:
 6. `render`, `compare <slug> ref.mp4` (side by side + pairs + SSIM), `critique <slug> --against ref.mp4`
    (same rubric on both; within 1 point on every axis = on par). SSIM is harsh on thin detail and DOF: read pairs.jpg.
 
+## 5c. Learn a style from many films (`study`)
+One reference shows what one film did. Ten show what the style is. `study` measures every film with
+HyperFrames (cuts, events, look, beats, onsets; free, no login) and keeps the range the films agree on.
+```bash
+node bin/eden-motion.mjs study <style> refs/*.mp4             # files, a folder, a .txt list or URLs (yt-dlp)
+node bin/eden-motion.mjs study <style> --against <slug>       # score a project's render against the profile
+node bin/eden-motion.mjs study <style> --against film.mp4     # or any video
+```
+- Writes `styles/<style>/profile.json` and a readable `profile.md`: p25 / median / p75 per axis (shot
+  length and spread, cuts per 10 s, metronome grid share, events per second, holds, dark and light
+  flips, dark share, brightness, contrast, saturation, cuts on beats and onsets).
+- Edit axes count only films with at least 4 shots, so single-shot loops do not skew pacing.
+- Per-film metrics are cached in `.cache/study/<style>/`; adding films re-measures only the new ones.
+- When `styles/<brief.style>/profile.json` exists, `storyboard` plans shot lengths from it (a grid only
+  if most films cut on one), passes the numbers to the model ("the numbers win"), and `critique`
+  reports the style distance (axes inside p25-p75 = on, inside the range = near, else off). Advice, not a fail.
+- The distance is a check on caricature: a preset that does what the style does on every cut is off,
+  even when each frame looks right. Fix what is off, then look at frames; numbers do not replace eyes.
+
 ## 6. House rules
 - Stills: Nano Banana Pro (Gemini 3 Pro Image) at 2K, always end prompts with "no text, no letters, no logos". Flux is banned. Log every prompt (done automatically in `prompts.log.jsonl`).
 - Video clips (optional, for `media-frame` kind video): Seedance 2.0 or Kling 3.0 via Higgsfield/fal/Magnific with the approved still as reference, render 3 s longer than the cut, "no music" in the prompt.

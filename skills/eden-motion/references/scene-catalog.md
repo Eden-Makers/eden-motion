@@ -48,6 +48,16 @@ Every scene type the engine ships, with props (as given to the storyboard model)
 | `pixel-dissolve` | Higgsfield: next shot revealed through a grid of pixel blocks in accent/lime. duration 0.5. |
 | `grid-reflow` | Higgsfield: cells slide along grid lines into the next layout. duration 0.55. |
 
+## Launch type pack (research/analysis/launch-type.md)
+| type | props / use |
+|---|---|
+| `type-reply` | { line, reply, size?: px, dots?: true } statement already there, answer typed in muted grey with an accent caret at a human rhythm (0.045-0.11 s a char), caret blinks 3 times, block eases to 0.97 into the cut. Claim + payoff, 3-4 times a film. |
+| `slot-line` | { text: "Apps {card} and {pill} agents", cards: [{title, sub?}], pills: [{label}], dots?: true } words land in the accent and cool to their role colour (connectors grey), the line opens, a card and a pill roll through real examples every ~0.13 s. |
+| `word-swap` | { stem, words: [2-4] } left-anchored line, last word typed, deleted, retyped. One promise, several objects. |
+| `status-roll` | { lines: [6-14], side?: {title, items} } agent working log, a line every ~0.08 s, newest dark, list scrolls; optional panel of what was read. |
+
+Helpers in `runtime/scenes/reply.js` for custom scenes: `fx.hotWord`, `fx.humanType`, `fx.blinkOut`, `fx.sweep` (accent band across a line), `fx.dotLattice` (22 px dot ground).
+
 ## Relate pack (`--style relate`, research/analysis/relate.md)
 | type | props / use |
 |---|---|
@@ -67,3 +77,26 @@ Every scene type the engine ships, with props (as given to the storyboard model)
 `axes {x,y}` + `corners` for quadrant, `hub` for flywheel, `actors` for sequence. Strokes draw on,
 labels focus-pull in, one accent on the focus item, slow sine.out push. Taxonomy and taste from
 cathrynlavery/diagram-design (MIT).
+
+## Editorial launch pack (measured from an image-model launch film)
+
+| scene | use | props |
+|---|---|---|
+| `label-flash` | cold open: one category word per image, 0.4-0.6 s each, corner marks enter as dashes | `items: [{label, src}]`, `size` |
+| `scatter-line` | a sentence scattered over a grid with image tiles, collapses into one line, optional scramble into the title | `text`, `tiles`, `then`, `size` |
+| `type-behind` | giant word rising from below, product cut-out in front of the type | `src`, `front`, `word`, `size`, `color` |
+| `frame-grow` | selected image frame widens while the word under it opens its tracking | `src`, `word`, `ghost`, `anchor` |
+
+Helpers on `fx`: `cornerMarks(parent)` (place / hide, dash entry) and `scramble(tl, el, from, to, t, rng)`.
+Rules: see `research/analysis/editorial-launch.md`.
+
+## Agent launch pack (measured from a 60 fps voice-AI agent launch film)
+
+| scene | use | props |
+|---|---|---|
+| `tool-swap` | integrations: static line, tool name and mesh gradient hard-cut together, optional orb close | `stem`, `items: [{name, colors}]`, `orb` |
+| `inline-orb` | a sentence with a gradient orb in its gap | `left`, `right`, `colors`, `size` |
+| `split-lockup` | line squeezes to the centre, bars split and reveal the wordmark, product name in the accent | `line`, `name`, `product` |
+
+Helper on `fx`: `squeeze(tl, el, t0, t1)` (clip from both sides with two dots riding the edges).
+Rules: see `research/analysis/agent-launch.md`.

@@ -7,6 +7,7 @@ import { generateJSON, inlineImage, MODELS } from "../lib/gemini.mjs";
 import { loadEnv } from "../lib/env.mjs";
 import { logoSheet } from "../lib/browser.mjs";
 import { log, warn, readJSON, writeJSON, runLive, deepNoDashes, run } from "../lib/util.mjs";
+import { HF } from "../lib/hf.mjs";
 
 async function findSite(company, hint) {
   log(`finding official site for "${company}"`);
@@ -23,7 +24,7 @@ async function capture(url, outDir) {
   log(`capturing ${url} (screenshots, assets, fonts, tokens)`);
   const env = { ...process.env, GEMINI_API_KEY: loadEnv().GEMINI_API_KEY || "" };
   try {
-    await runLive("npx", ["-y", "hyperframes@0.8.72", "capture", url, "-o", outDir, "--max-screenshots", "14", "--timeout", "90000", "--capture-budget", "120000"], { env, cwd: path.dirname(outDir) });
+    await runLive("npx", [...HF, "capture", url, "-o", outDir, "--max-screenshots", "14", "--timeout", "90000", "--capture-budget", "120000"], { env, cwd: path.dirname(outDir) });
     return true;
   } catch (e) {
     warn("capture failed: " + e.message);

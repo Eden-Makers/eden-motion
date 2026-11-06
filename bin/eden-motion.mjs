@@ -7,6 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { log, slugify, writeJSON, readJSON, run } from "../src/lib/util.mjs";
 import { loadEnv, REPO } from "../src/lib/env.mjs";
+import { HF } from "../src/lib/hf.mjs";
 
 // Node's fetch races IPv6 and IPv4 with a 250 ms budget per address; on a slow or flaky network
 // every attempt times out ("fetch failed", ETIMEDOUT after ~2 s) where curl simply waits. Connect
@@ -71,6 +72,9 @@ STEPS (in order)
                text clipped by the frame or outside the safe margin, small text, ease tails that freeze
                (< 0.5 px/frame), glyph judder and letterform drift under scale -> renders/measure.json [--no-ink]
                [--video renders/final.mp4: measure the ink windows on the real render too]
+  study        <style> <films|urls|folder|list.txt>   measure reference films into styles/<style>/profile.json
+               (shot lengths, rhythm, metronome grid, flashes, events per second, holds, polarity flips,
+               cuts on the beat, look); <style> --against <slug|video> scores a film against it per axis
   compare      <slug> <ref.mp4> side by side + frame pairs + SSIM vs a reference film [--file]
   review       HTML review sheet (frames per shot, VO, props, prompts, QC) [--deliver <drive folder>]
   build        only build comp/index.html from storyboard.json
@@ -189,7 +193,7 @@ async function step(name, dir, args) {
       break;
     case "preview": {
       const comp = await (await import("../src/steps/build.mjs")).build(dir, { slow: 1 });
-      run("npx", ["-y", "hyperframes@0.8.72", "preview", "--background"], { cwd: comp, stdio: "inherit" });
+      run("npx", [...HF, "preview", "--background"], { cwd: comp, stdio: "inherit" });
       break;
     }
     default:
@@ -247,6 +251,11 @@ async function main() {
     if (!args["no-run"]) {
       for (const s of STEPS) await step(s === "render" && args.draft ? "render" : s, dir, args);
     }
+    return;
+  }
+
+  if (cmd === "study") {
+    await (await import("../src/steps/study.mjs")).study(target, args._.slice(2), { against: args.against, keepShots: !!args["keep-shots"] });
     return;
   }
 

@@ -14,8 +14,9 @@ import path from "node:path";
 import { build } from "./build.mjs";
 import { readDomJson } from "../lib/browser.mjs";
 import { log, run, runLive, readJSON, probeDuration } from "../lib/util.mjs";
+import { HF } from "../lib/hf.mjs";
 
-const HF = ["-y", "hyperframes@0.8.72"];
+
 
 // Finish: what keeps a browser render from reading as a browser render. Temporal grain breaks the
 // banding in big soft gradients and the dead-clean vector edges; a soft vignette gives the frame a

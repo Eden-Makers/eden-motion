@@ -19,6 +19,7 @@ Then run the director loop: read script.json and storyboard.json, fix, re-render
 | `runtime/` | the in-browser engine: `engine.js`, `fx.js` (motion primitives), `transitions.js`, `backgrounds.js`, `base.css`, `scenes/*.js|css` |
 | `runtime/SCENE_API.md` | contract for writing scenes |
 | `skills/eden-motion/` | the Agent Skill (symlinked into ~/.claude/skills, ~/.codex/skills, ~/.agents/skills by `install.sh`) |
+| `styles/<style>/` | measured style profiles from `study` (profile.json read by storyboard and critique, profile.md for humans) |
 | `research/analysis/` | forensic breakdowns of the reference films (70 techniques with parameters) |
 | `sfx-library/` | Pixabay-licensed SFX used by the audio step |
 | `tools/` | out-of-process helpers: `stingers.py` (audio-as-code), `synccheck.mjs`, `lensfx.py` (lens finish keyed to fast moves), `retime.py` (slowed capture to 60 fps, optical-flow gap fill), `token_usage.py` (where the Claude Code tokens went) |
@@ -27,5 +28,5 @@ Then run the director loop: read script.json and storyboard.json, fix, re-render
 - Scenes must stay deterministic: no Math.random (use `ctx.rng`), no Date, no timers, no CSS animations, no `repeat: -1`.
 - `EM.boot()` is synchronous; never await in scene builds.
 - Register new scenes in `src/lib/catalog.mjs` so the storyboard model can use them, and document props in the file header.
-- Test a scene: add it to a storyboard in `projects/_test*`, `node bin/eden-motion.mjs build <proj>`, then `npx -y hyperframes@0.8.72 snapshot --at <t,...>` inside `comp/` and look at the PNGs.
+- Test a scene: add it to a storyboard in `projects/_test*`, `node bin/eden-motion.mjs build <proj>`, then `npx -y hyperframes@0.9.15 snapshot --at <t,...>` inside `comp/` and look at the PNGs.
 - No em dashes or en dashes in any text or comment.

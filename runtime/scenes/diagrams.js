@@ -162,7 +162,9 @@
         });
         const step = Math.min(120, (bot - top - 120) / Math.max(1, items.length));
         items.forEach((it, i) => {
-          const a = Math.max(0, Math.min(m - 1, +it.from || 0)), b = Math.max(0, Math.min(m - 1, it.to == null ? 1 : +it.to));
+          // from/to: actor index or actor name; anything else falls back to the next pair
+          const ix = (v, d) => { const n = Number(v); if (v !== "" && v != null && Number.isFinite(n)) return Math.max(0, Math.min(m - 1, Math.round(n))); const k = actors.findIndex((x) => String(x).toLowerCase() === String(v).toLowerCase()); return k >= 0 ? k : d; };
+          const a = ix(it.from, i % m), b0 = ix(it.to, (a + 1) % m), b = b0 === a && m > 1 ? (a + 1) % m : b0;
           const y = g4(top + 120 + step * i), t = at(i, items.length) * 0.85 + (start + 0.3) * 0.15, dir = xs[b] >= xs[a] ? 1 : -1;
           line(`M${xs[a]},${y} L${xs[b] - dir * 4},${y}`, t, { color: col(i), dd: 0.3, w: focus.has(i) ? 3 : 2 });
           arrow(xs[b] - dir * 4, y, dir > 0 ? 0 : 180, t + 0.28, col(i));
