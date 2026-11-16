@@ -7,6 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { log, slugify, writeJSON, readJSON, run } from "../src/lib/util.mjs";
 import { loadEnv, REPO } from "../src/lib/env.mjs";
+import { HF } from "../src/lib/hf.mjs";
 
 // Node's fetch races IPv6 and IPv4 with a 250 ms budget per address; on a slow or flaky network
 // every attempt times out ("fetch failed", ETIMEDOUT after ~2 s) where curl simply waits. Connect
@@ -53,7 +54,14 @@ STEPS (in order)
                layers-3d (images=a.png,b.mp4 layout=stack|row|fan|floor move=dolly|orbit|tilt|float fstop=2.8 focus=i)
   audio        VO + music + ambience + layered SFX -> audio/stems/<layer>.wav + audio/mix.wav
                layers: vo, music, ambience, sfx_transitions, sfx_ui, sfx_foley, sfx_accents
-               [--sfx-source local|openverse (fresh CC0/CC-BY palette per film, picked by a code score)]
+               [--sfx-source local|house|openverse (house = "sfx search" over the studio library; openverse = fresh
+               CC0/CC-BY palette per film, picked by a code score)]
+               sound events: engine cues + clips/<clip>_events.json (click key type tick pop send pulse shimmer
+               glitch whoosh whip swell riser hit sub; "speech" low-passes the music) -> audio/coverage.json checks
+               every cut has a sound within 2 frames. Missing soft UI sounds are generated once into
+               sfx-library/gen (ElevenLabs, max 6 at a time) [--no-gen-sfx]
+               SFX bus on every sfx_* stem (low pass 7 kHz, high shelf -6 dB above 4.5 kHz, compressor)
+               [--sfx-bus off|default|"<ffmpeg filter>"]; always writes audio/sfx_only.wav (no music)
                [--judge-sfx (optional: Gemini listens to the top 4 candidates per sound; extra API calls)]
                [--ambience "rain on window"] [--no-openverse] [--no-music]
                [--stingers (accent thumps + logo sting composed in code in the music's key; needs uv)]
@@ -61,16 +69,23 @@ STEPS (in order)
   new flags    --format 16:9|4:5|1:1|9:16  --no-images (type, UI, diagrams and Blender plates only)
   sync         snap cuts within 120 ms of a music beat onto the beat (frame grid), then re-mix [--tol 0.12]
   remix        <slug> --music -3 --sfx +2 --ambience off --sfx-foley -4   rebalance stems -> mix.wav (no regeneration)
+               [--sfx-bus off|default|"<ffmpeg filter>"]; also rewrites audio/sfx_only.wav
   preview      build comp/ and open HyperFrames Studio preview
   render       --draft (fast, no blur) or final (true shutter motion blur, --slow 4..8) [--shutter-phase center|forward]
   qc           Gemini creative-director review -> renders/qc.json
   critique     watch-your-own-frames loop: contact/phone/strip sheets + measured pops, dead air,
-               variety gaps, hook; harsh 1-10 rubric; appends renders/review_log.md [--no-ai] [--file]
+               variety gaps, hook, whip pans (max 2), black frames and flat colour fields anywhere;
+               harsh 1-10 rubric (fixes never springs, overshoot, pumps, flash frames); appends
+               renders/review_log.md [--no-ai] [--file: a film the storyboard only labels is graded
+               from its frames, the composition text checks are skipped]
                [--against ref.mp4] scores the reference with the same rubric and prints the delta
   measure      frame-accurate checks of the composition, no render needed: reading time per text block,
                text clipped by the frame or outside the safe margin, small text, ease tails that freeze
                (< 0.5 px/frame), glyph judder and letterform drift under scale -> renders/measure.json [--no-ink]
                [--video renders/final.mp4: measure the ink windows on the real render too]
+  study        <style> <films|urls|folder|list.txt>   measure reference films into styles/<style>/profile.json
+               (shot lengths, rhythm, metronome grid, flashes, events per second, holds, polarity flips,
+               cuts on the beat, look); <style> --against <slug|video> scores a film against it per axis
   compare      <slug> <ref.mp4> side by side + frame pairs + SSIM vs a reference film [--file]
   review       HTML review sheet (frames per shot, VO, props, prompts, QC) [--deliver <drive folder>]
   build        only build comp/index.html from storyboard.json
@@ -156,7 +171,7 @@ async function step(name, dir, args) {
       await (await import("../src/steps/compare.mjs")).compare(dir, args._[2], { file: args.file });
       break;
     case "audio":
-      await (await import("../src/steps/audio.mjs")).audio(dir, { noMusic: !!args["no-music"], sfxSource: args["sfx-source"], ambience: args.ambience, openverse: !args["no-openverse"], stingers: args.stingers ? true : undefined, judgeSfx: args["judge-sfx"] ? true : undefined });
+      await (await import("../src/steps/audio.mjs")).audio(dir, { noMusic: !!args["no-music"], sfxSource: args["sfx-source"], ambience: args.ambience, openverse: !args["no-openverse"], stingers: args.stingers ? true : undefined, judgeSfx: args["judge-sfx"] ? true : undefined, sfxBus: args["sfx-bus"], generateSfx: !args["no-gen-sfx"] });
       break;
     case "sync":
       await (await import("../src/steps/sync.mjs")).sync(dir, { tol: args.tol ? +args.tol : undefined });
@@ -164,7 +179,7 @@ async function step(name, dir, args) {
     case "remix": {
       const { remix, LAYERS } = await import("../src/steps/audio.mjs");
       const gains = Object.fromEntries(Object.entries(args).filter(([k]) => k === "sfx" || LAYERS.includes(k.replace(/-/g, "_"))).map(([k, v]) => [k, v === "off" ? "off" : +v]));
-      remix(dir, gains);
+      remix(dir, gains, { sfxBus: args["sfx-bus"] });
       log(`remix: audio/mix.wav rebuilt from stems (${JSON.stringify(gains)}). Next: render (audio is muxed at the end, a --draft re-render is enough)`);
       break;
     }
@@ -189,7 +204,7 @@ async function step(name, dir, args) {
       break;
     case "preview": {
       const comp = await (await import("../src/steps/build.mjs")).build(dir, { slow: 1 });
-      run("npx", ["-y", "hyperframes@0.8.72", "preview", "--background"], { cwd: comp, stdio: "inherit" });
+      run("npx", [...HF, "preview", "--background"], { cwd: comp, stdio: "inherit" });
       break;
     }
     default:
@@ -247,6 +262,11 @@ async function main() {
     if (!args["no-run"]) {
       for (const s of STEPS) await step(s === "render" && args.draft ? "render" : s, dir, args);
     }
+    return;
+  }
+
+  if (cmd === "study") {
+    await (await import("../src/steps/study.mjs")).study(target, args._.slice(2), { against: args.against, keepShots: !!args["keep-shots"] });
     return;
   }
 

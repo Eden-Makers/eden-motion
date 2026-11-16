@@ -4,6 +4,23 @@ Sources: 4 Burnwe SaaS explainers (1Deploy, Foyr, EyeQ, Ramp), Google "Meet Gemi
 "Welcome to the Gemini era", Lovable 2.0, Lovable "Design" + "Lovable x Google" (Anyway Studio).
 Full forensic notes: `research/analysis/` in the repo.
 
+## House rules (director feedback on launch films, 2026-11; they win over any reference note below)
+- One world, one camera: shots grow out of each other by movement. Five unrelated worlds read as an
+  animated presentation.
+- Into the UI with an elegant animated zoom: smooth and fast (0.3-0.6 s, `expo.out`), light parallax
+  between layers, blur out and blur in on the way. A hard cut into a macro is the exception.
+- Transitions are zooms in and out, speed ramps, blur out and blur in, parallax of soft backgrounds.
+  Whip pans at most once per film (`critique` fails a film with more than two).
+- No overshoot, no bounce, no wiggle on arrival, no pump or punch-in on a word, no flash frames
+  between scenes, no slow scale drift on text. Arrivals `expo.out` with a 12-20 px blur settling to 0.
+- Never a black screen and never a full-frame flat colour (not even at the end): a lit world or a
+  parallax background built from the brand's imagery, darkest pixels around RGB 8-14.
+- No dead second: phases of 0.3-0.8 s, the camera always moving (a 2-4% push even at rest, never
+  6+ frames still), and every event and transition has a sound. The film works without music.
+- Text: flat 2D type in the 3D space, no shadow, extrusion or glass look. A line meant to be read
+  like a title is not tracked: centred, white. Text sits in front of blurred foreground objects.
+- Lens: one permanent lens character and fine grain on the whole film (`tools/lensfx.py --look lens`).
+
 ## Story and pacing
 | rule | value |
 |---|---|
@@ -21,7 +38,7 @@ Full forensic notes: `research/analysis/` in the repo.
 |---|---|
 | Arrival (default) | focus pull: blur 12-20 px -> 0, scale 1.06 -> 1 (small icons 0.92 -> 1), opacity 0 -> 1, 0.3-0.5 s, `power3.out` / `expo.out`. |
 | Exit | blur 0 -> 20 px + fade, ~0.25 s, `power2.in`. |
-| Overshoot | none for layout and type (no `back.out` bounces). Exception: UI morphs ride springs with 3-5% overshoot (damping ratio ~0.70, 2.6 Hz, settle 0.45-0.55 s). |
+| Overshoot | none for layout and type (no `back.out` bounces). The reference UI morphs rode springs with 3-5% overshoot (damping ratio ~0.70, 2.6 Hz, settle 0.45-0.55 s); house rule: no visible overshoot, settle on `expo.out` or a critically damped spring. |
 | Camera | never still: 0.4-2%/s zoom and 15-60 px/s truck, linear, alternating direction per shot. Emphasis push 5-7%/s. |
 | Lists | stagger 0.12-0.32 s. |
 | Cursor | eased arcs 0.5-0.7 s `power2.inOut`, dwell 0.2 s, press = cursor 0.85 + target 0.96, click triggers a state change. |
@@ -58,7 +75,7 @@ White cards, radius 12-26 px, hairline border `rgba(0,0,0,.06)`, soft shadow (y 
 ## Code-native UI motion (open prompt by @twoclipping, 2026-09)
 - One shape never cuts: the same element morphs size, radius and colour through every UI state; content
   swaps with a short blur on its own enter/exit timing. A cursor drives every change with real clicks and drags.
-- Springs everywhere, a tiny overshoot at most. Springs are closed-form step responses; a value retargeted
+- Springs everywhere in the reference (house rule: no visible overshoot, see House rules). Springs are closed-form step responses; a value retargeted
   many times is the sum of one response per change, so it stays a pure function of time (`EM.spring`).
 - Two-edge springs for indicators and knobs: the leading edge stretches ahead of the trailing one.
 - Drags are direct manipulation: value from cursor position while held, spring back on release.
@@ -77,9 +94,10 @@ glows on text and anything template-like. What transfers:
 - **Charge before the payoff:** a solarised colour wash floods the frame, the object tilts back (rotateX
   up to 12 deg), selection handles fly to the frame corners, a glyph field appears at the edges, then the
   rest of the content bursts in at ~50 characters per frame.
-- **Press = hard cut to a 3x macro of the button,** cursor swings in, squashes to 0.9 on the press, the
-  button inflates 12% and flashes the brand colour, the container edge bulges under it. The zoom is a cut,
-  never an animated zoom.
+- **Press = a fast animated zoom into a 3x macro of the button** (0.3-0.5 s, `expo.out`, light parallax
+  between the button and the card behind it, a short blur on the way), cursor swings in, presses, the
+  button glows in the brand colour. The reference cut straight to the macro; the house rule is the
+  elegant zoom, a hard cut only as a rare accent.
 - **Container becomes the page:** the prompt box drops, goes grey then dark from the bottom while a cyan
   band sweeps down and wipes its text, then grows to full frame on a fast ease-out while every page element
   slides out from inside it on one shared progress curve (overflow hidden). Finish by pulling the page

@@ -122,8 +122,12 @@ promote it into `runtime/scenes/` and add it to `src/lib/catalog.mjs`.
 
 ## 5. Styles and AI footage
 - `--style burnwe` (default SaaS explainer), `--style launch` (Google/Lovable launch film), `--style higgsfield`
-  (white grid canvas, magenta + lime accents, flash frames, punch-ins, pixel reveals, AI footage as proof in
-  grid cells; see `research/analysis/higgsfield.md`). The style steers storyboard scene and transition choice.
+  (white grid canvas, magenta + lime accents, fast zoom-throughs with parallax, pixel reveals, AI footage as
+  proof in grid cells; see `research/analysis/higgsfield.md`; flash frames and punch-ins only with
+  `brief.flashFrames`). The style steers storyboard scene and transition choice.
+- Whatever the style: transitions are zooms, speed ramps, blur and parallax; a whip at most once per film
+  (storyboard turns later whips into zoom-throughs, critique fails more than two). House rules on top of
+  `references/style-dna.md`.
 - `--style relate` (Relate Studio crypto/fintech editorial, `research/analysis/relate.md`): metronome hard cuts
   on a fixed grid (`--cut-grid 1.0` = one cut every 24 frames at 24 fps; several shots share one VO line),
   polarity flip paper/black every shot, flat worlds (no bloom, no exposure ramp), forward-shutter motion blur,
@@ -169,13 +173,21 @@ Read `references/product-ui-film.md` first. Short version:
 - Never film the screen for designed shots. Rebuild the UI as an HTML twin (real layout, fonts,
   copy; every element its own layer) and animate it like After Effects layers. Screen recordings
   cropped into cards read as lazy. Measure every box at rest before any tween.
+- Your own app: rebuild it 1:1 from its code (views, design tokens, easing). Other apps the product
+  lives in: 1:1 from a fresh screenshot. Only real details (model names, messages, numbers).
+- Flat front-on 2D close-ups are the base, 3D the accent (about a quarter of the shots). One element
+  per shot at 40-70% of the width, the hero never cut by the frame, a line to be read not tracked.
+  Into the close-up with an elegant zoom and light parallax, not a cut, not a whip.
 - CSS 3D text goes soft: do z moves as 2D scale, real perspective in Blender from 8K twin plates.
 - CG device shots: `mglib.mat_screen_sequence` (screen plays the twin plates), `set_anamorphic`,
   `bias_glow` (backlight so the silhouette reads in the dark). 2560x1440 finals, 960x540 previews
   for style approval first.
 - Real captures: slow the app clock R times, then `tools/retime.py` (optical-flow gap fill).
-- Finish: `tools/lensfx.py` (barrel + aberration keyed to fast moves in `fx.json`, halation,
-  soft grain at 1/3 res, bitrate caps).
+- Finish: `tools/lensfx.py` on the whole film only, never per clip. Default `--look lens` is a
+  permanent lens character (barrel 0.03, edge CA 0.006, swirl 0.035, soft edges 2.5 px) that grows on
+  the fast moves in `fx.json`, plus halation and fine grain (0.008 at 1.95 px, relative to 1080p).
+  Masters have no bitrate cap: deliver `--codec hevc10` (H.265 main10, two passes, 160 Mbit/s, hvc1)
+  or `--codec prores`. Only `--also` phone previews stay capped.
 - Every film also gets a 9:16 version that keeps the composition: native portrait renders for the
   twin, `mglib.vertical_reframe` for Blender, eased crop keyframes with no slivers at rest for captures.
 - Long multi-agent runs: most of the cost is re-reading context (section 10 of the reference). Fresh
@@ -183,7 +195,8 @@ Read `references/product-ui-film.md` first. Short version:
   `tools/token_usage.py` shows where it went.
 ```bash
 uv run --no-project --with numpy==2.2.6 --with opencv-python-headless==4.11.0.86 \
-  python tools/lensfx.py renders/final.mp4 renders/final_lens.mp4 --fx fx.json --audio audio/mix.wav
+  python tools/lensfx.py renders/final.mp4 renders/final_master.mp4 --fx fx.json --audio audio/mix.wav \
+    --codec hevc10 --also 1920x1080:renders/final_1080_preview.mp4
 uv run --no-project --with numpy==2.2.6 --with opencv-python-headless==4.11.0.86 \
   python tools/retime.py capture.webm 8 clip_60fps.mp4 --start 1.0
 ```
@@ -210,12 +223,12 @@ straight into DaVinci as separate tracks) and then sums them into `audio/mix.wav
 | layer | what lands there | source |
 |---|---|---|
 | `vo` | narrator, compressed | ElevenLabs |
-| `music` | bed with fades, TURN dips, strongest hit shifted onto the logo (clean, not ducked) | ElevenLabs music |
+| `music` | bed with fades, TURN dips, strongest hit shifted onto the logo, low-pass automation (not ducked) | ElevenLabs music |
 | `ambience` | optional steady bed far under everything (`storyboard.ambience` or `--ambience "..."`) | Openverse |
-| `sfx_transitions` | whoosh on transitions and tone-change cuts | local library or Openverse |
-| `sfx_ui` | clicks, pops, typing beds, panned with the element | local library or Openverse |
+| `sfx_transitions` | whoosh on transitions and tone-change cuts, clip events whoosh / whip / swell | local, house or Openverse |
+| `sfx_ui` | clicks, pops, typing beds, panned with the element; clip events click / key / type / pop / send / pulse / shimmer / glitch | generated UI palette, local, house or Openverse |
 | `sfx_foley` | per-shot signature sounds: `scene.sound = {"q":"metal screw drop","at":0.4,"gain":-6}` | Openverse |
-| `sfx_accents` | riser + impact into the logo | local library or Openverse |
+| `sfx_accents` | riser + impact into the logo; clip events riser / hit / sub | local, house or Openverse |
 | `stingers` | `--stingers`: accent thumps + a logo sting composed in code in the music's detected key | audio-as-code (uv) |
 
 - `--sfx-source openverse` swaps the curated library for a fresh palette per film. Every Openverse
@@ -229,6 +242,24 @@ straight into DaVinci as separate tracks) and then sums them into `audio/mix.wav
 - CC-BY sounds are listed in `audio/CREDITS.md` and must go into the description or end credits.
 - `remix <slug> --music -3 --sfx-foley -4 --ambience off` rebuilds only the mix from stems (gains
   persist in `audio/mix.json`; `--sfx` moves all four SFX layers). Music ducks under the VO here.
+- Sounds everywhere, and the film has to work without music: every audio run also writes
+  `audio/sfx_only.wav` (VO + SFX + ambience) and `render` writes `final_sfx_only.mp4` next to the
+  final. Listen to that one, not only to the meters: missing sounds and a trailer "horn" were found
+  by ear on a launch film, never by a check.
+- Every picture event has a sound. Pre-rendered clips bring `clips/<clip>_events.json`
+  (`runtime/SCENE_API.md`, "Sound events"); `audio/coverage.json` checks that every cut has a sound
+  within 2 frames, fills a soft whoosh where none is within 0.25 s (`storyboard.cutSounds: false`
+  turns that off) and warns about sounds that are off.
+- SFX bus on the sum of every `sfx_*` stem, on by default: two low passes (7 and 9 kHz), high shelf
+  -6 dB above 4.5 kHz, a fast compressor. Raw SFX were "mega sharp". `--sfx-bus off|default|"<ffmpeg
+  filter>"` on `audio` or `remix`; the stems stay raw.
+- Music low-pass automation: the music goes under water (420 Hz, dry and filtered copies blended)
+  in its dips, under on-screen speech (clip events `speech` with `dur`), in `storyboard.musicLowpass
+  [{from, to, amount}]` and, with `storyboard.musicLowpassUnderVo`, under the VO lines.
+- Sound palette roles live in `src/lib/sfxpalette.mjs`. Soft UI sounds are generated once with
+  ElevenLabs sound-generation (max 6 at a time) into `sfx-library/gen/<role>-<n>.mp3`, a local,
+  gitignored cache: seed it by hand with approved sounds. `--sfx-source house` takes whooshes, hits
+  and risers from the studio library (`sfx search`). No trailer slams with brass, no tonal drones.
 - Foley is for physical events on screen only (objects landing, metal, glass, paper). Text and UI
   shots already get whooshes, clicks and pops; do not stack foley on them.
 
@@ -242,11 +273,32 @@ Read `references/relate-and-1to1.md` first. Short loop:
 6. `render`, `compare <slug> ref.mp4` (side by side + pairs + SSIM), `critique <slug> --against ref.mp4`
    (same rubric on both; within 1 point on every axis = on par). SSIM is harsh on thin detail and DOF: read pairs.jpg.
 
+## 5c. Learn a style from many films (`study`)
+One reference shows what one film did. Ten show what the style is. `study` measures every film with
+HyperFrames (cuts, events, look, beats, onsets; free, no login) and keeps the range the films agree on.
+```bash
+node bin/eden-motion.mjs study <style> refs/*.mp4             # files, a folder, a .txt list or URLs (yt-dlp)
+node bin/eden-motion.mjs study <style> --against <slug>       # score a project's render against the profile
+node bin/eden-motion.mjs study <style> --against film.mp4     # or any video
+```
+- Writes `styles/<style>/profile.json` and a readable `profile.md`: p25 / median / p75 per axis (shot
+  length and spread, cuts per 10 s, metronome grid share, events per second, holds, dark and light
+  flips, dark share, brightness, contrast, saturation, cuts on beats and onsets).
+- Edit axes count only films with at least 4 shots, so single-shot loops do not skew pacing.
+- Per-film metrics are cached in `.cache/study/<style>/`; adding films re-measures only the new ones.
+- When `styles/<brief.style>/profile.json` exists, `storyboard` plans shot lengths from it (a grid only
+  if most films cut on one), passes the numbers to the model ("the numbers win"), and `critique`
+  reports the style distance (axes inside p25-p75 = on, inside the range = near, else off). Advice, not a fail.
+- The distance is a check on caricature: a preset that does what the style does on every cut is off,
+  even when each frame looks right. Fix what is off, then look at frames; numbers do not replace eyes.
+
 ## 6. House rules
 - Stills: Nano Banana Pro (Gemini 3 Pro Image) at 2K, always end prompts with "no text, no letters, no logos". Flux is banned. Log every prompt (done automatically in `prompts.log.jsonl`).
 - Video clips (optional, for `media-frame` kind video): Seedance 2.0 or Kling 3.0 via Higgsfield/fal/Magnific with the approved still as reference, render 3 s longer than the cut, "no music" in the prompt.
 - No em dashes or en dashes in any copy (the pipeline strips them; check anything you write).
-- Motion law: focus-pull arrivals, no overshoot, camera never still, one accent colour, sync to VO words.
+- Motion law: focus-pull arrivals, no overshoot, no pump or wiggle, camera never still, elegant zooms
+  instead of whips and hard cuts into the UI, never a black or flat colour frame, one accent colour,
+  sync to VO words, a sound on every event.
 - Token budget: one chat per phase with a handoff file, subagents report only at the end, QC with one small grid instead of many frames (`tools/token_usage.py` to check).
 - Deliver: `review <slug> --deliver <folder>` copies `renders/final.mp4` + the HTML review sheet to your delivery folder. Never send a film to a client before a human has approved it.
 

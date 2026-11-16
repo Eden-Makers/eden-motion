@@ -33,7 +33,31 @@ Twin rules that cost us a re-render each:
 - Keep real device captures for the shots where authenticity is the point (system behaviour,
   live answers from an assistant), and the twin for everything designed.
 
+What the twin must match (a dictation app launch film, 2026-11, each one cost a round):
+- **Your own product: the app's code is the source of truth.** Read its views and design tokens
+  (sizes, radii, colours, states, easing curves and durations) and rebuild them 1:1. An old or
+  remembered version of the UI (a pill with a dot that no longer exists) was rejected.
+- **Other apps 1:1 from a real screenshot.** When the product works inside Claude, Mail, Messages,
+  an IDE: put a fresh screenshot of that app next to the twin and match layout, type and colours.
+  Dark mode is fine. A home-made look-alike of someone else's app was rejected.
+- **Only real details.** Real model names and settings ("Opus 5.5 High", not a stale model), only
+  messages and states the product really shows (no invented "Inserted in Slack."), real numbers.
+- **One element per shot, big:** the focus element takes 40-70% of the frame width with calm space
+  around it. Glass and soft edges of light. Cursor moves, hover and press are events, each with a sound.
+- **The hero element is never cut by the frame** and never glued to the bottom edge. Floating UI
+  (a pill, a toast) sits in the lower third, sized up (1.7x in 16:9 worked) so it reads on a phone.
+- **A line meant to be read is not tracked:** centred, white, flat. Only text that belongs to the
+  scene rides the camera.
+- **Numbers need reading time too:** a stat on screen for 0.35 s was not read. Check the read time
+  of clips built outside the storyboard the same way (`measure`).
+
 ## 2. Depth: CSS 3D is soft, real 3D is Blender
+
+**Flat first, 3D as the accent.** Front-on 2D close-ups of the UI are the base of the film; real 3D
+(a tilt from flat into 3D, a 3D pill, a camera move through layered cards) is the accent, about a
+quarter of the shots. A film where everything was tilted and every app window floated in 3D was
+rejected; so was a quick 3D insert that did not read. Get into the close-ups with an elegant
+animated zoom (light parallax, a short blur), not a hard cut, and never through a whip pan.
 
 Chrome rasterizes CSS 3D layers at a low resolution: tilted text goes jagged even at 3840 px and
 2x supersampling.
@@ -79,13 +103,21 @@ too fast once retimed. What worked on an Android emulator:
 
 ## 5. Post that sells the motion
 
-`tools/lensfx.py IN OUT --fx fx.json` (deterministic, any resolution and fps):
-- Barrel distortion with zoom compensation plus radial chromatic aberration, keyed to the fast
-  moves listed in `fx.json` (`{"t": 5.3, "attack": 0.28, "release": 0.3, "k": 1.0}`): k = 1 is ~6%
-  edge displacement at the peak. Tie events to speed ramps, whips and zoom-throughs only.
+`tools/lensfx.py IN OUT --fx fx.json --codec hevc10` (deterministic, any resolution and fps), on the
+whole film only (grain, vignette and lens never go into single clips):
+- A permanent lens character, `--look lens` (default): barrel 0.03, lateral CA growing to the edges
+  0.006, swirl 0.035 rad, soft edges 2.5 px. It reads like real glass, not like a filter. `--look
+  classic` is the old finish without it, `--look clean` drops lens and grain.
+- On top, barrel and aberration keyed to the fast moves listed in `fx.json` (`{"t": 5.3, "attack":
+  0.28, "release": 0.3, "k": 1.0}`): k = 1 is ~6% edge displacement at the peak. Tie events to
+  speed ramps, zoom-throughs and cut warps only.
 - Halation on highlights (quarter-res blur, warm tint), a soft static vignette.
-- Grain generated at **1/3 resolution** and upscaled. Per-pixel grain pushed a 4K encode to
-  143 Mb/s; soft grain plus `maxrate` caps landed at 61.8 (4K) and 16.7 (1080p) Mb/s.
+- Fine grain: strength 0.008, particle 1.95 px relative to 1080p (`--grain`, `--grain-px`), so 4K
+  reads optically the same.
+- Masters are never bitrate capped (a 16 / 60 Mbit/s cap was visible in the grain and gradients and
+  the client called the finals "heavily compressed"). Deliver `--codec hevc10` (libx265 main10, two
+  passes, 160 Mbit/s, tag hvc1, bt709) or `--codec prores` (422 HQ). `--also WxH:path` writes H.264
+  phone previews, capped at 16 / 30 / 60 Mbit/s unless `--also-uncapped`.
 
 ## 6. Music-led edit
 
@@ -98,7 +130,14 @@ too fast once retimed. What worked on an Android emulator:
 ## 7. Vertical 9:16 versions (Reels, Shorts)
 
 Keep the composition (subject scale and placement, the same move), never a lazy centre crop. Keep
-essential detail out of the top 12% and the bottom 22% (the platform UI covers them).
+essential detail out of the top 12% and the bottom 22% (the platform UI covers them). At 1080x1920 that
+is nothing important above y 220 or below y 1500, right of x 940 (Instagram and TikTok buttons) or left
+of x 90. A launch film for a dictation app was sent back for content under the platform UI.
+- AI footage for the vertical is generated natively in 9:16 with the same references (references, not
+  start frames, so the second ratio is a fresh take of the same look). Never reuse a 16:9 clip: one
+  horizontal shot or letterbox in a vertical film (0:15 on that project) breaks it.
+- The twin is re-laid out for portrait: narrower windows (about 760 px), pills 2.6-3.6x, titles on
+  several lines, the crop following the action.
 
 | source | method |
 |---|---|
@@ -149,3 +188,18 @@ step grows with the length of the chat, not with the size of the step.
 
 Check it any time with `python3 tools/token_usage.py --hours 24` (per session and subagent, token
 type, tool, images, hour).
+
+## 11. Speaker plus screen edits (YouTube, reels)
+
+From the GedyHome (TV OS) YouTube cut and its reels, reviewed through four versions (2026-11-02): v3
+was "better, but still a lot of work": the picture and the screens were too static, with no zoom in
+and out, no blur, no cutaways and no animation of the video and the screen.
+- Move the picture with what is being explained: a zoom onto the detail the speaker names, a return to
+  the whole window, a punch-in on the person for a beat (a face punch-in is fine, a pump on a word is
+  not), short blur transitions between them. Animate the screen layer too (it is a layer, not a recording).
+- Cut it shorter and denser: the main video went down 15% in the next round.
+- Keep the sounds and pop-ups the director praised and add a sound to every new move.
+- Checks that found real problems: head crops too tight, a title across the hair, an orange cast on
+  skin and shirt next to the TV (grade it out), a clip of the wrong board or file shown by mistake.
+- Study the references denser than every 4th frame (Gemini on the clip, then frame by frame on the
+  moments that matter); a time code in the note is a copy instruction, not a hint.

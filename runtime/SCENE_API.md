@@ -93,3 +93,9 @@ Tone classes on the scene (`tone-light|dark|cream|black`) re-define the tokens, 
 - `EM.spring.response(t, preset | {freq, damping})`, presets in `EM.spring.PRESETS`: `ui`, `snappy`, `default`, `heavy`, `playful`, `glide`.
 - `EM.spring.track(changes, t, o)` for values with many targets, `EM.spring.indicator(stops, t)` for two-edge stretch, `EM.spring.swapAlpha(t, tIn, tOut)` for text inside a morphing container, `EM.spring.loopT(t, dur)`.
 - A scene that hard-cuts inside itself declares it: `(EM.cues = EM.cues || []).push({ t, type: "cut" })`, so `critique` treats the frame jump as intended. Cues may carry `x` (screen px) to pan their SFX.
+
+## Sound events (clips/<clip>_events.json)
+- A clip rendered outside the composition (a custom twin scene, Blender, AI footage) ships its sound events next to it: `clips/<clip>_events.json` = `[{ "t": 0.40, "type": "click", "gain": -2, "dur": 0.3, "x": 1200, "note": "click on send" }]`, `t` in seconds from the clip's first frame, `gain` in dB on top of the role default, `x` pans.
+- Types: `click key type tick pop send pulse shimmer glitch` (UI), `whoosh whip swell` (transitions), `riser hit sub` (accents). `type` with `dur` becomes a run of soft ticks. `speech` with `dur` makes no sound, it low-passes the music under on-screen speech. Unknown types fall back to `pop`.
+- `t` is where the sound has to hit: the onset for UI sounds, the peak for whooshes, risers, hits and subs. Every press, pulse, arrival and transition in the clip gets an event; a clip without them is not finished.
+- The audio step finds the file by `scene.clip`, by the basename of `props.src`, or by `scene.id`, and keeps only the events inside the part of the clip the scene shows (`props.mediaStart` + duration). Clips cut outside the storyboard: `storyboard.clips = [{ "name": "pA4", "at": 16.03 }]`.

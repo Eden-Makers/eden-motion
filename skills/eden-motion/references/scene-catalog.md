@@ -17,6 +17,7 @@ Every scene type the engine ships, with props (as given to the storyboard model)
 | `chat` | { title?: "assistant name", placeholder?: "...", messages: [{from: "user"\|"ai", text, chip?: {icon, label}}] (2-4, AI replies <= 20 words) } assistant conversation: user types, AI thinks then streams. |
 | `versus` | { left: {label: "Everyone else", image?: path, items?: [str] (2-3)}, right: {label: "With Brand", value?: number, prefix?, suffix?: "%", decimals?, from?, caption?: "what the number is", items?: [str] (2-3)} } old way (duotone, dim) vs new way (light, counter + climbing line), right side takes over. |
 | `media-frame` | { src: "gen:<detailed image prompt>" \| "assets/...", kind?: "image"\|"video", caption?: "short caption synced to VO", keyword?: "...", captionPos?: "below"\|"side", duotone?: true, expand?: false } image or clip in a liquid-glass frame with Ken Burns and duotone-to-colour grade; human/world/emotional shots the UI cannot show. expand:true ends full bleed. |
+| `footage` | { src: "clips/<clip>.mp4", mediaStart?: 0 } a pre-rendered clip full bleed (custom twin scene, Blender, AI footage); its sounds come from clips/<clip>_events.json. No text of its own. |
 | `montage` | { mode: "flash"\|"wall", items: ["gen:<prompt>" \| "assets/..."] (6-10), text?: "one big word at the end", keyword? } flash = 0.12-0.16 s hard-cut cold open; wall = pull back to a masonry wall of results and push into another tile. |
 | `orb-hero` | { text: "short line typed under the orb", keyword?: "...", icon?: "lucide name", sub?: "...", bloom?: true } glowing glass orb hero token; AI brands, the turn ("What if..."), reveal; bloom:true flashes the frame to white at the end. |
 | `logo-reveal` | { tagline?: "tagline", cta?: "CTA button text", url?: "domain.com", click?: true } end card. Uses brand logo/mark automatically. |
@@ -32,21 +33,31 @@ Every scene type the engine ships, with props (as given to the storyboard model)
 | type | use |
 |---|---|
 | `cut` | hard cut on the VO phrase end (default, most common). Between different tones it gets an automatic exposure ramp. |
-| `zoom-through` | camera flies into the old scene, new one emerges from depth. Use into the brand reveal or into the product. |
+| `zoom-through` | camera flies into the old scene, new one emerges from depth with light parallax and blur. The default move into the product, the UI and the reveal: an elegant fast zoom, never a hard cut. |
 | `zoom-out` | pull back, new scene arrives from above. Use after a close detail. |
 | `push-left` | whole frame pushes sideways (with real motion blur). Feature to feature. |
 | `push-up` | vertical push. Lists, next step. |
-| `whip` | very fast lateral whip with heavy motion blur. Max 1-2 per film, energetic moments. |
+| `whip` | very fast lateral whip with heavy motion blur. At most ONE per film (the director rejects whips as a default transition); prefer zoom-through, zoom-out or blur-dissolve. |
 | `blur-dissolve` | defocus crossfade. Calm, emotional, or time jumps. |
 | `iris` | circle wipe from a point (opts x,y px). After a click or from the orb. |
 | `wipe` | brand-gradient slat wipe. Section change, max once. |
 | `card-drop` | old scene becomes a card that drops away. Playful, max once. |
-| `flash-frame` | Higgsfield: hard cut with a 1-2 frame full-frame colour flash (opts color: accent\|lime\|white). Section changes. duration 0.2. |
-| `flash-cycle` | Higgsfield: 4-frame colour cycle then the next shot. Big section change, max twice. duration 0.3. |
+| `flash-frame` | Higgsfield: hard cut with a 1-2 frame full-frame colour flash (opts color: accent\|lime\|white). Only when the brief asks for flash frames (brief.flashFrames); the director rejects them by default. duration 0.2. |
+| `flash-cycle` | Higgsfield: 4-frame colour cycle then the next shot. Only with brief.flashFrames, max twice. duration 0.3. |
 | `overexpose` | Higgsfield: old shot blows out to white, new one settles from overexposed. duration 0.4. |
-| `punch-in` | Higgsfield: 4x crash zoom into a point (opts x,y px, e.g. the clicked button) then hard cut. The drop moment. duration 0.4. |
+| `punch-in` | Higgsfield: 4x crash zoom into a point (opts x,y px, e.g. the clicked button) then hard cut. Only with brief.flashFrames; by default use zoom-through (a smooth zoom), and never a punch on a word. duration 0.4. |
 | `pixel-dissolve` | Higgsfield: next shot revealed through a grid of pixel blocks in accent/lime. duration 0.5. |
 | `grid-reflow` | Higgsfield: cells slide along grid lines into the next layout. duration 0.55. |
+
+## Launch type pack (research/analysis/launch-type.md)
+| type | props / use |
+|---|---|
+| `type-reply` | { line, reply, size?: px, dots?: true } statement already there, answer typed in muted grey with an accent caret at a human rhythm (0.045-0.11 s a char), caret blinks 3 times, block eases to 0.97 into the cut. Claim + payoff, 3-4 times a film. |
+| `slot-line` | { text: "Apps {card} and {pill} agents", cards: [{title, sub?}], pills: [{label}], dots?: true } words land in the accent and cool to their role colour (connectors grey), the line opens, a card and a pill roll through real examples every ~0.13 s. |
+| `word-swap` | { stem, words: [2-4] } left-anchored line, last word typed, deleted, retyped. One promise, several objects. |
+| `status-roll` | { lines: [6-14], side?: {title, items} } agent working log, a line every ~0.08 s, newest dark, list scrolls; optional panel of what was read. |
+
+Helpers in `runtime/scenes/reply.js` for custom scenes: `fx.hotWord`, `fx.humanType`, `fx.blinkOut`, `fx.sweep` (accent band across a line), `fx.dotLattice` (22 px dot ground).
 
 ## Relate pack (`--style relate`, research/analysis/relate.md)
 | type | props / use |
@@ -67,3 +78,26 @@ Every scene type the engine ships, with props (as given to the storyboard model)
 `axes {x,y}` + `corners` for quadrant, `hub` for flywheel, `actors` for sequence. Strokes draw on,
 labels focus-pull in, one accent on the focus item, slow sine.out push. Taxonomy and taste from
 cathrynlavery/diagram-design (MIT).
+
+## Editorial launch pack (measured from an image-model launch film)
+
+| scene | use | props |
+|---|---|---|
+| `label-flash` | cold open: one category word per image, 0.4-0.6 s each, corner marks enter as dashes | `items: [{label, src}]`, `size` |
+| `scatter-line` | a sentence scattered over a grid with image tiles, collapses into one line, optional scramble into the title | `text`, `tiles`, `then`, `size` |
+| `type-behind` | giant word rising from below, product cut-out in front of the type | `src`, `front`, `word`, `size`, `color` |
+| `frame-grow` | selected image frame widens while the word under it opens its tracking | `src`, `word`, `ghost`, `anchor` |
+
+Helpers on `fx`: `cornerMarks(parent)` (place / hide, dash entry) and `scramble(tl, el, from, to, t, rng)`.
+Rules: see `research/analysis/editorial-launch.md`.
+
+## Agent launch pack (measured from a 60 fps voice-AI agent launch film)
+
+| scene | use | props |
+|---|---|---|
+| `tool-swap` | integrations: static line, tool name and mesh gradient hard-cut together, optional orb close | `stem`, `items: [{name, colors}]`, `orb` |
+| `inline-orb` | a sentence with a gradient orb in its gap | `left`, `right`, `colors`, `size` |
+| `split-lockup` | line squeezes to the centre, bars split and reveal the wordmark, product name in the accent | `line`, `name`, `product` |
+
+Helper on `fx`: `squeeze(tl, el, t0, t1)` (clip from both sides with two dots riding the edges).
+Rules: see `research/analysis/agent-launch.md`.

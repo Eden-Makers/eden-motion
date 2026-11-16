@@ -131,6 +131,24 @@
   }
 
   // ======================================================================
+  // footage: a pre-rendered clip full bleed (a film cut from clips, AI footage, a Blender plate).
+  // props: { src?: "clips/x.mp4", mediaStart?: s }. No text of its own: the clip carries everything,
+  // its sounds come from clips/<clip>_events.json. Without src the scene is an empty placeholder
+  // (critique --file on a film assembled outside the storyboard).
+  // ======================================================================
+  EM.scene("footage", {
+    ownsCamera: true,
+    build(ctx) {
+      const p = ctx.props;
+      if (!p.src) return;
+      const v = mediaEl(ctx, { ...p, kind: p.kind || "video" }, "ft-media");
+      v.setAttribute("data-em-decor", "");
+      Object.assign(v.style, { position: "absolute", inset: "0", width: "100%", height: "100%", objectFit: "cover" });
+      ctx.cam.appendChild(v);
+    },
+  });
+
+  // ======================================================================
   // media-frame
   // ======================================================================
   EM.scene("media-frame", {

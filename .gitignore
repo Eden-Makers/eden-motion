@@ -14,3 +14,5 @@ __pycache__/
 *.pyc
 .claude/
 logs-*.txt
+.hyperframes/
+sfx-library/gen/

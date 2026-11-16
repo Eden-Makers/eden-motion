@@ -14,8 +14,9 @@ import path from "node:path";
 import { build } from "./build.mjs";
 import { readDomJson } from "../lib/browser.mjs";
 import { log, run, runLive, readJSON, probeDuration } from "../lib/util.mjs";
+import { HF } from "../lib/hf.mjs";
 
-const HF = ["-y", "hyperframes@0.8.72"];
+
 
 // Finish: what keeps a browser render from reading as a browser render. Temporal grain breaks the
 // banding in big soft gradients and the dead-clean vector edges; a soft vignette gives the frame a
@@ -124,6 +125,13 @@ export async function render(projectDir, { quality = "final", fps, shutter = 180
     run("ffmpeg", ["-y", "-v", "error", "-i", video, "-i", mix, "-map", "0:v", "-map", "1:a", ...venc, "-c:a", "aac", "-b:a", "256k", "-t", String(sb.duration), "-movflags", "+faststart", final]);
   } else {
     run("ffmpeg", ["-y", "-v", "error", "-i", video, ...(vf ? venc : ["-c:v", "copy"]), "-t", String(sb.duration), "-movflags", "+faststart", final]);
+  }
+  // the sounds-only cut next to it (no music): the film has to work without it, so listen to this one too
+  const sfxOnly = path.join(projectDir, "audio", "sfx_only.wav");
+  if (fs.existsSync(mix) && fs.existsSync(sfxOnly)) {
+    const alt = final.replace(/\.mp4$/, "_sfx_only.mp4");
+    run("ffmpeg", ["-y", "-v", "error", "-i", final, "-i", sfxOnly, "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "256k", "-t", String(sb.duration), "-movflags", "+faststart", alt]);
+    log(`sounds only -> ${alt}`);
   }
   log(`done -> ${final} (${probeDuration(final).toFixed(2)}s)`);
   return final;

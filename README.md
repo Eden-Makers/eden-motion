@@ -44,6 +44,9 @@ can stop at any step, edit, and continue.
   every cut, measures pops and dead air, scores against a harsh rubric, and appends a review log.
 - **Rebuild any reference 1:1.** `ref` measures a film's cuts and style, `compare` puts your render
   next to it with SSIM, `critique --against` scores both with the same rubric.
+- **Learn a style from many films.** `study <style> <films...>` measures a set of references and
+  keeps the ranges they agree on (shot lengths, cut rate, holds, polarity, look, beat sync). The
+  storyboard plans from those numbers and `critique` says which axes your film is off on.
 - **Any frame size.** 16:9 films and 1080x1920 reels from the same engine.
 - **Motion that never feels like software.** No linear moves by default: arrivals are focus pulls,
   drifts ease out into the cut, everything is deterministic and seekable.

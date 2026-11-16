@@ -139,7 +139,9 @@
       tl.set(el, { visibility: "visible" }, Math.max(0, start - tIn / 2));
       if (next) tl.set(el, { visibility: "hidden" }, end + tOut / 2);
       if (!def) {
-        inner.appendChild(EM.h("div", { class: "em-missing" }, `Missing scene type: ${s.type}`));
+        // decor: a placeholder is reported as a scene error by measure, never graded as on-screen text
+        inner.appendChild(EM.h("div", { class: "em-missing", "data-em-decor": "" }, `Missing scene type: ${s.type}`));
+        (EM.errors = EM.errors || []).push({ t: +start.toFixed(2), type: s.type, error: "missing scene type" });
         return;
       }
       const ctx = {
@@ -164,7 +166,7 @@
       } catch (err) {
         console.error(`scene ${s.id || i} (${s.type}) failed: ${err && err.message}`);
         (EM.errors = EM.errors || []).push({ scene: s.id || i, type: s.type, t: start, error: String((err && err.message) || err) });
-        inner.replaceChildren(EM.h("div", { class: "em-missing" }, `Scene ${s.type} failed: ${(err && err.message) || err}`));
+        inner.replaceChildren(EM.h("div", { class: "em-missing", "data-em-decor": "" }, `Scene ${s.type} failed: ${(err && err.message) || err}`));
       }
       EM._sceneEnd = null;
       // The camera never stops (measured on Burnwe: 0.4-2%/s zoom, 15-60 px/s truck, linear,
