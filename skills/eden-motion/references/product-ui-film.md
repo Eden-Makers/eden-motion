@@ -33,7 +33,31 @@ Twin rules that cost us a re-render each:
 - Keep real device captures for the shots where authenticity is the point (system behaviour,
   live answers from an assistant), and the twin for everything designed.
 
+What the twin must match (a dictation app launch film, 2026-11, each one cost a round):
+- **Your own product: the app's code is the source of truth.** Read its views and design tokens
+  (sizes, radii, colours, states, easing curves and durations) and rebuild them 1:1. An old or
+  remembered version of the UI (a pill with a dot that no longer exists) was rejected.
+- **Other apps 1:1 from a real screenshot.** When the product works inside Claude, Mail, Messages,
+  an IDE: put a fresh screenshot of that app next to the twin and match layout, type and colours.
+  Dark mode is fine. A home-made look-alike of someone else's app was rejected.
+- **Only real details.** Real model names and settings ("Opus 5.5 High", not a stale model), only
+  messages and states the product really shows (no invented "Inserted in Slack."), real numbers.
+- **One element per shot, big:** the focus element takes 40-70% of the frame width with calm space
+  around it. Glass and soft edges of light. Cursor moves, hover and press are events, each with a sound.
+- **The hero element is never cut by the frame** and never glued to the bottom edge. Floating UI
+  (a pill, a toast) sits in the lower third, sized up (1.7x in 16:9 worked) so it reads on a phone.
+- **A line meant to be read is not tracked:** centred, white, flat. Only text that belongs to the
+  scene rides the camera.
+- **Numbers need reading time too:** a stat on screen for 0.35 s was not read. Check the read time
+  of clips built outside the storyboard the same way (`measure`).
+
 ## 2. Depth: CSS 3D is soft, real 3D is Blender
+
+**Flat first, 3D as the accent.** Front-on 2D close-ups of the UI are the base of the film; real 3D
+(a tilt from flat into 3D, a 3D pill, a camera move through layered cards) is the accent, about a
+quarter of the shots. A film where everything was tilted and every app window floated in 3D was
+rejected; so was a quick 3D insert that did not read. Get into the close-ups with an elegant
+animated zoom (light parallax, a short blur), not a hard cut, and never through a whip pan.
 
 Chrome rasterizes CSS 3D layers at a low resolution: tilted text goes jagged even at 3840 px and
 2x supersampling.

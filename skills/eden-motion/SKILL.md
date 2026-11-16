@@ -122,8 +122,12 @@ promote it into `runtime/scenes/` and add it to `src/lib/catalog.mjs`.
 
 ## 5. Styles and AI footage
 - `--style burnwe` (default SaaS explainer), `--style launch` (Google/Lovable launch film), `--style higgsfield`
-  (white grid canvas, magenta + lime accents, flash frames, punch-ins, pixel reveals, AI footage as proof in
-  grid cells; see `research/analysis/higgsfield.md`). The style steers storyboard scene and transition choice.
+  (white grid canvas, magenta + lime accents, fast zoom-throughs with parallax, pixel reveals, AI footage as
+  proof in grid cells; see `research/analysis/higgsfield.md`; flash frames and punch-ins only with
+  `brief.flashFrames`). The style steers storyboard scene and transition choice.
+- Whatever the style: transitions are zooms, speed ramps, blur and parallax; a whip at most once per film
+  (storyboard turns later whips into zoom-throughs, critique fails more than two). House rules on top of
+  `references/style-dna.md`.
 - `--style relate` (Relate Studio crypto/fintech editorial, `research/analysis/relate.md`): metronome hard cuts
   on a fixed grid (`--cut-grid 1.0` = one cut every 24 frames at 24 fps; several shots share one VO line),
   polarity flip paper/black every shot, flat worlds (no bloom, no exposure ramp), forward-shutter motion blur,
@@ -169,6 +173,11 @@ Read `references/product-ui-film.md` first. Short version:
 - Never film the screen for designed shots. Rebuild the UI as an HTML twin (real layout, fonts,
   copy; every element its own layer) and animate it like After Effects layers. Screen recordings
   cropped into cards read as lazy. Measure every box at rest before any tween.
+- Your own app: rebuild it 1:1 from its code (views, design tokens, easing). Other apps the product
+  lives in: 1:1 from a fresh screenshot. Only real details (model names, messages, numbers).
+- Flat front-on 2D close-ups are the base, 3D the accent (about a quarter of the shots). One element
+  per shot at 40-70% of the width, the hero never cut by the frame, a line to be read not tracked.
+  Into the close-up with an elegant zoom and light parallax, not a cut, not a whip.
 - CSS 3D text goes soft: do z moves as 2D scale, real perspective in Blender from 8K twin plates.
 - CG device shots: `mglib.mat_screen_sequence` (screen plays the twin plates), `set_anamorphic`,
   `bias_glow` (backlight so the silhouette reads in the dark). 2560x1440 finals, 960x540 previews
@@ -287,7 +296,9 @@ node bin/eden-motion.mjs study <style> --against film.mp4     # or any video
 - Stills: Nano Banana Pro (Gemini 3 Pro Image) at 2K, always end prompts with "no text, no letters, no logos". Flux is banned. Log every prompt (done automatically in `prompts.log.jsonl`).
 - Video clips (optional, for `media-frame` kind video): Seedance 2.0 or Kling 3.0 via Higgsfield/fal/Magnific with the approved still as reference, render 3 s longer than the cut, "no music" in the prompt.
 - No em dashes or en dashes in any copy (the pipeline strips them; check anything you write).
-- Motion law: focus-pull arrivals, no overshoot, camera never still, one accent colour, sync to VO words.
+- Motion law: focus-pull arrivals, no overshoot, no pump or wiggle, camera never still, elegant zooms
+  instead of whips and hard cuts into the UI, never a black or flat colour frame, one accent colour,
+  sync to VO words, a sound on every event.
 - Token budget: one chat per phase with a handoff file, subagents report only at the end, QC with one small grid instead of many frames (`tools/token_usage.py` to check).
 - Deliver: `review <slug> --deliver <folder>` copies `renders/final.mp4` + the HTML review sheet to your delivery folder. Never send a film to a client before a human has approved it.
 
