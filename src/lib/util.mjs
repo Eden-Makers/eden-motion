@@ -73,6 +73,23 @@ export async function download(url, dest) {
   return dest;
 }
 
+export const parseTime = (x) => String(x).split(":").reduce((acc, v) => acc * 60 + parseFloat(v), 0);
+// "0:04-0:08", "4.2-6", "1:02:03-1:02:09" or a comma list of those -> [{a, b}] in seconds
+export function parseRanges(spec) {
+  const sec = (x) => String(x).split(":").reduce((acc, v) => acc * 60 + parseFloat(v), 0);
+  return String(spec || "")
+    .split(",")
+    .map((r) => r.trim())
+    .filter(Boolean)
+    .map((r) => {
+      const [a, b] = r.split(/\s*-\s*/);
+      const out = { a: sec(a), b: sec(b) };
+      if (!(out.b > out.a)) throw new Error(`bad time range "${r}": use start-end, e.g. 0:04-0:08`);
+      return out;
+    });
+}
+export const rangeTag = (r) => `${r.a.toFixed(2)}-${r.b.toFixed(2)}`.replace(/\./g, "p");
+
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Extract first JSON object/array from an LLM reply (tolerates ```json fences).

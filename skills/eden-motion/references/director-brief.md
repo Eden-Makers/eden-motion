@@ -57,6 +57,30 @@ runtime files are read-only for subagents (they report bugs, and write missing h
 their own file). Every subagent verifies its own chapter with a draft render of its window plus
 `critique` strips before handing back. The lead merges, then runs the full critique loop.
 
+### The clip contract (parallel agents that each hand back a clip)
+Worked on a 45 s launch film built from 14 clips by parallel agents (several of them in two aspect
+ratios). The clips only fit together because each brief carried this contract, word for word:
+- **Exact length:** `ceil(seconds * fps)` frames, planned in a table (`name:frames`). Render 2 s longer
+  than the cut; `tools/assemble.sh OUT.mp4 name:frames ...` trims or holds to the exact count and fails
+  when the total differs from the plan.
+- **Hand-over frames:** the brief states the first and the last frame of every clip (what is on screen,
+  where the camera is), so the clip before and the clip after continue the same move.
+- **Sound events:** next to `name.mp4` the agent writes `name_events.json` (`runtime/SCENE_API.md`,
+  "Sound events"): every press, pulse, arrival and transition, `t` from the clip's first frame. A clip
+  without events is not accepted. `eden-motion audio` sets the sound from these files.
+- **Bare clips:** no grain, no vignette, no lens finish, no music, no sound in the file (they go on the
+  whole film in `tools/lensfx.py`). H.264, yuv420p, tagged bt709, constant frame rate, no audio.
+- **One contact sheet:** the agent saves one sheet of its clip (a frame every 1/24 of its length), and
+  reports once, at the end. No waiting loops: four agents once left polling loops running for hours
+  with no render under them. A long job runs in the background and notifies on exit.
+- **Shared GPU:** Blender, DepthPro and Topaz go through `tools/gpu_lock.sh`; one GPU job at a time.
+- **Local first:** renders go to the local disk and are copied to the shared drive when finished (a
+  render written to a drive during a network drop was lost).
+- **Both aspect ratios:** the 9:16 clip is its own render from native vertical sources, not a crop;
+  its brief repeats the safe zone (nothing important above y 220, below y 1500, right of x 940, left of
+  x 90 at 1080x1920). `measure --video` checks it.
+- **Fixed text:** wording, case and line breaks come from the brief, never from the agent.
+
 ## Techniques worth reaching for
 - **Generate, then trace:** Seedance renders base shots for character acting and physics; the film
   redraws everything in code on top so the viewer only sees the code-drawn layer. Motion that is hard

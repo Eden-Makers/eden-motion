@@ -265,12 +265,15 @@ straight into DaVinci as separate tracks) and then sums them into `audio/mix.wav
 
 ## 5b. Rebuild a reference film 1:1 (or match a client's favourite)
 Read `references/relate-and-1to1.md` first. Short loop:
-1. `eden-motion ref <slug> <ref.mp4>`: measured cut list, metronome detection, style notes.
+1. `eden-motion ref <slug> <ref.mp4>`: measured cut list, metronome detection, style notes. A time code in a
+   note is a copy instruction: `ref ... --at 0:04-0:08` cuts that moment, puts every frame on a sheet and reads
+   it frame by frame (what moves, when, how fast) into `research/ref-style.md`.
 2. Per-second strips: `ffmpeg -i ref.mp4 -vf "fps=6,scale=320:-1" f_%04d.jpg` then tile 6x4; LOOK at every second.
 3. Write storyboard.json by hand on the measured cut frames (no VO needed), 3D shots as `blender:` props.
 4. `eden-motion blender <slug> --preview` while iterating, then without `--preview`.
 5. `render --draft`, `npx hyperframes snapshot --at t1,t2 --against ref.mp4` inside `comp/` (pairs render | reference).
-6. `render`, `compare <slug> ref.mp4` (side by side + pairs + SSIM), `critique <slug> --against ref.mp4`
+6. `render`, `compare <slug> ref.mp4` (side by side + pairs + SSIM; `--at 0:04-0:08 [--our-at 3.2]` puts that
+   moment of the reference over ours frame by frame with a per-frame SSIM), `critique <slug> --against ref.mp4`
    (same rubric on both; within 1 point on every axis = on par). SSIM is harsh on thin detail and DOF: read pairs.jpg.
 
 ## 5c. Learn a style from many films (`study`)
