@@ -126,6 +126,13 @@ export async function render(projectDir, { quality = "final", fps, shutter = 180
   } else {
     run("ffmpeg", ["-y", "-v", "error", "-i", video, ...(vf ? venc : ["-c:v", "copy"]), "-t", String(sb.duration), "-movflags", "+faststart", final]);
   }
+  // the sounds-only cut next to it (no music): the film has to work without it, so listen to this one too
+  const sfxOnly = path.join(projectDir, "audio", "sfx_only.wav");
+  if (fs.existsSync(mix) && fs.existsSync(sfxOnly)) {
+    const alt = final.replace(/\.mp4$/, "_sfx_only.mp4");
+    run("ffmpeg", ["-y", "-v", "error", "-i", final, "-i", sfxOnly, "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "256k", "-t", String(sb.duration), "-movflags", "+faststart", alt]);
+    log(`sounds only -> ${alt}`);
+  }
   log(`done -> ${final} (${probeDuration(final).toFixed(2)}s)`);
   return final;
 }

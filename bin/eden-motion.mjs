@@ -54,7 +54,14 @@ STEPS (in order)
                layers-3d (images=a.png,b.mp4 layout=stack|row|fan|floor move=dolly|orbit|tilt|float fstop=2.8 focus=i)
   audio        VO + music + ambience + layered SFX -> audio/stems/<layer>.wav + audio/mix.wav
                layers: vo, music, ambience, sfx_transitions, sfx_ui, sfx_foley, sfx_accents
-               [--sfx-source local|openverse (fresh CC0/CC-BY palette per film, picked by a code score)]
+               [--sfx-source local|house|openverse (house = "sfx search" over the studio library; openverse = fresh
+               CC0/CC-BY palette per film, picked by a code score)]
+               sound events: engine cues + clips/<clip>_events.json (click key type tick pop send pulse shimmer
+               glitch whoosh whip swell riser hit sub; "speech" low-passes the music) -> audio/coverage.json checks
+               every cut has a sound within 2 frames. Missing soft UI sounds are generated once into
+               sfx-library/gen (ElevenLabs, max 6 at a time) [--no-gen-sfx]
+               SFX bus on every sfx_* stem (low pass 7 kHz, high shelf -6 dB above 4.5 kHz, compressor)
+               [--sfx-bus off|default|"<ffmpeg filter>"]; always writes audio/sfx_only.wav (no music)
                [--judge-sfx (optional: Gemini listens to the top 4 candidates per sound; extra API calls)]
                [--ambience "rain on window"] [--no-openverse] [--no-music]
                [--stingers (accent thumps + logo sting composed in code in the music's key; needs uv)]
@@ -62,6 +69,7 @@ STEPS (in order)
   new flags    --format 16:9|4:5|1:1|9:16  --no-images (type, UI, diagrams and Blender plates only)
   sync         snap cuts within 120 ms of a music beat onto the beat (frame grid), then re-mix [--tol 0.12]
   remix        <slug> --music -3 --sfx +2 --ambience off --sfx-foley -4   rebalance stems -> mix.wav (no regeneration)
+               [--sfx-bus off|default|"<ffmpeg filter>"]; also rewrites audio/sfx_only.wav
   preview      build comp/ and open HyperFrames Studio preview
   render       --draft (fast, no blur) or final (true shutter motion blur, --slow 4..8) [--shutter-phase center|forward]
   qc           Gemini creative-director review -> renders/qc.json
@@ -160,7 +168,7 @@ async function step(name, dir, args) {
       await (await import("../src/steps/compare.mjs")).compare(dir, args._[2], { file: args.file });
       break;
     case "audio":
-      await (await import("../src/steps/audio.mjs")).audio(dir, { noMusic: !!args["no-music"], sfxSource: args["sfx-source"], ambience: args.ambience, openverse: !args["no-openverse"], stingers: args.stingers ? true : undefined, judgeSfx: args["judge-sfx"] ? true : undefined });
+      await (await import("../src/steps/audio.mjs")).audio(dir, { noMusic: !!args["no-music"], sfxSource: args["sfx-source"], ambience: args.ambience, openverse: !args["no-openverse"], stingers: args.stingers ? true : undefined, judgeSfx: args["judge-sfx"] ? true : undefined, sfxBus: args["sfx-bus"], generateSfx: !args["no-gen-sfx"] });
       break;
     case "sync":
       await (await import("../src/steps/sync.mjs")).sync(dir, { tol: args.tol ? +args.tol : undefined });
@@ -168,7 +176,7 @@ async function step(name, dir, args) {
     case "remix": {
       const { remix, LAYERS } = await import("../src/steps/audio.mjs");
       const gains = Object.fromEntries(Object.entries(args).filter(([k]) => k === "sfx" || LAYERS.includes(k.replace(/-/g, "_"))).map(([k, v]) => [k, v === "off" ? "off" : +v]));
-      remix(dir, gains);
+      remix(dir, gains, { sfxBus: args["sfx-bus"] });
       log(`remix: audio/mix.wav rebuilt from stems (${JSON.stringify(gains)}). Next: render (audio is muxed at the end, a --draft re-render is enough)`);
       break;
     }

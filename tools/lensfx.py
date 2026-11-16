@@ -15,7 +15,7 @@ fx.json: {"events": [{"t": 5.30, "attack": 0.28, "release": 0.30, "k": 1.0, "wha
   "fps" is optional (default: the input's frame rate). Without --fx only the permanent look applies.
 
 Looks (--look, every value can still be overridden by its own flag):
-  lens     default. The Hlas v7 finish: barrel 0.03, edge CA 0.006, swirl 0.035, soft edges 2.5 px,
+  lens     default, the finish approved on a dictation app launch film: barrel 0.03, edge CA 0.006, swirl 0.035, soft edges 2.5 px,
            grain 0.008 at 1.95 px (sizes are relative to 1080p, so 4K looks optically the same).
   classic  the earlier finish: no permanent lens character, grain 0.016 at 3 px.
   clean    no lens character and no grain: halation, vignette and the fast-move warp only.

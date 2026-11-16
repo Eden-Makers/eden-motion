@@ -214,12 +214,12 @@ straight into DaVinci as separate tracks) and then sums them into `audio/mix.wav
 | layer | what lands there | source |
 |---|---|---|
 | `vo` | narrator, compressed | ElevenLabs |
-| `music` | bed with fades, TURN dips, strongest hit shifted onto the logo (clean, not ducked) | ElevenLabs music |
+| `music` | bed with fades, TURN dips, strongest hit shifted onto the logo, low-pass automation (not ducked) | ElevenLabs music |
 | `ambience` | optional steady bed far under everything (`storyboard.ambience` or `--ambience "..."`) | Openverse |
-| `sfx_transitions` | whoosh on transitions and tone-change cuts | local library or Openverse |
-| `sfx_ui` | clicks, pops, typing beds, panned with the element | local library or Openverse |
+| `sfx_transitions` | whoosh on transitions and tone-change cuts, clip events whoosh / whip / swell | local, house or Openverse |
+| `sfx_ui` | clicks, pops, typing beds, panned with the element; clip events click / key / type / pop / send / pulse / shimmer / glitch | generated UI palette, local, house or Openverse |
 | `sfx_foley` | per-shot signature sounds: `scene.sound = {"q":"metal screw drop","at":0.4,"gain":-6}` | Openverse |
-| `sfx_accents` | riser + impact into the logo | local library or Openverse |
+| `sfx_accents` | riser + impact into the logo; clip events riser / hit / sub | local, house or Openverse |
 | `stingers` | `--stingers`: accent thumps + a logo sting composed in code in the music's detected key | audio-as-code (uv) |
 
 - `--sfx-source openverse` swaps the curated library for a fresh palette per film. Every Openverse
@@ -233,6 +233,24 @@ straight into DaVinci as separate tracks) and then sums them into `audio/mix.wav
 - CC-BY sounds are listed in `audio/CREDITS.md` and must go into the description or end credits.
 - `remix <slug> --music -3 --sfx-foley -4 --ambience off` rebuilds only the mix from stems (gains
   persist in `audio/mix.json`; `--sfx` moves all four SFX layers). Music ducks under the VO here.
+- Sounds everywhere, and the film has to work without music: every audio run also writes
+  `audio/sfx_only.wav` (VO + SFX + ambience) and `render` writes `final_sfx_only.mp4` next to the
+  final. Listen to that one, not only to the meters: missing sounds and a trailer "horn" were found
+  by ear on a launch film, never by a check.
+- Every picture event has a sound. Pre-rendered clips bring `clips/<clip>_events.json`
+  (`runtime/SCENE_API.md`, "Sound events"); `audio/coverage.json` checks that every cut has a sound
+  within 2 frames, fills a soft whoosh where none is within 0.25 s (`storyboard.cutSounds: false`
+  turns that off) and warns about sounds that are off.
+- SFX bus on the sum of every `sfx_*` stem, on by default: two low passes (7 and 9 kHz), high shelf
+  -6 dB above 4.5 kHz, a fast compressor. Raw SFX were "mega sharp". `--sfx-bus off|default|"<ffmpeg
+  filter>"` on `audio` or `remix`; the stems stay raw.
+- Music low-pass automation: the music goes under water (420 Hz, dry and filtered copies blended)
+  in its dips, under on-screen speech (clip events `speech` with `dur`), in `storyboard.musicLowpass
+  [{from, to, amount}]` and, with `storyboard.musicLowpassUnderVo`, under the VO lines.
+- Sound palette roles live in `src/lib/sfxpalette.mjs`. Soft UI sounds are generated once with
+  ElevenLabs sound-generation (max 6 at a time) into `sfx-library/gen/<role>-<n>.mp3`, a local,
+  gitignored cache: seed it by hand with approved sounds. `--sfx-source house` takes whooshes, hits
+  and risers from the studio library (`sfx search`). No trailer slams with brass, no tonal drones.
 - Foley is for physical events on screen only (objects landing, metal, glass, paper). Text and UI
   shots already get whooshes, clicks and pops; do not stack foley on them.
 
