@@ -14,25 +14,95 @@ import { log, warn, readJSON, writeJSON, run } from "../lib/util.mjs";
 const RUBRIC = ["hook", "phone_readability", "motion", "variety", "composition", "brand", "sound_sync"];
 
 // Per-frame luma difference at 160x90: cheap, deterministic, good enough to find pops and dead air.
+// Also per frame: mean luma, luma spread (a flat colour field has almost none), and the global
+// horizontal shift against the previous frame from column profiles (whip pans).
+const PW = 160, PH = 90, MAXSHIFT = 48;
 function frameDiffs(file) {
-  const W = 160, H = 90;
+  const W = PW, H = PH;
   const r = spawnSync("ffmpeg", ["-v", "error", "-i", file, "-vf", `scale=${W}:${H},format=gray`, "-f", "rawvideo", "-"], { maxBuffer: 2 ** 31 });
   const buf = r.stdout, n = Math.floor(buf.length / (W * H)), d = new Float32Array(Math.max(0, n - 1)), luma = new Float32Array(n);
+  const spread = new Float32Array(n), shift = new Float32Array(n), fit = new Float32Array(n);
+  let prev = null;
   for (let k = 0; k < n; k++) {
-    let s = 0, m = 0;
+    let s = 0, m = 0, m2 = 0;
+    const col = new Float32Array(W);
     for (let i = 0; i < W * H; i++) {
       const v = buf[k * W * H + i];
       m += v;
+      m2 += v * v;
+      col[i % W] += v / H;
       if (k) s += Math.abs(v - buf[(k - 1) * W * H + i]);
     }
     luma[k] = m / (W * H);
+    spread[k] = Math.sqrt(Math.max(0, m2 / (W * H) - luma[k] * luma[k]));
     if (k) d[k - 1] = s / (W * H);
+    if (prev) {
+      // best horizontal shift of the column profile (mean-removed), and how much better it fits than no shift
+      const mc = col.reduce((a, b) => a + b, 0) / W, mp = prev.reduce((a, b) => a + b, 0) / W;
+      const sad = (dx) => {
+        let e = 0, c = 0;
+        for (let x = Math.max(0, dx); x < Math.min(W, W + dx); x++) (e += Math.abs(col[x] - mc - (prev[x - dx] - mp))), c++;
+        return c > W / 3 ? e / c : Infinity;
+      };
+      let best = 0, be = sad(0);
+      const e0 = be;
+      for (let dx = -MAXSHIFT; dx <= MAXSHIFT; dx++) {
+        const e = sad(dx);
+        if (e < be) (be = e), (best = dx);
+      }
+      shift[k] = best;
+      fit[k] = e0 > 1e-6 ? 1 - be / e0 : 0;
+    }
+    prev = col;
   }
-  return { d, luma, n };
+  return { d, luma, spread, shift, fit, n };
+}
+
+// Spans of consecutive frames where pred(i) holds: [{t0, t1, frames}]
+function spans(n, pred, fps) {
+  const out = [];
+  let a = -1;
+  for (let i = 0; i <= n; i++) {
+    if (i < n && pred(i)) a < 0 && (a = i);
+    else if (a >= 0) (out.push({ t0: +(a / fps).toFixed(3), t1: +(i / fps).toFixed(3), frames: i - a }), (a = -1));
+  }
+  return out;
+}
+
+// Whip pans: the whole frame slides sideways faster than ~1.6 frame widths per second for 3+ frames
+// in one direction, and the shift explains the change (a cut or a zoom does not fit a shift).
+export const LIMITS = { whipSpeed: 1.6, whipFrames: 3, whipFit: 0.35, whipMax: 2, darkLuma: 12, darkFrames: 2, flatSpread: 2.0, flatSeconds: 0.3 };
+function whips(shift, fit, fps) {
+  const fast = (i) => Math.abs(shift[i]) * fps / PW >= LIMITS.whipSpeed && fit[i] >= LIMITS.whipFit;
+  const out = [];
+  // runs of 2+ fast frames first; the whipFrames minimum applies after merging
+  let a = -1, dir = 0;
+  for (let i = 1; i <= shift.length; i++) {
+    const ok = i < shift.length && fast(i) && (a < 0 || Math.sign(shift[i]) === dir);
+    if (ok && a < 0) (a = i), (dir = Math.sign(shift[i]));
+    else if (!ok && a >= 0) {
+      if (i - a >= 2) {
+        let peak = 0;
+        for (let j = a; j < i; j++) peak = Math.max(peak, Math.abs(shift[j]) * fps / PW);
+        out.push({ t: +(a / fps).toFixed(3), frames: i - a, dir: dir > 0 ? "right" : "left", peakWidthsPerSec: +peak.toFixed(2) });
+      }
+      a = -1;
+      if (i < shift.length && fast(i)) (a = i), (dir = Math.sign(shift[i]));
+    }
+  }
+  // one whip with a frame or two that did not fit (motion blur, a flash) is still one whip
+  return out.reduce((acc, w) => {
+    const p = acc[acc.length - 1];
+    if (p && p.dir === w.dir && w.t - (p.t + p.frames / fps) <= 2.5 / fps) {
+      p.frames = Math.round((w.t - p.t) * fps) + w.frames;
+      p.peakWidthsPerSec = Math.max(p.peakWidthsPerSec, w.peakWidthsPerSec);
+    } else acc.push({ ...w });
+    return acc;
+  }, []).filter((w) => w.frames >= LIMITS.whipFrames);
 }
 
 export function measure(file, sb, { fps = 60, cues = [] } = {}) {
-  const { d, luma } = frameDiffs(file);
+  const { d, luma, spread, shift, fit, n } = frameDiffs(file);
   // intended cuts: scene boundaries plus cuts a scene declares inside itself (EM.cues type "cut")
   const cutTimes = [...sb.scenes.slice(1).map((s) => s.start), ...cues.filter((c) => c.type === "cut").map((c) => c.t)];
   const nearCut = (t) => cutTimes.some((c) => Math.abs(c - t) < 2.5 / fps);
@@ -60,6 +130,11 @@ export function measure(file, sb, { fps = 60, cues = [] } = {}) {
   for (let i = 0; i < Math.min(d.length, win); i++) early += d[i];
   const hook = { firstFrameLuma: +luma[0].toFixed(1), motionFirstHalfSecond: +(early / win).toFixed(3) };
   const loop = sb.loop ? { seamDiff: +Math.abs(luma[0] - luma[luma.length - 1]).toFixed(2) } : null;
+  // whole film, not only the first frame: no black screen anywhere, no flat colour field longer than
+  // 0.3 s (a full green end card was rejected), whip pans at most once or twice per film
+  const dark = spans(n, (i) => luma[i] < LIMITS.darkLuma, fps).filter((s) => s.frames >= LIMITS.darkFrames);
+  const flat = spans(n, (i) => luma[i] >= LIMITS.darkLuma && spread[i] < LIMITS.flatSpread, fps).filter((s) => s.t1 - s.t0 > LIMITS.flatSeconds);
+  const whipList = whips(shift, fit, fps);
   // reads (storyboard contract): each read needs held time and must not overlap the next one
   const readIssues = [];
   sb.scenes.forEach((s) => {
@@ -77,7 +152,10 @@ export function measure(file, sb, { fps = 60, cues = [] } = {}) {
   if (hook.firstFrameLuma < 4 && hook.motionFirstHalfSecond < 0.2) fails.push("opens on a still black frame (hook must land in the first 2 s)");
   if (loop && loop.seamDiff > 3) fails.push(`loop seam jumps (luma diff ${loop.seamDiff})`);
   if (readIssues.length) fails.push(`reads: ${readIssues.slice(0, 6).join("; ")}`);
-  return { pops, strayPops, dead, longestGap: gap, hook, loop, readIssues, fails };
+  if (dark.length) fails.push(`black screen at ${dark.slice(0, 6).map((s) => `${s.t0}-${s.t1} s`).join(", ")} (never black: a lit world, a parallax background)`);
+  if (flat.length) fails.push(`flat colour field at ${flat.slice(0, 6).map((s) => `${s.t0}-${s.t1} s`).join(", ")} (no full-frame colour plates)`);
+  if (whipList.length > LIMITS.whipMax) fails.push(`${whipList.length} whip pans (${whipList.slice(0, 8).map((w) => `${w.t} s`).join(", ")}): at most one per film, move with zooms, ramps, blur and parallax`);
+  return { pops, strayPops, dead, longestGap: gap, hook, loop, readIssues, dark, flat, whips: whipList, fails };
 }
 
 function sheets(file, sb, renders, pops) {
@@ -105,6 +183,7 @@ function sheets(file, sb, renders, pops) {
 
 export async function critique(projectDir, { file, noAi = false } = {}) {
   const renders = path.join(projectDir, "renders");
+  const explicitFile = !!file;
   if (file && !fs.existsSync(file) && fs.existsSync(path.join(projectDir, file))) file = path.join(projectDir, file); // --file relative to the project
   file = file || ["final.mp4", "draft.mp4"].map((f) => path.join(renders, f)).find((f) => fs.existsSync(f));
   if (!file || !fs.existsSync(file)) throw new Error("No render found. Run render --draft first.");
@@ -120,8 +199,15 @@ export async function critique(projectDir, { file, noAi = false } = {}) {
   const cm = await measureComp(projectDir, { video: file }).catch((e) => (warn(`measure skipped: ${e.message}`), null));
   if (cm) {
     writeJSON(path.join(renders, "measure.json"), cm);
-    m.fails.push(...cm.fails);
-    m.composition = cm.summary;
+    if (explicitFile && cm.missingTypes?.length) {
+      // --file on a film the storyboard only labels (cut from clips outside the pipeline): the
+      // composition does not describe this file, so its text checks would grade placeholders
+      warn(`composition does not describe ${path.basename(file)} (scene types not in the runtime: ${cm.missingTypes.join(", ")}): text checks skipped, graded from the frames only`);
+      m.composition = { skipped: "storyboard scene types not in the runtime", missingTypes: cm.missingTypes };
+    } else {
+      m.fails.push(...cm.fails);
+      m.composition = cm.summary;
+    }
   }
   // a measured style: how far this render is from its reference films, axis by axis (advice for
   // the director, not a fail: a film may leave the references' range on purpose)
@@ -138,7 +224,7 @@ export async function critique(projectDir, { file, noAi = false } = {}) {
     }
   }
   const sh = sheets(file, sb, renders, m.strayPops);
-  log(`metrics: ${m.pops.length} pops (${m.strayPops.length} away from cuts), ${m.dead.length} dead half-seconds, longest gap ${m.longestGap.len}s`);
+  log(`metrics: ${m.pops.length} pops (${m.strayPops.length} away from cuts), ${m.dead.length} dead half-seconds, longest gap ${m.longestGap.len}s, ${m.whips.length} whip pans, ${m.dark.length} black and ${m.flat.length} flat colour spans`);
   m.fails.forEach((f) => warn(f));
 
   let ai = null;
@@ -148,9 +234,10 @@ export async function critique(projectDir, { file, noAi = false } = {}) {
       `You are a harsh motion director, not a proud author. Review this ${sb.duration.toFixed(1)} s film for ${brand.name || "the brand"}.
 Attached: the video, a contact sheet (2 fps), a phone test (1 fps at 360 px wide) and strips of 12 consecutive frames around every cut.
 Calibrated scale, use it literally: 5 = student work, 6 = template / looks like a stock HTML or Remotion render, 7 = professional, 8 = agency (Burnwe, Relate, Google launch films), 9 = award shortlist. Anything that reads as an AI template or a default browser animation caps that axis at 6 and is a critical problem.
-Score 1-10 each: hook (first 2 s) · phone_readability (text at 360 px) · motion (springs, overlap, no linear slides, no dead frames) · variety (a new thing every 2-4 s) · composition · brand (one accent, real product UI, correct logo) · sound_sync (hits land on cuts and actions).
-Hunt specifically for: text overlapping during swaps, anything sliding instead of easing, corner labels and frame borders, centered title on a gradient, everything fading in, blurry scaled text, glow on UI chrome, generic particle bursts, a beat with nothing happening, a flash or stray frame at a cut, a stutter at a loop seam, invented UI where the real product should be.
-Measured by the pipeline (trust these numbers): ${JSON.stringify({ strayPops: m.strayPops, dead: m.dead, longestGap: m.longestGap, hook: m.hook })}
+Score 1-10 each: hook (first 2 s) · phone_readability (text at 360 px) · motion (one continuous camera, elegant fast zooms with parallax, speed ramps, blur out and blur in, expo.out arrivals with no overshoot, overlap, no linear slides, no dead frames) · variety (a new thing every 2-4 s) · composition · brand (one accent, real product UI, correct logo) · sound_sync (hits land on cuts and actions, every press and transition has a sound).
+Hunt specifically for: text overlapping during swaps, anything sliding instead of easing, corner labels and frame borders, centered title on a gradient, everything fading in, blurry scaled text, glow on UI chrome, generic particle bursts, a beat with nothing happening, a flash or stray frame at a cut, a stutter at a loop seam, invented UI where the real product should be, whip pans used as the default transition, a hard cut where a zoom into the UI should carry the eye, a black screen or a full-frame flat colour anywhere.
+Fixes you may NOT propose (the director rejected them): springs or any overshoot or bounce, wiggle on arrival, a pump or punch-in on a word, flash frames, a slow scale drift on text, whip pans (at most one per film), 3D tilting everything. Propose instead: a smooth fast zoom with light parallax, a speed ramp, blur out and blur in, a parallax background, expo.out with a 12-20 px blur settling to 0, a flat front-on 2D close-up, a sound on the event.
+Measured by the pipeline (trust these numbers): ${JSON.stringify({ strayPops: m.strayPops, dead: m.dead, longestGap: m.longestGap, hook: m.hook, whips: m.whips, blackSpans: m.dark, flatColourSpans: m.flat })}
 Scenes: ${JSON.stringify(sb.scenes.map((s) => ({ id: s.id, type: s.type, t: `${s.start.toFixed(2)}-${(s.start + s.duration).toFixed(2)}` })))}
 Return ONLY JSON: {"scores":{${RUBRIC.map((k) => `"${k}":1-10`).join(",")}},"problems":[{"t":"mm:ss.s","scene":"id","problem":"concrete","fix":"specific change with numbers (px, s, ease, colour), never 'make it better'"}] (the 3 worst, worst first; at least one aimed at a moment that would make a motion designer stop scrolling),"keep":["what works, mm:ss"]}`,
       { model: MODELS.vision, parts, temperature: 0.3 }

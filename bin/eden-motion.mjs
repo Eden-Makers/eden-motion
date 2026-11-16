@@ -74,7 +74,10 @@ STEPS (in order)
   render       --draft (fast, no blur) or final (true shutter motion blur, --slow 4..8) [--shutter-phase center|forward]
   qc           Gemini creative-director review -> renders/qc.json
   critique     watch-your-own-frames loop: contact/phone/strip sheets + measured pops, dead air,
-               variety gaps, hook; harsh 1-10 rubric; appends renders/review_log.md [--no-ai] [--file]
+               variety gaps, hook, whip pans (max 2), black frames and flat colour fields anywhere;
+               harsh 1-10 rubric (fixes never springs, overshoot, pumps, flash frames); appends
+               renders/review_log.md [--no-ai] [--file: a film the storyboard only labels is graded
+               from its frames, the composition text checks are skipped]
                [--against ref.mp4] scores the reference with the same rubric and prints the delta
   measure      frame-accurate checks of the composition, no render needed: reading time per text block,
                text clipped by the frame or outside the safe margin, small text, ease tails that freeze

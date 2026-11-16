@@ -378,6 +378,10 @@ export async function measureComp(projectDir, { fps, ink = true, video = null } 
 
   const sev = (arr) => arr.filter((x) => x.severity === "fail");
   const fails = [];
+  // scene types the runtime does not know (a film cut from clips outside the storyboard labels its
+  // shots "ui", "3d" ...) are reported apart from scenes that threw: critique --file drops both the
+  // fails and the text checks then, because the composition does not describe that file
+  const missingTypes = [...new Set(result.sceneErrors.filter((e) => e.error === "missing scene type").map((e) => e.type))];
   if (result.sceneErrors.length) fails.push(`scenes that failed to build: ${result.sceneErrors.map((e) => `${e.t}s ${e.type}: ${e.error}`).join("; ")}`);
   if (sev(result.reads).length) fails.push(`text not readable: ${sev(result.reads).slice(0, 4).map((r) => `${r.t}s "${r.text}" ${r.issue || `${r.hold}/${r.need}s`}`).join("; ")}`);
   if (sev(result.frame).length) fails.push(`text clipped by the frame edge: ${sev(result.frame).slice(0, 4).map((r) => `${r.t}s "${r.text}"`).join("; ")}`);
@@ -391,7 +395,7 @@ export async function measureComp(projectDir, { fps, ink = true, video = null } 
     tails: { fail: sev(result.tails).length, warn: result.tails.length - sev(result.tails).length },
     ink: result.ink.length ? { windows: result.ink.length, judderY: Math.max(...result.ink.map((r) => r.judderY)), judderX: Math.max(...result.ink.map((r) => r.judderX)), shape: Math.max(...result.ink.map((r) => r.shape)), fail: sev(result.ink).length } : null,
   };
-  return { summary, fails, ...result };
+  return { summary, fails, missingTypes, ...result };
 }
 
 export async function measure(projectDir, opts = {}) {
