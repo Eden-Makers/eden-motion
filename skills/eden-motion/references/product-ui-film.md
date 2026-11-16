@@ -79,13 +79,21 @@ too fast once retimed. What worked on an Android emulator:
 
 ## 5. Post that sells the motion
 
-`tools/lensfx.py IN OUT --fx fx.json` (deterministic, any resolution and fps):
-- Barrel distortion with zoom compensation plus radial chromatic aberration, keyed to the fast
-  moves listed in `fx.json` (`{"t": 5.3, "attack": 0.28, "release": 0.3, "k": 1.0}`): k = 1 is ~6%
-  edge displacement at the peak. Tie events to speed ramps, whips and zoom-throughs only.
+`tools/lensfx.py IN OUT --fx fx.json --codec hevc10` (deterministic, any resolution and fps), on the
+whole film only (grain, vignette and lens never go into single clips):
+- A permanent lens character, `--look lens` (default): barrel 0.03, lateral CA growing to the edges
+  0.006, swirl 0.035 rad, soft edges 2.5 px. It reads like real glass, not like a filter. `--look
+  classic` is the old finish without it, `--look clean` drops lens and grain.
+- On top, barrel and aberration keyed to the fast moves listed in `fx.json` (`{"t": 5.3, "attack":
+  0.28, "release": 0.3, "k": 1.0}`): k = 1 is ~6% edge displacement at the peak. Tie events to
+  speed ramps, zoom-throughs and cut warps only.
 - Halation on highlights (quarter-res blur, warm tint), a soft static vignette.
-- Grain generated at **1/3 resolution** and upscaled. Per-pixel grain pushed a 4K encode to
-  143 Mb/s; soft grain plus `maxrate` caps landed at 61.8 (4K) and 16.7 (1080p) Mb/s.
+- Fine grain: strength 0.008, particle 1.95 px relative to 1080p (`--grain`, `--grain-px`), so 4K
+  reads optically the same.
+- Masters are never bitrate capped (a 16 / 60 Mbit/s cap was visible in the grain and gradients and
+  the client called the finals "heavily compressed"). Deliver `--codec hevc10` (libx265 main10, two
+  passes, 160 Mbit/s, tag hvc1, bt709) or `--codec prores` (422 HQ). `--also WxH:path` writes H.264
+  phone previews, capped at 16 / 30 / 60 Mbit/s unless `--also-uncapped`.
 
 ## 6. Music-led edit
 

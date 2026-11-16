@@ -84,7 +84,7 @@ ducks music under VO with a sidechain compressor and normalises to -14 LUFS.
 | Tilted UI text jagged even at 3840 px | Chrome rasterizes CSS 3D layers at low resolution. z moves as 2D scale about the vanishing point; real perspective in Blender from flat 8K plates (`references/product-ui-film.md`). |
 | First frame of a heavy UI scene renders black | capture worker warm-up race; render that composition with `--workers 1`. |
 | A zero renders slashed | `tabular-nums` selects the font's `zero.tf`; use a fixed-width box per digit instead. |
-| 4K encode at 140+ Mb/s | per-pixel grain. Generate grain at 1/3 resolution and cap `maxrate` (`tools/lensfx.py`). |
+| 4K encode at 140+ Mb/s | per-pixel grain. Fine grain is sized relative to 1080p (`--grain-px`), and the master is delivered as H.265 main10 at 160 Mbit/s (`tools/lensfx.py --codec hevc10`). A `maxrate` cap on the master (16 / 60 Mbit/s) showed in the grain and the gradients: caps only on phone previews. |
 | Retimed device capture hitches | the recorder skipped beats; slow the app clock 6-10x while recording and fill repeats with optical-flow midframes (`tools/retime.py`), never a crossfade. |
 | A loop over `$NAMES` runs once | zsh does not word-split; run shell loops with `bash -c`. |
 | A contact sheet seems to show a clipped element | the sheet's label box covers the frame corner; label in a strip above each tile, check the raw frame. |

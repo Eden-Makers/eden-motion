@@ -174,8 +174,11 @@ Read `references/product-ui-film.md` first. Short version:
   `bias_glow` (backlight so the silhouette reads in the dark). 2560x1440 finals, 960x540 previews
   for style approval first.
 - Real captures: slow the app clock R times, then `tools/retime.py` (optical-flow gap fill).
-- Finish: `tools/lensfx.py` (barrel + aberration keyed to fast moves in `fx.json`, halation,
-  soft grain at 1/3 res, bitrate caps).
+- Finish: `tools/lensfx.py` on the whole film only, never per clip. Default `--look lens` is a
+  permanent lens character (barrel 0.03, edge CA 0.006, swirl 0.035, soft edges 2.5 px) that grows on
+  the fast moves in `fx.json`, plus halation and fine grain (0.008 at 1.95 px, relative to 1080p).
+  Masters have no bitrate cap: deliver `--codec hevc10` (H.265 main10, two passes, 160 Mbit/s, hvc1)
+  or `--codec prores`. Only `--also` phone previews stay capped.
 - Every film also gets a 9:16 version that keeps the composition: native portrait renders for the
   twin, `mglib.vertical_reframe` for Blender, eased crop keyframes with no slivers at rest for captures.
 - Long multi-agent runs: most of the cost is re-reading context (section 10 of the reference). Fresh
@@ -183,7 +186,8 @@ Read `references/product-ui-film.md` first. Short version:
   `tools/token_usage.py` shows where it went.
 ```bash
 uv run --no-project --with numpy==2.2.6 --with opencv-python-headless==4.11.0.86 \
-  python tools/lensfx.py renders/final.mp4 renders/final_lens.mp4 --fx fx.json --audio audio/mix.wav
+  python tools/lensfx.py renders/final.mp4 renders/final_master.mp4 --fx fx.json --audio audio/mix.wav \
+    --codec hevc10 --also 1920x1080:renders/final_1080_preview.mp4
 uv run --no-project --with numpy==2.2.6 --with opencv-python-headless==4.11.0.86 \
   python tools/retime.py capture.webm 8 clip_60fps.mp4 --start 1.0
 ```
