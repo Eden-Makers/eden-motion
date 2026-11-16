@@ -61,7 +61,7 @@ export async function render(projectDir, { quality = "final", fps, shutter = 180
   const sb = readJSON(path.join(projectDir, "storyboard.json"));
   fps = fps || sb.fps || 30;
   const phase = shutterPhase || sb.shutterPhase || "center";
-  const R = 2 * fps; // capture rate: an integer number of sub-frames per output frame at 24, 25 or 30 fps
+  const R = 2 * fps; // capture rate: an integer number of sub-frames per output frame (24, 25, 30 and 60 fps checked; 60 fps captures at 120)
   const draft = quality === "draft";
   // any clip (media-frame video, clip-3d Blender plate) needs the uniform stretch: video elements
   // follow EM_SLOW, not the adaptive per-segment time map
