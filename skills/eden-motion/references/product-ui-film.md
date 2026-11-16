@@ -130,7 +130,14 @@ whole film only (grain, vignette and lens never go into single clips):
 ## 7. Vertical 9:16 versions (Reels, Shorts)
 
 Keep the composition (subject scale and placement, the same move), never a lazy centre crop. Keep
-essential detail out of the top 12% and the bottom 22% (the platform UI covers them).
+essential detail out of the top 12% and the bottom 22% (the platform UI covers them). At 1080x1920 that
+is nothing important above y 220 or below y 1500, right of x 940 (Instagram and TikTok buttons) or left
+of x 90. A launch film for a dictation app was sent back for content under the platform UI.
+- AI footage for the vertical is generated natively in 9:16 with the same references (references, not
+  start frames, so the second ratio is a fresh take of the same look). Never reuse a 16:9 clip: one
+  horizontal shot or letterbox in a vertical film (0:15 on that project) breaks it.
+- The twin is re-laid out for portrait: narrower windows (about 760 px), pills 2.6-3.6x, titles on
+  several lines, the crop following the action.
 
 | source | method |
 |---|---|
@@ -181,3 +188,18 @@ step grows with the length of the chat, not with the size of the step.
 
 Check it any time with `python3 tools/token_usage.py --hours 24` (per session and subagent, token
 type, tool, images, hour).
+
+## 11. Speaker plus screen edits (YouTube, reels)
+
+From the GedyHome (TV OS) YouTube cut and its reels, reviewed through four versions (2026-11-02): v3
+was "better, but still a lot of work": the picture and the screens were too static, with no zoom in
+and out, no blur, no cutaways and no animation of the video and the screen.
+- Move the picture with what is being explained: a zoom onto the detail the speaker names, a return to
+  the whole window, a punch-in on the person for a beat (a face punch-in is fine, a pump on a word is
+  not), short blur transitions between them. Animate the screen layer too (it is a layer, not a recording).
+- Cut it shorter and denser: the main video went down 15% in the next round.
+- Keep the sounds and pop-ups the director praised and add a sound to every new move.
+- Checks that found real problems: head crops too tight, a title across the hair, an orange cast on
+  skin and shirt next to the TV (grade it out), a clip of the wrong board or file shown by mistake.
+- Study the references denser than every 4th frame (Gemini on the clip, then frame by frame on the
+  moments that matter); a time code in the note is a copy instruction, not a hint.
