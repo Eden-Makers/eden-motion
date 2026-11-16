@@ -44,6 +44,7 @@ STEPS (in order)
   script       write script.json (narration lines + shot ideas)
   vo           ElevenLabs voiceover with word timings -> vo.json, audio/vo.mp3
   ref          <slug> <url|file>...  analyse reference film(s) -> research/ref-style.md (storyboard copies its style)
+               [--at 0:04-0:08[,0:12-0:15]: also cut those moments, every frame on a sheet, and read them frame by frame]
   storyboard   map lines to scenes/props/transitions -> storyboard.json  [--variants 3: product/type/metaphor-led]
   stills       one settled frame per scene + Gemini art-director review, BEFORE rendering motion [--variants]
   pick         <slug> <n>  make storyboard.v<n>.json the storyboard
@@ -87,6 +88,8 @@ STEPS (in order)
                (shot lengths, rhythm, metronome grid, flashes, events per second, holds, polarity flips,
                cuts on the beat, look); <style> --against <slug|video> scores a film against it per axis
   compare      <slug> <ref.mp4> side by side + frame pairs + SSIM vs a reference film [--file]
+               [--at 0:04-0:08 [--our-at 3.2]: that moment of the reference over ours, frame by frame (reference row
+               above, ours below) with a per-frame SSIM; --our-at is where it starts in our film, default the same time]
   review       HTML review sheet (frames per shot, VO, props, prompts, QC) [--deliver <drive folder>]
   build        only build comp/index.html from storyboard.json
   setup        first-run wizard: installs deps + skill links, asks for missing keys (masked, saved to .env),
@@ -156,7 +159,7 @@ async function step(name, dir, args) {
       break;
     }
     case "ref":
-      await (await import("../src/steps/ref.mjs")).ref(dir, args._.slice(2));
+      await (await import("../src/steps/ref.mjs")).ref(dir, args._.slice(2), { at: typeof args.at === "string" ? args.at : undefined });
       break;
     case "note":
       await (await import("../src/steps/note.mjs")).note(dir, args._.slice(2).join(" "));
@@ -168,7 +171,7 @@ async function step(name, dir, args) {
       await (await import("../src/steps/blender.mjs")).blender(dir, { preview: !!args.preview, force: !!args.force });
       break;
     case "compare":
-      await (await import("../src/steps/compare.mjs")).compare(dir, args._[2], { file: args.file });
+      await (await import("../src/steps/compare.mjs")).compare(dir, args._[2], { file: args.file, at: typeof args.at === "string" ? args.at : undefined, ourAt: typeof args["our-at"] === "string" ? args["our-at"] : undefined });
       break;
     case "audio":
       await (await import("../src/steps/audio.mjs")).audio(dir, { noMusic: !!args["no-music"], sfxSource: args["sfx-source"], ambience: args.ambience, openverse: !args["no-openverse"], stingers: args.stingers ? true : undefined, judgeSfx: args["judge-sfx"] ? true : undefined, sfxBus: args["sfx-bus"], generateSfx: !args["no-gen-sfx"] });

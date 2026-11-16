@@ -204,6 +204,7 @@ export async function critique(projectDir, { file, noAi = false } = {}) {
       // composition does not describe this file, so its text checks would grade placeholders
       warn(`composition does not describe ${path.basename(file)} (scene types not in the runtime: ${cm.missingTypes.join(", ")}): text checks skipped, graded from the frames only`);
       m.composition = { skipped: "storyboard scene types not in the runtime", missingTypes: cm.missingTypes };
+      m.fails.push(...(cm.videoFails || [])); // what was measured on the frames still counts
     } else {
       m.fails.push(...cm.fails);
       m.composition = cm.summary;

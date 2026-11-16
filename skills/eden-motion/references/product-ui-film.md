@@ -101,6 +101,23 @@ too fast once retimed. What worked on an Android emulator:
 5. A demo-only in-app camera (zoom + pan via a broadcast intent) lets the device render the
    close-up natively instead of a blown-up crop.
 
+## 4b. AI footage: cadence, ramps, 4K
+
+From a 45 s launch film with live-action Seedance plates (speed ramps, 60 fps, 4K):
+1. **Measure the cadence of every clip** (`tools/cadence.py measure clip.mp4`). Seedance 1080p is 30 fps
+   content decimated to 24 fps: the step after global frame g with g % 4 == 3 is double. Another clip had
+   a seam once per second. Never assume the pattern. A ramp or a 60 fps conversion of an unrepaired clip
+   keeps the stutter.
+2. **Repair and interpolate** (`cadence.py fix clip.mp4 FIRST LAST name work --to 240`): Topaz apo-8 fills the
+   double steps, then the true-rate file goes to 240 fps. Run it under `tools/gpu_lock.sh`.
+3. **Ramps from the 240 fps master** (`tools/ramp.py`): the nearest real frame is 2 ms off at any speed, so
+   0.35x to 3x ramps are smooth at 60 fps with no blending. Repeated frames inside a motion = a stutter.
+4. **4K** (`tools/upscale.py`): Topaz Proteus (prob-4) on clean plates. Iris paints ghosts on Seedance
+   footage, so it needs `--allow-iris` and the ghost check. Plates carry no text or UI: graphics and type
+   are rendered natively at 4K on top, upscaled type is always soft.
+5. **Assemble** with `tools/assemble.sh` at exact frame counts, finish the whole film once with
+   `tools/lensfx.py`.
+
 ## 5. Post that sells the motion
 
 `tools/lensfx.py IN OUT --fx fx.json --codec hevc10` (deterministic, any resolution and fps), on the

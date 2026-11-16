@@ -44,6 +44,24 @@ projects/<slug>/
 - `--hi 8` halves the fast-window cost (16 sub-frames) if time is short.
 - Audio is never rendered by the browser: `audio/mix.wav` is muxed by ffmpeg.
 
+## 60 fps and shutter samples for custom clips
+- `storyboard.fps: 60` renders as it does at 30: the capture runs at 2x the output rate (120 fps), the
+  adaptive supersampling and the 180 degree shutter follow (`render` on a 3 s test at 1080p60: 180 frames,
+  11 s). 60 fps is the standard for a launch film; 24 or 30 fps only for a deliberate film look.
+- `finish`: the render adds vignette and temporal grain by default (`storyboard.finish`). A film that goes
+  through `tools/lensfx.py` gets its grain and vignette there, once, on the whole film: set
+  `"finish": false` or you get the grain twice.
+- A custom twin scene rendered outside the Eden Motion engine (its own page, screenshots per frame) needs
+  its shutter too. What worked on a 60 fps launch film: per output frame `f` at `t = f / fps`, the page
+  returns the number of sub-samples `n = window.__mb(t)` from the camera speed (3 on calm stretches, 6-12
+  in fast moves and transitions, from a table of windows), the renderer seeks the paused timeline to
+  `t + ((k + 0.5) / n - 0.5) * shutter` for k = 0..n-1 with `shutter = 0.5 / fps` (180 degrees), takes a
+  screenshot of each and averages them (float, then quantise). n = 1 in a draft. Every frame must be a pure
+  function of t, or the samples will not agree. The plate under graphics is NOT blurred this way: live
+  action already carries its own blur.
+- 4K: lay the page out at 1920x1080 and render with device scale 2 (text stays vector and sharp, a macro
+  zoom of 6-10x holds); live-action plates come from `tools/upscale.py`.
+
 ## Sound cues
 Scenes call `fx.cursorClick` / `fx.pop`, transitions push whooshes; the engine exports them as JSON into
 the DOM (`#em-cues`). The audio step loads the composition in headless Chrome, reads the cues and places
