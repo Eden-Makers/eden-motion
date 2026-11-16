@@ -1,7 +1,7 @@
 """Metric depth per frame with DepthPro (apple/DepthPro-hf, local cache) for a plate folder.
 
 Run out of process (heavy: torch, transformers; the model must be in the local Hugging Face cache):
-  uv run --no-project --with torch --with transformers --with pillow --with numpy --with opencv-python-headless \
+  uv run --no-project --with torch --with torchvision --with transformers --with pillow --with numpy --with opencv-python-headless \
     python tools/scenetext/depth.py PLATE_DIR [--step 1] [--first A --last B]
 
 PLATE_DIR holds %04d.png plates. Writes PLATE_DIR/depth/%04d.npy (float16 metres, 960 px wide) and

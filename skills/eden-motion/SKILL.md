@@ -177,6 +177,8 @@ Read `references/product-ui-film.md` first. Short version:
   lives in: 1:1 from a fresh screenshot. Only real details (model names, messages, numbers).
 - Text that belongs to a live-action scene (a line on a wall, a label on a laptop): `tools/scenetext/`
   and `references/scene-text.md` (track, solve, smooth in shot time, composite with occlusion).
+- Background: never black. `"background": "parallax-world"` (`tools/world_layers.py` splits a brand hero image
+  into far / mid / near layers, `runtime/SCENE_API.md` "Worlds"); dark themes keep a `lighten` floor.
 - Flat front-on 2D close-ups are the base, 3D the accent (about a quarter of the shots). One element
   per shot at 40-70% of the width, the hero never cut by the frame, a line to be read not tracked.
   Into the close-up with an elegant zoom and light parallax, not a cut, not a whip.

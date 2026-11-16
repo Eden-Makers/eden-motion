@@ -172,6 +172,10 @@ export async function build(projectDir, { slow = 1, out = "comp", mb = null, sto
   const customFiles = fs.existsSync(customDir) ? fs.readdirSync(customDir).filter((f) => f.endsWith(".js")) : [];
   if (customFiles.length) copyDir(customDir, path.join(comp, "custom-scenes"));
 
+  // parallax-world: layer sizes from assets/world/world.json (tools/world_layers.py)
+  const worldJson = path.join(projectDir, sb.world?.dir || "assets/world", "world.json");
+  const worldMeta = sb.background === "parallax-world" && fs.existsSync(worldJson) ? readJSON(worldJson, null) : null;
+  if (sb.background === "parallax-world" && !worldMeta) warn(`parallax-world: ${path.relative(projectDir, worldJson)} not found (run tools/world_layers.py), layer sizes are guessed`);
   const total = sb.duration;
   // frame size: storyboard width/height (vertical 1080x1920 for reels), default 1920x1080
   const W = +sb.width || 1920, H = +sb.height || 1080;
@@ -199,7 +203,7 @@ html[data-theme] { ${themeOverrides.join(" ")} }
   <div id="bg"></div>
   <div id="stage"></div>
 </div>
-<script>window.EM_SLOW = ${slow}; window.EM_MB = ${mb ? JSON.stringify(mb) : "null"}; window.STORYBOARD = ${JSON.stringify({ ...sb, brand: { ...brand, ...(sb.brand || {}) } })};</script>
+<script>window.EM_SLOW = ${slow}; window.EM_MB = ${mb ? JSON.stringify(mb) : "null"}; window.STORYBOARD = ${JSON.stringify({ ...sb, brand: { ...brand, ...(sb.brand || {}) }, ...(worldMeta ? { world: { ...sb.world, meta: worldMeta } } : {}) })};</script>
 <script src="runtime/icons.js"></script>
 <script src="runtime/engine.js"></script>
 <script src="runtime/fx.js"></script>
