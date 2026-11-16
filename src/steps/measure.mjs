@@ -17,6 +17,7 @@ import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { build } from "./build.mjs";
 import { withPage } from "../lib/browser.mjs";
+import { safeZone } from "../lib/safezone.mjs";
 import { log, warn, readJSON, writeJSON } from "../lib/util.mjs";
 
 export const LIMITS = {
@@ -387,6 +388,18 @@ export async function measureComp(projectDir, { fps, ink = true, video = null } 
   if (sev(result.frame).length) fails.push(`text clipped by the frame edge: ${sev(result.frame).slice(0, 4).map((r) => `${r.t}s "${r.text}"`).join("; ")}`);
   if (sev(result.tails).length) fails.push(`ease tails that freeze (${LIMITS.tailFail}+ frames under ${LIMITS.crawlPx}px): ${sev(result.tails).slice(0, 4).map((r) => `${r.t}s "${r.text}" ${r.tail}f`).join("; ")}`);
   if (sev(result.ink).length) fails.push(`text judders vertically under the camera scale (pixel snapping): ${sev(result.ink).slice(0, 4).map((r) => `${r.t}s "${r.text}" ${(r.video || r).judderY}px`).join("; ")}`);
+  // measured on the real render: 9:16 platform UI zone and mixed aspect ratios (src/lib/safezone.mjs)
+  let zone = null;
+  const videoFails = [];
+  if (video && fs.existsSync(video)) {
+    try {
+      zone = safeZone(video);
+      videoFails.push(...zone.fails);
+    } catch (e) {
+      warn(`safe zone check skipped: ${e.message.slice(0, 120)}`);
+    }
+  }
+  fails.push(...videoFails);
   const summary = {
     frames: n, fps, seconds: +((Date.now() - t0) / 1000).toFixed(1),
     reads: { fail: sev(result.reads).length, warn: result.reads.length - sev(result.reads).length },
@@ -395,7 +408,7 @@ export async function measureComp(projectDir, { fps, ink = true, video = null } 
     tails: { fail: sev(result.tails).length, warn: result.tails.length - sev(result.tails).length },
     ink: result.ink.length ? { windows: result.ink.length, judderY: Math.max(...result.ink.map((r) => r.judderY)), judderX: Math.max(...result.ink.map((r) => r.judderX)), shape: Math.max(...result.ink.map((r) => r.shape)), fail: sev(result.ink).length } : null,
   };
-  return { summary, fails, missingTypes, ...result };
+  return { summary, fails, missingTypes, videoFails, zone, ...result };
 }
 
 export async function measure(projectDir, opts = {}) {
