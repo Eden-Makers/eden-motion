@@ -175,6 +175,8 @@ Read `references/product-ui-film.md` first. Short version:
   cropped into cards read as lazy. Measure every box at rest before any tween.
 - Your own app: rebuild it 1:1 from its code (views, design tokens, easing). Other apps the product
   lives in: 1:1 from a fresh screenshot. Only real details (model names, messages, numbers).
+- Text that belongs to a live-action scene (a line on a wall, a label on a laptop): `tools/scenetext/`
+  and `references/scene-text.md` (track, solve, smooth in shot time, composite with occlusion).
 - Flat front-on 2D close-ups are the base, 3D the accent (about a quarter of the shots). One element
   per shot at 40-70% of the width, the hero never cut by the frame, a line to be read not tracked.
   Into the close-up with an elegant zoom and light parallax, not a cut, not a whip.
@@ -312,4 +314,5 @@ node bin/eden-motion.mjs study <style> --against film.mp4     # or any video
 - `references/pipeline.md` - file formats (brief, brand, script, vo, storyboard), rendering and motion blur internals, troubleshooting.
 - `references/relate-and-1to1.md` - Relate grammar, the 1:1 rebuild loop, Blender 5.2 headless + HyperFrames gotchas.
 - `references/product-ui-film.md` - app and device films: HTML twin of the UI, Blender device CG, slowed-clock capture with optical-flow retime, lens finish keyed to moves, music-led edit, 9:16 reframing rules, the review loop.
+- `references/scene-text.md` - text standing in a live-action scene: track, solve, smooth in shot time, composite with occlusion (`tools/scenetext/`).
 - Repo research: `research/analysis/{burnwe,launch-films,higgsfield,relate,tooling-and-workflows}.md` (full forensic breakdowns, 90+ techniques with parameters, Higgsfield preset map), `research/relate/*.md` (26 per-film shot lists), `research/blender/{PLAYBOOK,tutorials}.md` (12 Blender tutorials distilled).
