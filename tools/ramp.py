@@ -29,7 +29,7 @@ import cv2
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from hwenc import h264_args, run_ffmpeg  # noqa: E402
+from hwenc import video_args, run_ffmpeg  # noqa: E402
 
 
 def speed_at(keys, u):
@@ -69,7 +69,7 @@ def cut(src, out, start, dur, keys, fps, src_fps, name, mp4=None):
     rep = sum(1 for a, b in zip(idx, idx[1:]) if a == b)
     print(f"{name}: {n} frames, shot time {tau[0]:.2f} -> {tau[-1]:.2f} s of {total / src_fps:.2f} s, repeated frames {rep}")
     if mp4:
-        run_ffmpeg(["ffmpeg", "-v", "error", "-y", "-framerate", str(fps), "-i", os.path.join(out, "%04d.png")] + h264_args(10, "medium")
+        run_ffmpeg(["ffmpeg", "-v", "error", "-y", "-framerate", str(fps), "-i", os.path.join(out, "%04d.png")] + video_args("deliver")
                    + ["-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709", "-r", str(fps), "-an", mp4])
 
 

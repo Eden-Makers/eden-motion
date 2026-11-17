@@ -69,7 +69,7 @@ ratios). The clips only fit together because each brief carried this contract, w
   "Sound events"): every press, pulse, arrival and transition, `t` from the clip's first frame. A clip
   without events is not accepted. `eden-motion audio` sets the sound from these files.
 - **Bare clips:** no grain, no vignette, no lens finish, no music, no sound in the file (they go on the
-  whole film in `tools/lensfx.py`). H.264, yuv420p, tagged bt709, constant frame rate, no audio.
+  whole film in `tools/lensfx.py`). `deliver` profile (HEVC Main10 160 Mbit/s, `tools/hwenc.py`), tagged bt709, constant frame rate, no audio.
 - **One contact sheet:** the agent saves one sheet of its clip (a frame every 1/24 of its length), and
   reports once, at the end. No waiting loops: four agents once left polling loops running for hours
   with no render under them. A long job runs in the background and notifies on exit.

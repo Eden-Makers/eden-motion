@@ -5,7 +5,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { log, warn, run, probeDuration, parseRanges, parseTime, rangeTag } from "../lib/util.mjs";
-import { h264Args, runEncode } from "../lib/encode.mjs";
+import { videoArgs, runEncode } from "../lib/encode.mjs";
 
 // One moment of the reference against the same moment of our film, frame by frame: a sheet with the
 // reference frames in the top rows and ours below (same time grid), and the SSIM of every frame pair.
@@ -57,7 +57,7 @@ export async function compare(projectDir, refFile, { file, at, ourAt } = {}) {
   const D = Math.min(Dr, Do);
   const fit = "fps=30,scale=960:540:force_original_aspect_ratio=decrease,pad=960:540:(ow-iw)/2:(oh-ih)/2,setsar=1";
   // viewing copy only (SSIM below reads the sources), so the media engine is fine here
-  runEncode(["-v", "error", "-y", "-i", refFile, "-i", file, "-filter_complex", `[0:v]${fit}[a];[1:v]${fit}[b];[a][b]hstack=inputs=2[v]`, "-map", "[v]", "-map", "0:a?", "-t", String(D), ...h264Args(20), "-c:a", "aac", "-shortest", path.join(out, "side_by_side.mp4")]);
+  runEncode(["-v", "error", "-y", "-i", refFile, "-i", file, "-filter_complex", `[0:v]${fit}[a];[1:v]${fit}[b];[a][b]hstack=inputs=2[v]`, "-map", "[v]", "-map", "0:a?", "-t", String(D), ...videoArgs("social"), "-c:a", "aac", "-shortest", path.join(out, "side_by_side.mp4")]);
   run("ffmpeg", ["-v", "error", "-y", "-i", path.join(out, "side_by_side.mp4"), "-vf", `fps=1,scale=960:-1,tile=2x${Math.ceil(D / 2)}`, "-frames:v", "1", path.join(out, "pairs.jpg")]);
   const r = run("ffmpeg", ["-i", refFile, "-i", file, "-filter_complex", "[0:v]fps=30,scale=480:270,setsar=1,format=gray[a];[1:v]fps=30,scale=480:270,setsar=1,format=gray[b];[a][b]ssim", "-t", String(D), "-f", "null", "-"], { allowFail: true });
   const ssim = ((r.stderr || "").match(/All:([0-9.]+)/g) || []).pop() || "All:n/a";

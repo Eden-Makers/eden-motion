@@ -1,17 +1,21 @@
 """Video encoder choice for the Python tools (same rules as src/lib/encode.mjs).
 
-On a Mac, H.264 goes through the Apple media engine (VideoToolbox): several times faster than
-libx264 at the same VMAF (crf 18 ~ q 75). Elsewhere (Linux, Windows, ffmpeg without VT) it stays
-libx264 with the original CRF and preset. VIDEO_HW_ENCODE=0 forces libx264.
-Keep libx264 by hand for bit-exact, all-intra, lossless, 4:4:4 or maxrate-capped output.
+House standard: HEVC 10-bit, bitrate set by where the video goes, never a starved ~5 Mbps file.
+  social   HEVC Main10 40 Mbps   previews, drafts, socials, 9:16 versions (default)
+  deliver  HEVC Main10 160 Mbps  client delivery masters, and plates/intermediates that get re-encoded
+  compat   H.264 High 40 Mbps    only where H.264 is required
+On a Mac every profile encodes on the Apple media engine (VideoToolbox). Off a Mac and with
+VIDEO_HW_ENCODE=0 it falls back to libx264 8-bit at the same bitrate.
 
-    from hwenc import h264_args, run_ffmpeg
-    run_ffmpeg(["ffmpeg", "-y", "-i", src] + h264_args(16, "slow") + [out])
+    from hwenc import video_args, run_ffmpeg
+    run_ffmpeg(["ffmpeg", "-y", "-i", src] + video_args("deliver") + [out])
 """
 import functools
 import os
 import subprocess
 import sys
+
+VIDEO_PROFILES = {"social": ("hevc10", "40M"), "deliver": ("hevc10", "160M"), "compat": ("h264", "40M")}
 
 
 @functools.lru_cache(maxsize=None)
@@ -22,39 +26,43 @@ def has_videotoolbox(ffmpeg: str = "ffmpeg") -> bool:
         out = subprocess.run([ffmpeg, "-hide_banner", "-encoders"], capture_output=True, text=True, timeout=10).stdout
     except Exception:
         return False
-    return "h264_videotoolbox" in out
+    return "hevc_videotoolbox" in out and "h264_videotoolbox" in out
 
 
-def crf_to_q(crf: int) -> int:
-    """libx264 CRF -> VideoToolbox -q:v (16 -> 80, 18 -> 75, 20 -> 70, 23 -> 62), clamped 40..95."""
-    return max(40, min(95, round(75 - 2.5 * (crf - 18))))
+def _software_args(bitrate: str, gop: int) -> list:
+    buf = f"{int(bitrate.rstrip('M')) * 2}M"
+    return ["-c:v", "libx264", "-preset", "medium", "-b:v", bitrate, "-maxrate", bitrate, "-bufsize", buf,
+            "-g", str(gop), "-pix_fmt", "yuv420p"]
 
 
-def h264_args(crf: int = 18, preset: str = "medium", ffmpeg: str = "ffmpeg") -> list:
-    """H.264 encoder args (includes -pix_fmt yuv420p): media engine on a Mac, libx264 elsewhere.
-    VideoToolbox gets -g 250 (libx264's default; ffmpeg's VT default is a 12-frame GOP, ~13% bigger).
-    A caller that needs another GOP adds its own -g after these args (the last one wins)."""
-    if has_videotoolbox(ffmpeg):
-        return ["-c:v", "h264_videotoolbox", "-q:v", str(crf_to_q(crf)), "-g", "250", "-pix_fmt", "yuv420p"]
-    return ["-c:v", "libx264", "-preset", preset, "-crf", str(crf), "-pix_fmt", "yuv420p"]
+def video_args(profile: str = "social", gop: int = 250, bitrate: str = None, ffmpeg: str = "ffmpeg") -> list:
+    """Encoder args for a profile (bitrate overrides the profile's). HEVC gets -tag:v hvc1."""
+    codec, br = VIDEO_PROFILES[profile]
+    br = bitrate or br
+    if not has_videotoolbox(ffmpeg):
+        return _software_args(br, gop)
+    if codec == "hevc10":
+        return ["-c:v", "hevc_videotoolbox", "-b:v", br, "-g", str(gop),
+                "-profile:v", "main10", "-pix_fmt", "p010le", "-tag:v", "hvc1"]
+    return ["-c:v", "h264_videotoolbox", "-b:v", br, "-g", str(gop), "-profile:v", "high", "-pix_fmt", "yuv420p"]
 
 
-def software_fallback(cmd: list) -> list:
-    """The same command with h264_videotoolbox swapped for libx264 at the matching CRF."""
-    if "h264_videotoolbox" not in cmd:
-        return list(cmd)
-    i = cmd.index("h264_videotoolbox")
-    has_q = i + 2 < len(cmd) and cmd[i + 1] == "-q:v"
-    crf = round(18 - (int(cmd[i + 2]) - 75) / 2.5) if has_q else 18
-    return cmd[:i] + ["libx264", "-preset", "medium", "-crf", str(crf)] + cmd[i + (3 if has_q else 1):]
+def to_software(cmd: list):
+    """Same command with a VT video block (as built by video_args) swapped for libx264, or None."""
+    for enc, n in (("hevc_videotoolbox", 12), ("h264_videotoolbox", 10)):
+        if enc in cmd:
+            i = cmd.index(enc)
+            return cmd[:i - 1] + _software_args(cmd[i + 2], int(cmd[i + 4])) + cmd[i - 1 + n:]
+    return None
 
 
-def run_ffmpeg(cmd: list) -> None:
-    """Run ffmpeg; if a VideoToolbox encode fails, retry once with libx264. Raises on failure."""
-    r = subprocess.run(cmd)
-    if r.returncode != 0 and "h264_videotoolbox" in cmd:
-        print("hwenc: VideoToolbox encode failed, retrying with libx264", file=sys.stderr)
-        cmd = software_fallback(cmd)
-        r = subprocess.run(cmd)
-    if r.returncode != 0:
-        raise subprocess.CalledProcessError(r.returncode, cmd)
+def run_ffmpeg(cmd: list, **kw) -> subprocess.CompletedProcess:
+    """subprocess.run(cmd, check=True); if a VT encode fails, retry once in software."""
+    try:
+        return subprocess.run(cmd, check=True, **kw)
+    except subprocess.CalledProcessError:
+        sw = to_software(cmd)
+        if sw is None:
+            raise
+        print("[encode] VideoToolbox failed, retrying with libx264", file=sys.stderr)
+        return subprocess.run(sw, check=True, **kw)

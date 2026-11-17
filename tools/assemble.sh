@@ -4,8 +4,8 @@
 # last frame is held (tpad) when it is short and trimmed when it is long, so every clip is exactly
 # the planned number of frames and the cuts land where the storyboard says. Frames are planned as
 # ceil(seconds * fps); render every clip 2 s longer than the cut, then trim here.
-#   FPS=60 SIZE=1920:1080 CRF=10 PRESET=medium CLIPDIR=clips
-# Output: H.264 (VideoToolbox on a Mac), yuv420p, bt709, no audio (lensfx.py and the mix come after). Prints the frame
+#   FPS=60 SIZE=1920:1080 PROFILE=deliver CLIPDIR=clips
+# Output: HEVC 10-bit 160 Mbit/s by default (PROFILE), bt709, no audio (lensfx.py and the mix come after). Prints the frame
 # count of the result and fails when it differs from the sum of the plan.
 set -e
 OUT="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"; shift
@@ -20,18 +20,23 @@ for spec in "$@"; do
 done
 FC+="${CAT}concat=n=$i:v=1:a=0[o]"
 FCF="$(mktemp -t em-assemble).txt"; echo "$FC" > "$FCF"
-# Encoder: Apple media engine (h264_videotoolbox) on a Mac, libx264 elsewhere or with VIDEO_HW_ENCODE=0.
-# CRF maps to -q:v as in src/lib/encode.mjs (crf 10 -> q 95). A failed hardware encode retries in libx264.
-CRF="${CRF:-10}"; PRESET="${PRESET:-medium}"
-SW=(-c:v libx264 -crf "$CRF" -preset "$PRESET" -pix_fmt yuv420p)
+# Encoder: house profile (src/lib/encode.mjs). PROFILE=deliver (default: HEVC Main10 160 Mbit/s, lensfx
+# re-encodes it), social (HEVC Main10 40M) or compat (H.264 High 40M). Apple media engine on a Mac,
+# libx264 at the same bitrate elsewhere or with VIDEO_HW_ENCODE=0. A failed hardware encode retries in libx264.
+PROFILE="${PROFILE:-deliver}"
+case "$PROFILE" in deliver) BR=160M ;; social|compat) BR=40M ;; *) echo "PROFILE must be deliver, social or compat" >&2; exit 1 ;; esac
+SW=(-c:v libx264 -preset medium -b:v "$BR" -maxrate "$BR" -bufsize "$(( ${BR%M} * 2 ))M" -g 250 -pix_fmt yuv420p)
 ENC=("${SW[@]}")
-if [ "$(uname)" = Darwin ] && [ "${VIDEO_HW_ENCODE:-1}" != 0 ] && ffmpeg -hide_banner -encoders 2>/dev/null | grep h264_videotoolbox >/dev/null; then
-  Q=$(( 75 - (CRF - 18) * 5 / 2 )); [ $Q -gt 95 ] && Q=95; [ $Q -lt 40 ] && Q=40
-  ENC=(-c:v h264_videotoolbox -q:v "$Q" -g 250 -pix_fmt yuv420p)  # VT default GOP is 12 frames
+if [ "$(uname)" = Darwin ] && [ "${VIDEO_HW_ENCODE:-1}" != 0 ] && ffmpeg -hide_banner -encoders 2>/dev/null | grep hevc_videotoolbox >/dev/null; then
+  if [ "$PROFILE" = compat ]; then
+    ENC=(-c:v h264_videotoolbox -b:v "$BR" -g 250 -profile:v high -pix_fmt yuv420p)
+  else
+    ENC=(-c:v hevc_videotoolbox -b:v "$BR" -g 250 -profile:v main10 -pix_fmt p010le -tag:v hvc1)
+  fi
 fi
 TAGS=(-colorspace bt709 -color_primaries bt709 -color_trc bt709 -r "$FPS")
 ffmpeg -v error -y "${ARGS[@]}" -/filter_complex "$FCF" -map "[o]" "${ENC[@]}" "${TAGS[@]}" "$OUT" \
-  || { [ "${ENC[1]}" = h264_videotoolbox ] && echo "VideoToolbox failed, retrying with libx264" >&2 \
+  || { [ "${ENC[1]}" != libx264 ] && echo "[encode] VideoToolbox failed, retrying with libx264" >&2 \
        && ffmpeg -v error -y "${ARGS[@]}" -/filter_complex "$FCF" -map "[o]" "${SW[@]}" "${TAGS[@]}" "$OUT"; }
 rm -f "$FCF"
 GOT="$(ffprobe -v error -count_frames -select_streams v -show_entries stream=nb_read_frames -of csv=p=0 "$OUT")"

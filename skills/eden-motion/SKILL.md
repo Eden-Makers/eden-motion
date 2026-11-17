@@ -190,13 +190,16 @@ Read `references/product-ui-film.md` first. Short version:
 - Finish: `tools/lensfx.py` on the whole film only, never per clip. Default `--look lens` is a
   permanent lens character (barrel 0.03, edge CA 0.006, swirl 0.035, soft edges 2.5 px) that grows on
   the fast moves in `fx.json`, plus halation and fine grain (0.008 at 1.95 px, relative to 1080p).
-  Masters have no bitrate cap: deliver `--codec hevc10` (H.265 main10, two passes, 160 Mbit/s, hvc1)
-  or `--codec prores`. Only `--also` phone previews stay capped.
-- Encoding: on a Mac every H.264 encode runs on the media engine (VideoToolbox) and HyperFrames renders
-  with `--gpu`; elsewhere it is libx264 at the same CRF. VideoToolbox always gets `-g 250` (its default
-  12-frame GOP wastes ~13%). `VIDEO_HW_ENCODE=0` forces libx264. New ffmpeg
-  calls use `h264Args(crf, preset)` from `src/lib/encode.mjs` or `h264_args` from `tools/hwenc.py`,
-  never a hard-coded `-c:v libx264` (details: references/pipeline.md, "Encoding").
+  Masters: default `--codec deliver` (HEVC Main10 160 Mbit/s, hvc1) or `--codec prores`; `--also`
+  previews use the 40 Mbit/s `social` profile.
+- Encoding: house standard is HEVC 10-bit, bitrate by destination, never a ~5 Mbps file anyone watches.
+  Profiles `social` (HEVC Main10 40M: drafts, previews, socials, 9:16), `deliver` (HEVC Main10 160M:
+  `final.mp4`, masters) and `compat` (H.264 High 40M, only where H.264 is required). On a Mac they run on
+  the media engine (VideoToolbox) and HyperFrames renders with `--gpu`; elsewhere libx264 at the same
+  bitrate. `render --profile social` (or `storyboard.profile`, `EM_VIDEO_PROFILE`) picks another profile
+  for the final. `VIDEO_HW_ENCODE=0` forces software. New ffmpeg calls use `videoArgs(profile)` from
+  `src/lib/encode.mjs` or `video_args(profile)` from `tools/hwenc.py`, never a hard-coded `-c:v`
+  (details: references/pipeline.md, "Encoding").
 - Every film also gets a 9:16 version that keeps the composition: native portrait renders for the
   twin, `mglib.vertical_reframe` for Blender, eased crop keyframes with no slivers at rest for captures.
 - Long multi-agent runs: most of the cost is re-reading context (section 10 of the reference). Fresh
@@ -205,7 +208,7 @@ Read `references/product-ui-film.md` first. Short version:
 ```bash
 uv run --no-project --with numpy==2.2.6 --with opencv-python-headless==4.11.0.86 \
   python tools/lensfx.py renders/final.mp4 renders/final_master.mp4 --fx fx.json --audio audio/mix.wav \
-    --codec hevc10 --also 1920x1080:renders/final_1080_preview.mp4
+    --codec deliver --also 1920x1080:renders/final_1080_preview.mp4
 uv run --no-project --with numpy==2.2.6 --with opencv-python-headless==4.11.0.86 \
   python tools/retime.py capture.webm 8 clip_60fps.mp4 --start 1.0
 ```

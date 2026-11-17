@@ -44,24 +44,36 @@ projects/<slug>/
 - `--hi 8` halves the fast-window cost (16 sub-frames) if time is short.
 - Audio is never rendered by the browser: `audio/mix.wav` is muxed by ffmpeg.
 
-## Encoding (hardware on a Mac, libx264 elsewhere)
-- Every H.264 encode goes through `src/lib/encode.mjs` (Node) or `tools/hwenc.py` (Python tools;
-  `blender/lib/mglib.py` and `tools/assemble.sh` carry the same rule inline). On a Mac with
-  `h264_videotoolbox` in `ffmpeg -encoders` it encodes on the Apple media engine, with the CRF mapped to
-  `-q:v` (`q = 75 - 2.5 * (crf - 18)`, clamped 40..95: crf 16 -> 80, 18 -> 75, 20 -> 70) and `-g 250`
-  (ffmpeg's VideoToolbox default is a 12-frame GOP: 40 I-frames on 20 s instead of 2, 13% bigger at the
-  same VMAF; a call that needs another GOP adds its own `-g` after the helper args). Same VMAF as
-  libx264, 3-9x faster. Linux, Windows or ffmpeg without VideoToolbox: libx264 with the original CRF
-  and preset. A failed hardware encode retries once in libx264 (not for encoders fed by a pipe:
-  `retime.py`, `lensfx.py`; rerun those with `VIDEO_HW_ENCODE=0`).
-- `VIDEO_HW_ENCODE=0` forces libx264 everywhere (debugging, bit-exact comparisons, dither work).
-- `render` on a Mac: HyperFrames gets `--gpu` (it probes the encoder and falls back by itself), the
-  motion-blurred intermediate is ProRes 422 HQ (`renders/video-mb.mov`, `prores_videotoolbox`) and the
-  final MP4 is encoded once. `--workers` stays HyperFrames' `auto` unless you pass it.
-- Stays libx264 on purpose: all-intra reference cuts (`ref`, `-g 1`) and the frame-coded clip in
-  `tools/synccheck.mjs` (exact seeks, reproducible), capped `lensfx.py` masters and phone previews
-  (kept for x264's VBV; `h264_videotoolbox` also honours `-b:v`/`-maxrate` if this is ever moved), `--codec hevc10` (libx265 main10 two-pass), alpha plates (VP9 `yuva420p`
-  in `blender`, ProRes 4444).
+## Encoding (house profiles, hardware on a Mac)
+- House standard: HEVC 10-bit, bitrate set by where the video goes, never a starved ~5 Mbps file for
+  anything a person watches. Three profiles, in `src/lib/encode.mjs` (`videoArgs(profile)`) and
+  `tools/hwenc.py` (`video_args(profile)`); `blender/lib/mglib.py` and `tools/assemble.sh` carry the same
+  rule inline:
+
+  | profile | codec | bitrate | used for |
+  |---|---|---|---|
+  | `social` | HEVC Main10 | 40 Mbit/s | drafts, review links, previews, socials, 9:16 Reels versions, compare copies, generated clips |
+  | `deliver` | HEVC Main10 | 160 Mbit/s | the final brand film, lensfx masters, plates that get re-encoded later |
+  | `compat` | H.264 High | 40 Mbit/s | only where H.264 is required (X, WhatsApp, inputs that reject HEVC) |
+
+- On a Mac (`hevc_videotoolbox` and `h264_videotoolbox` in `ffmpeg -encoders`) every profile encodes on the
+  Apple media engine: `-b:v`, `-g 250` (VT's default GOP is 12 frames, 13-25% bigger), `-profile:v main10
+  -pix_fmt p010le -tag:v hvc1` for HEVC. HEVC 10-bit costs no render time there. Off a Mac and with
+  `VIDEO_HW_ENCODE=0`: libx264 8-bit at the same bitrate (`-maxrate` = bitrate, `-bufsize` 2x). A failed
+  hardware encode retries once in software (not for encoders fed by a pipe: `retime.py`, `lensfx.py`;
+  rerun those with `VIDEO_HW_ENCODE=0`). VideoToolbox ignores `-crf`/`-preset`: never pass them to it.
+- `render`: HyperFrames has no local HEVC output, so it renders the capture on a Mac with `--gpu`
+  (`--workers` stays `auto`); a draft asks it for `--video-bitrate 40M`. The motion-blurred intermediate is
+  ProRes 422 HQ (`renders/video-mb.mov`, `prores_videotoolbox`; near-lossless libx264 off a Mac), then one
+  encode with the profile: `final.mp4` = `deliver`, `draft.mp4` = `social`, a vertical (9:16) film =
+  `social`. Pick another with `render --profile social|deliver|compat`, `storyboard.profile` or
+  `EM_VIDEO_PROFILE`.
+- `tools/lensfx.py --codec deliver` (default; `hevc10` is the old name) writes the master in one pass on
+  the media engine; off a Mac it keeps the 10-bit libx265 two-pass encode through a ProRes mezzanine.
+  `--also` previews use `social`. `--codec h264` is the legacy libx264 CRF master.
+- Exempt on purpose (machine-only or special): all-intra reference cuts (`ref`, `-g 1`) and the
+  frame-coded clip in `tools/synccheck.mjs` (exact seeks, reproducible), alpha plates (VP9 `yuva420p` in
+  `blender`, ProRes 4444), ProRes in `cadence.py`.
 - Many encodes at once: the media engine runs about 2-4 sessions, so batch 2-3 in parallel, not 12.
 
 ## 60 fps and shutter samples for custom clips
@@ -122,7 +134,7 @@ ducks music under VO with a sidechain compressor and normalises to -14 LUFS.
 | Tilted UI text jagged even at 3840 px | Chrome rasterizes CSS 3D layers at low resolution. z moves as 2D scale about the vanishing point; real perspective in Blender from flat 8K plates (`references/product-ui-film.md`). |
 | First frame of a heavy UI scene renders black | capture worker warm-up race; render that composition with `--workers 1`. |
 | A zero renders slashed | `tabular-nums` selects the font's `zero.tf`; use a fixed-width box per digit instead. |
-| 4K encode at 140+ Mb/s | per-pixel grain. Fine grain is sized relative to 1080p (`--grain-px`), and the master is delivered as H.265 main10 at 160 Mbit/s (`tools/lensfx.py --codec hevc10`). A `maxrate` cap on the master (16 / 60 Mbit/s) showed in the grain and the gradients: caps only on phone previews. |
+| 4K encode at 140+ Mb/s | per-pixel grain. Fine grain is sized relative to 1080p (`--grain-px`), and the master is delivered as H.265 main10 at 160 Mbit/s (`tools/lensfx.py`, default `--codec deliver`). A `maxrate` cap on the master (16 / 60 Mbit/s) showed in the grain and the gradients: previews use the 40 Mbit/s `social` profile. |
 | Retimed device capture hitches | the recorder skipped beats; slow the app clock 6-10x while recording and fill repeats with optical-flow midframes (`tools/retime.py`), never a crossfade. |
 | A loop over `$NAMES` runs once | zsh does not word-split; run shell loops with `bash -c`. |
 | A contact sheet seems to show a clipped element | the sheet's label box covers the frame corner; label in a strip above each tile, check the raw frame. |

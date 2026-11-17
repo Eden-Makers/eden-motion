@@ -73,6 +73,7 @@ STEPS (in order)
                [--sfx-bus off|default|"<ffmpeg filter>"]; also rewrites audio/sfx_only.wav
   preview      build comp/ and open HyperFrames Studio preview
   render       --draft (fast, no blur) or final (true shutter motion blur, --slow 4..8) [--shutter-phase center|forward]
+               [--profile deliver|social|compat: final encode; default deliver (HEVC 10-bit 160M), social for 9:16]
   qc           Gemini creative-director review -> renders/qc.json
   critique     watch-your-own-frames loop: contact/phone/strip sheets + measured pops, dead air,
                variety gaps, hook, whip pans (max 2), black frames and flat colour fields anywhere;
@@ -190,7 +191,7 @@ async function step(name, dir, args) {
       await (await import("../src/steps/build.mjs")).build(dir, { slow: +args.slow || 1 });
       break;
     case "render":
-      await (await import("../src/steps/render.mjs")).render(dir, { quality: args.draft ? "draft" : "final", slow: args.slow && +args.slow, fps: args.fps && +args.fps, workers: args.workers, uniform: !!args.uniform, hi: args.hi && +args.hi, resolution: args.resolution, shutterPhase: args["shutter-phase"] });
+      await (await import("../src/steps/render.mjs")).render(dir, { quality: args.draft ? "draft" : "final", slow: args.slow && +args.slow, fps: args.fps && +args.fps, workers: args.workers, uniform: !!args.uniform, hi: args.hi && +args.hi, resolution: args.resolution, shutterPhase: args["shutter-phase"], profile: args.profile });
       break;
     case "qc":
       await (await import("../src/steps/qc.mjs")).qc(dir, { file: args.file });

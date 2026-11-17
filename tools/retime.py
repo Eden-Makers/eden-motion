@@ -2,7 +2,7 @@
 
 Run out of process, pinned:
   uv run --no-project --with numpy==2.2.6 --with opencv-python-headless==4.11.0.86 \
-    python tools/retime.py SRC R OUT.mp4 [--fps 60] [--start S] [--end S] [--crf 12]
+    python tools/retime.py SRC R OUT.mp4 [--fps 60] [--start S] [--end S] [--profile deliver]
 
 Why: recording a device or emulator under load drops frames, and those drops show as hitches in
 UI motion. Run the app with its animation clock slowed R times (Android: animator duration scale
@@ -24,7 +24,7 @@ import cv2
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from hwenc import h264_args  # noqa: E402
+from hwenc import video_args  # noqa: E402
 
 ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
 ap.add_argument("src")
@@ -33,7 +33,9 @@ ap.add_argument("out")
 ap.add_argument("--fps", type=int, default=60)
 ap.add_argument("--start", type=float, default=0.0)
 ap.add_argument("--end", type=float)
-ap.add_argument("--crf", type=int, default=12)
+ap.add_argument("--profile", default="deliver", choices=["deliver", "social", "compat"],
+                help="encode profile (hwenc.py): deliver = HEVC 10-bit 160 Mbit/s, the plate gets re-encoded later")
+ap.add_argument("--crf", type=int, help="ignored (bitrate profiles since 0.5.1), kept for old command lines")
 a = ap.parse_args()
 
 s = json.loads(subprocess.check_output(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
@@ -44,8 +46,8 @@ trim = (f",trim=start={a.start}" + (f":end={a.end}" if a.end else "") + ",setpts
 dec = subprocess.Popen(["ffmpeg", "-v", "error", "-i", a.src, "-an", "-vf", f"setpts=(PTS-STARTPTS)/{a.R},fps={a.fps}{trim}",
                         "-f", "rawvideo", "-pix_fmt", "bgr24", "-"], stdout=subprocess.PIPE, bufsize=FB * 2)
 enc = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "bgr24", "-s", f"{W}x{H}", "-r", str(a.fps),
-                        "-i", "-", "-vf", "format=yuv420p"] + h264_args(a.crf, "slow") + [
-                        "-profile:v", "high", "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709",
+                        "-i", "-"] + video_args(a.profile) + [
+                        "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709",
                         "-movflags", "+faststart", a.out], stdin=subprocess.PIPE)
 
 SW = min(960, W)                       # repeat detection on a small grey copy

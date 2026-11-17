@@ -6,7 +6,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { generateImage } from "../lib/gemini.mjs";
 import { log, warn, readJSON, writeJSON, run } from "../lib/util.mjs";
-import { h264Args, runEncode } from "../lib/encode.mjs";
+import { videoArgs, runEncode } from "../lib/encode.mjs";
 
 function walk(obj, fn) {
   if (Array.isArray(obj)) return obj.map((v) => walk(v, fn));
@@ -78,7 +78,8 @@ export async function assets(projectDir, { concurrency = 3 } = {}) {
           if (!fs.existsSync(img)) await generateImage(`${still}. No text, no letters, no logos.`, img, { aspect: "16:9", size: "2K" });
           log(`  video ${h}: image-to-video`);
           const r = await imageToVideo(img, motion || "Slow cinematic push in, subtle natural motion, no cut.", raw, { seconds: 7 });
-          runEncode(["-y", "-v", "error", "-i", raw, "-vf", "scale=1920:-2,fps=30", "-an", ...h264Args(16), mp4]);
+          // social profile: HyperFrames reads HEVC 10-bit sources (it extracts frames with ffmpeg)
+          runEncode(["-y", "-v", "error", "-i", raw, "-vf", "scale=1920:-2,fps=30", "-an", ...videoArgs("social"), mp4]);
           fs.appendFileSync(logFile, JSON.stringify({ t: new Date().toISOString(), model: r.model, request_id: r.request_id, still, motion, file: path.relative(projectDir, mp4) }) + "\n");
         }
         vmap[v] = `assets/gen/${h}.mp4`;

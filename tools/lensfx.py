@@ -3,7 +3,7 @@ that grows on whips, speed ramps and zoom-throughs, plus halation, a soft vignet
 
 Run out of process, pinned:
   uv run --no-project --with numpy==2.2.6 --with opencv-python-headless==4.11.0.86 \
-    python tools/lensfx.py IN.mp4 OUT.mp4 --fx fx.json [--audio mix.wav] [--codec hevc10] \
+    python tools/lensfx.py IN.mp4 OUT.mp4 --fx fx.json [--audio mix.wav] [--codec deliver|social|compat] \
       [--also 1920x1080:OUT_1080.mp4]
 
 fx.json: {"events": [{"t": 5.30, "attack": 0.28, "release": 0.30, "k": 1.0, "what": "zoom-through"}, ...]}
@@ -21,17 +21,18 @@ Looks (--look, every value can still be overridden by its own flag):
   clean    no lens character and no grain: halation, vignette and the fast-move warp only.
 Grain, vignette and lens go on the whole film only, never into single clips.
 
-Codecs (--codec):
-  h264     default. CRF 16 (--crf), yuv420p, no bitrate cap on the master. On a Mac the uncapped master and
-           uncapped previews encode on the media engine (h264_videotoolbox, CRF mapped to -q:v, see hwenc.py);
-           capped ones stay libx264. VIDEO_HW_ENCODE=0 forces libx264 (frames stream through a pipe, so a
-           failed hardware encode is not retried: rerun with that set).
-  hevc10   delivery master: libx265 main10, two passes at --bitrate (default 160 Mbit/s), tag hvc1.
-           A ProRes 422 HQ mezzanine is written next to OUT first and removed after (--keep-mezz keeps it).
+Codecs (--codec), house profiles from hwenc.py:
+  deliver  default. Client master: HEVC Main10 at --bitrate (default 160 Mbit/s), tag hvc1. On a Mac one pass
+           on the media engine straight from the pipe. Off a Mac (or VIDEO_HW_ENCODE=0): libx265 main10, two
+           passes, through a ProRes 422 HQ mezzanine next to OUT (removed after, --keep-mezz keeps it).
+  hevc10   same as deliver (older name).
+  social   HEVC Main10 40 Mbit/s (libx264 40 Mbit/s off a Mac): socials, review links, 9:16 versions.
+  compat   H.264 High 40 Mbit/s: only where H.264 is required (X, WhatsApp, HEVC-refusing inputs).
+  h264     legacy libx264 CRF master (--crf, optional --maxrate cap), software on every machine.
   prores   ProRes 422 HQ (10 bit) .mov with PCM audio.
-The master never gets a maxrate cap (a 16/60 Mbit/s cap showed in the grain and the gradients).
---maxrate N caps an H.264 master only when asked. --also previews are H.264 for phones and stay
-capped (16 Mbit/s 1080p, 30 at 1440p, 60 at 4K) unless --also-uncapped.
+--also previews use the social profile (HEVC 10-bit 40 Mbit/s): never a starved phone file.
+Hardware encoders read frames from a pipe, so a failed VideoToolbox encode is not retried: rerun with
+VIDEO_HW_ENCODE=0.
 
 Deterministic: grain is seeded by the frame index, nothing depends on wall-clock time.
 """
@@ -46,7 +47,7 @@ import cv2
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from hwenc import h264_args  # noqa: E402
+from hwenc import has_videotoolbox, video_args  # noqa: E402
 
 LOOKS = {
     "lens": dict(barrel_base=0.03, edge_ca=0.006, swirl=0.035, edge_soft=2.5, grain=0.008, grain_px=1.95),
@@ -59,8 +60,8 @@ ap.add_argument("inp")
 ap.add_argument("out")
 ap.add_argument("--fx", help="fx.json with the move events (optional: without it only the permanent look applies)")
 ap.add_argument("--audio", help="audio file to mux (AAC 320k, PCM 24 bit for ProRes)")
-ap.add_argument("--also", action="append", default=[], help="extra downscaled H.264 preview WxH:path, repeatable")
-ap.add_argument("--also-uncapped", action="store_true", help="no maxrate cap on the --also previews")
+ap.add_argument("--also", action="append", default=[], help="extra downscaled preview WxH:path (social profile), repeatable")
+ap.add_argument("--also-uncapped", action="store_true", help="ignored: previews use the social profile (40 Mbit/s) since 0.5.1")
 ap.add_argument("--frames", help="a:b frame range (tests)")
 ap.add_argument("--png", help="write PNG frames to this folder instead of encoding (tests)")
 ap.add_argument("--look", choices=sorted(LOOKS), default="lens", help="permanent lens character preset (default lens)")
@@ -75,13 +76,18 @@ ap.add_argument("--halation", type=float, default=0.10)
 ap.add_argument("--vignette", type=float, default=0.18)
 ap.add_argument("--grain", type=float, help="grain strength (lens look 0.008)")
 ap.add_argument("--grain-px", type=float, help="grain particle size in px at 1080p (lens look 1.95)")
-ap.add_argument("--codec", choices=["h264", "hevc10", "prores"], default="h264", help="master codec (default h264)")
-ap.add_argument("--crf", type=int, default=16, help="H.264 CRF of the master")
-ap.add_argument("--bitrate", type=float, default=160, help="hevc10 target in Mbit/s (default 160)")
-ap.add_argument("--maxrate", type=float, help="optional cap in Mbit/s on an H.264 master (default none)")
-ap.add_argument("--x265-preset", default="medium", help="hevc10 preset (medium is visually lossless at 160 Mbit/s)")
-ap.add_argument("--keep-mezz", action="store_true", help="hevc10: keep the ProRes mezzanine next to OUT")
+ap.add_argument("--codec", choices=["deliver", "hevc10", "social", "compat", "h264", "prores"], default="deliver",
+                help="master profile (default deliver: HEVC 10-bit 160 Mbit/s)")
+ap.add_argument("--crf", type=int, default=16, help="--codec h264 only: libx264 CRF of the master")
+ap.add_argument("--bitrate", type=float, default=160, help="deliver / hevc10 target in Mbit/s (default 160)")
+ap.add_argument("--maxrate", type=float, help="--codec h264 only: optional cap in Mbit/s (default none)")
+ap.add_argument("--x265-preset", default="medium", help="deliver off a Mac: libx265 preset (medium is visually lossless at 160 Mbit/s)")
+ap.add_argument("--keep-mezz", action="store_true", help="deliver off a Mac: keep the ProRes mezzanine next to OUT")
 a = ap.parse_args()
+if a.codec == "hevc10":
+    a.codec = "deliver"
+# off a Mac the delivery master keeps the 10-bit libx265 two-pass encode through a ProRes mezzanine
+TWO_PASS = a.codec == "deliver" and not has_videotoolbox()
 for k, v in LOOKS[a.look].items():
     if getattr(a, k) is None:
         setattr(a, k, v)
@@ -195,21 +201,13 @@ def grain(i, img):
     return img + g[..., None] * a.grain * (0.55 + 3.6 * lum * (1 - lum))   # strongest in the mid-tones
 
 
-def preview_caps(h):
-    """maxrate/bufsize for phone previews by delivered height."""
-    rate = 60 if h >= 2000 else 30 if h >= 1400 else 16
-    return ["-maxrate", f"{rate}M", "-bufsize", f"{rate * 2}M"]
-
-
 TAGS = ["-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709"]
 H264 = ["-c:v", "libx264", "-preset", "slow", "-profile:v", "high", "-pix_fmt", "yuv420p"] + TAGS + ["-movflags", "+faststart"]
 
 
-def h264(crf, capped):
-    """Uncapped H.264 goes to the media engine on a Mac (hwenc); capped outputs stay on libx264's VBV (VT also honours -b:v/-maxrate; not switched)."""
-    if capped:
-        return H264 + ["-crf", str(crf)]
-    return h264_args(crf, "slow") + ["-profile:v", "high"] + TAGS + ["-movflags", "+faststart"]
+def profile_enc(profile, bitrate=None):
+    """House profile video block (hwenc.py) plus the bt709 tags and faststart."""
+    return video_args(profile, bitrate=bitrate) + TAGS + ["-movflags", "+faststart"]
 PRORES = ["-c:v", "prores_ks", "-profile:v", "3", "-vendor", "apl0", "-pix_fmt", "yuv422p10le"] + TAGS
 AAC = ["-c:a", "aac", "-b:a", "320k"]
 PCM = ["-c:a", "pcm_s24le"]
@@ -238,7 +236,11 @@ if not a.png:
     if a.codec == "h264":
         cap = ["-maxrate", f"{a.maxrate:g}M", "-bufsize", f"{a.maxrate * 2:g}M"] if a.maxrate else []
         ai, am = mux(AAC)
-        writers.append(subprocess.Popen(head + ai + am + h264(a.crf, bool(cap)) + cap + [a.out], stdin=subprocess.PIPE))
+        writers.append(subprocess.Popen(head + ai + am + H264 + ["-crf", str(a.crf)] + cap + [a.out], stdin=subprocess.PIPE))
+    elif a.codec in ("deliver", "social", "compat") and not TWO_PASS:
+        ai, am = mux(AAC)
+        rate = f"{a.bitrate:g}M" if a.codec == "deliver" else None
+        writers.append(subprocess.Popen(head + ai + am + profile_enc(a.codec, rate) + [a.out], stdin=subprocess.PIPE))
     else:
         # ProRes is the master itself, or the 10 bit mezzanine the two-pass HEVC encode reads twice
         stem = os.path.splitext(os.path.basename(a.out))[0]
@@ -247,11 +249,9 @@ if not a.png:
         writers.append(subprocess.Popen(head + ai + am + PRORES + [mezz], stdin=subprocess.PIPE))
     for spec in a.also:
         size, path = spec.split(":", 1)
-        h = int(size.split("x")[1])
         ai, am = mux(AAC)
         writers.append(subprocess.Popen(head + ai + am + ["-vf", f"scale={size.replace('x', ':')}:flags=lanczos"]
-                                        + h264(a.crf + 1, not a.also_uncapped) + ([] if a.also_uncapped else preview_caps(h)) + [path],
-                                        stdin=subprocess.PIPE))
+                                        + profile_enc("social") + [path], stdin=subprocess.PIPE))
 
 fb = W * H * 3 * 2
 i = f0
@@ -289,7 +289,7 @@ reader.wait()
 if any(w.returncode for w in writers):
     sys.exit("lensfx: an encoder failed")
 
-if a.codec == "hevc10" and not a.png:
+if TWO_PASS and not a.png:
     rate = f"{a.bitrate:g}M"
     stats = os.path.join(out_dir, os.path.splitext(os.path.basename(a.out))[0] + ".x265.log")
     enc = ["-c:v", "libx265", "-preset", a.x265_preset, "-profile:v", "main10", "-pix_fmt", "yuv420p10le", "-b:v", rate,
