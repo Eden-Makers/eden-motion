@@ -206,7 +206,7 @@ H264 = ["-c:v", "libx264", "-preset", "slow", "-profile:v", "high", "-pix_fmt", 
 
 
 def h264(crf, capped):
-    """Uncapped H.264 goes to the media engine on a Mac (hwenc); a maxrate cap needs libx264's VBV."""
+    """Uncapped H.264 goes to the media engine on a Mac (hwenc); capped outputs stay on libx264's VBV (VT also honours -b:v/-maxrate; not switched)."""
     if capped:
         return H264 + ["-crf", str(crf)]
     return h264_args(crf, "slow") + ["-profile:v", "high"] + TAGS + ["-movflags", "+faststart"]

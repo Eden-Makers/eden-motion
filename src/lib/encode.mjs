@@ -23,9 +23,11 @@ export function hasVideoToolbox() {
 export const crfToQ = (crf) => Math.max(40, Math.min(95, Math.round(75 - 2.5 * (crf - 18))));
 const qToCrf = (q) => Math.round(18 - (q - 75) / 2.5);
 
-// H.264 encoder args (includes -pix_fmt yuv420p).
+// H.264 encoder args (includes -pix_fmt yuv420p). VideoToolbox gets -g 250 (libx264's default):
+// without it ffmpeg uses a 12-frame GOP, ~13% bigger at the same VMAF. A caller that needs another
+// GOP puts its own -g after these args (the last one wins).
 export function h264Args(crf = 18, preset = "medium") {
-  if (hasVideoToolbox()) return ["-c:v", "h264_videotoolbox", "-q:v", String(crfToQ(crf)), "-pix_fmt", "yuv420p"];
+  if (hasVideoToolbox()) return ["-c:v", "h264_videotoolbox", "-q:v", String(crfToQ(crf)), "-g", "250", "-pix_fmt", "yuv420p"];
   return ["-c:v", "libx264", "-preset", preset, "-crf", String(crf), "-pix_fmt", "yuv420p"];
 }
 

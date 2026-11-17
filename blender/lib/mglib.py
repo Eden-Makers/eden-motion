@@ -1302,7 +1302,7 @@ def _h264_args(crf, preset):
                 pass
     if _VT:
         q = max(40, min(95, round(75 - 2.5 * (crf - 18))))
-        return ["-c:v", "h264_videotoolbox", "-q:v", str(q), "-pix_fmt", "yuv420p"]
+        return ["-c:v", "h264_videotoolbox", "-q:v", str(q), "-g", "250", "-pix_fmt", "yuv420p"]  # VT default GOP is 12
     return ["-c:v", "libx264", "-preset", preset, "-crf", str(crf), "-pix_fmt", "yuv420p"]
 
 

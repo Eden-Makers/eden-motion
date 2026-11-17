@@ -48,7 +48,9 @@ projects/<slug>/
 - Every H.264 encode goes through `src/lib/encode.mjs` (Node) or `tools/hwenc.py` (Python tools;
   `blender/lib/mglib.py` and `tools/assemble.sh` carry the same rule inline). On a Mac with
   `h264_videotoolbox` in `ffmpeg -encoders` it encodes on the Apple media engine, with the CRF mapped to
-  `-q:v` (`q = 75 - 2.5 * (crf - 18)`, clamped 40..95: crf 16 -> 80, 18 -> 75, 20 -> 70). Same VMAF as
+  `-q:v` (`q = 75 - 2.5 * (crf - 18)`, clamped 40..95: crf 16 -> 80, 18 -> 75, 20 -> 70) and `-g 250`
+  (ffmpeg's VideoToolbox default is a 12-frame GOP: 40 I-frames on 20 s instead of 2, 13% bigger at the
+  same VMAF; a call that needs another GOP adds its own `-g` after the helper args). Same VMAF as
   libx264, 3-9x faster. Linux, Windows or ffmpeg without VideoToolbox: libx264 with the original CRF
   and preset. A failed hardware encode retries once in libx264 (not for encoders fed by a pipe:
   `retime.py`, `lensfx.py`; rerun those with `VIDEO_HW_ENCODE=0`).
@@ -58,7 +60,7 @@ projects/<slug>/
   final MP4 is encoded once. `--workers` stays HyperFrames' `auto` unless you pass it.
 - Stays libx264 on purpose: all-intra reference cuts (`ref`, `-g 1`) and the frame-coded clip in
   `tools/synccheck.mjs` (exact seeks, reproducible), capped `lensfx.py` masters and phone previews
-  (`-maxrate` needs x264's VBV), `--codec hevc10` (libx265 main10 two-pass), alpha plates (VP9 `yuva420p`
+  (kept for x264's VBV; `h264_videotoolbox` also honours `-b:v`/`-maxrate` if this is ever moved), `--codec hevc10` (libx265 main10 two-pass), alpha plates (VP9 `yuva420p`
   in `blender`, ProRes 4444).
 - Many encodes at once: the media engine runs about 2-4 sessions, so batch 2-3 in parallel, not 12.
 

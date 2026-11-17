@@ -31,9 +31,11 @@ def crf_to_q(crf: int) -> int:
 
 
 def h264_args(crf: int = 18, preset: str = "medium", ffmpeg: str = "ffmpeg") -> list:
-    """H.264 encoder args (includes -pix_fmt yuv420p): media engine on a Mac, libx264 elsewhere."""
+    """H.264 encoder args (includes -pix_fmt yuv420p): media engine on a Mac, libx264 elsewhere.
+    VideoToolbox gets -g 250 (libx264's default; ffmpeg's VT default is a 12-frame GOP, ~13% bigger).
+    A caller that needs another GOP adds its own -g after these args (the last one wins)."""
     if has_videotoolbox(ffmpeg):
-        return ["-c:v", "h264_videotoolbox", "-q:v", str(crf_to_q(crf)), "-pix_fmt", "yuv420p"]
+        return ["-c:v", "h264_videotoolbox", "-q:v", str(crf_to_q(crf)), "-g", "250", "-pix_fmt", "yuv420p"]
     return ["-c:v", "libx264", "-preset", preset, "-crf", str(crf), "-pix_fmt", "yuv420p"]
 
 

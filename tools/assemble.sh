@@ -25,9 +25,9 @@ FCF="$(mktemp -t em-assemble).txt"; echo "$FC" > "$FCF"
 CRF="${CRF:-10}"; PRESET="${PRESET:-medium}"
 SW=(-c:v libx264 -crf "$CRF" -preset "$PRESET" -pix_fmt yuv420p)
 ENC=("${SW[@]}")
-if [ "$(uname)" = Darwin ] && [ "${VIDEO_HW_ENCODE:-1}" != 0 ] && ffmpeg -hide_banner -encoders 2>/dev/null | grep -q h264_videotoolbox; then
+if [ "$(uname)" = Darwin ] && [ "${VIDEO_HW_ENCODE:-1}" != 0 ] && ffmpeg -hide_banner -encoders 2>/dev/null | grep h264_videotoolbox >/dev/null; then
   Q=$(( 75 - (CRF - 18) * 5 / 2 )); [ $Q -gt 95 ] && Q=95; [ $Q -lt 40 ] && Q=40
-  ENC=(-c:v h264_videotoolbox -q:v "$Q" -pix_fmt yuv420p)
+  ENC=(-c:v h264_videotoolbox -q:v "$Q" -g 250 -pix_fmt yuv420p)  # VT default GOP is 12 frames
 fi
 TAGS=(-colorspace bt709 -color_primaries bt709 -color_trc bt709 -r "$FPS")
 ffmpeg -v error -y "${ARGS[@]}" -/filter_complex "$FCF" -map "[o]" "${ENC[@]}" "${TAGS[@]}" "$OUT" \
