@@ -15,6 +15,7 @@ import { build } from "./build.mjs";
 import { readDomJson } from "../lib/browser.mjs";
 import { log, run, runLive, readJSON, probeDuration } from "../lib/util.mjs";
 import { HF } from "../lib/hf.mjs";
+import { h264Args, hfGpuArgs, proresIntermediateArgs, runEncode } from "../lib/encode.mjs";
 
 
 
@@ -92,7 +93,8 @@ export async function render(projectDir, { quality = "final", fps, shutter = 180
 
   const raw = path.join(renders, draft ? "raw-draft.mp4" : "raw-slow.mp4");
   const args = ["render", "--fps", String(draft ? fps : R), "--quality", draft ? "draft" : "high", "-o", raw];
-  if (workers) args.push("--workers", String(workers));
+  args.push(...hfGpuArgs()); // Mac: encode the capture on the media engine (HyperFrames falls back itself)
+  if (workers) args.push("--workers", String(workers)); // else HyperFrames' default: --workers auto
   if (resolution && !draft) args.push("--resolution", resolution === "4k" ? "landscape-4k" : resolution); // supersampled 4K via deviceScaleFactor
   log(`hyperframes render (${draft ? "draft" : adaptive ? "adaptive supersampling" : `uniform slow x${S}`})`);
   const t0 = Date.now();
@@ -102,7 +104,10 @@ export async function render(projectDir, { quality = "final", fps, shutter = 180
 
   let video = raw;
   if (!draft) {
-    video = path.join(renders, "video-mb.mp4");
+    // the motion-blurred picture is an intermediate (re-encoded below with the finish and the mix):
+    // ProRes 422 HQ on the media engine on a Mac, the old high-quality H.264 elsewhere
+    const prores = proresIntermediateArgs();
+    video = path.join(renders, prores ? "video-mb.mov" : "video-mb.mp4");
     let graph;
     if (adaptive) graph = segmentGraph(map, fps, shutter, phase, R);
     else {
@@ -111,7 +116,8 @@ export async function render(projectDir, { quality = "final", fps, shutter = 180
       graph = `[0:v]tmix=frames=${K}:weights='${Array(K).fill(1).join(" ")}',select='eq(mod(n\\,${N})\\,${phase === "forward" ? K - 1 : Math.floor(K / 2)})',setpts=N/${fps}/TB[out]`;
     }
     fs.writeFileSync(path.join(renders, "mb.graph.txt"), graph);
-    run("ffmpeg", ["-y", "-v", "error", "-i", raw, "-filter_complex", graph, "-map", "[out]", "-r", String(fps), "-c:v", "libx264", "-preset", "slow", "-crf", resolution ? "14" : "12", "-pix_fmt", "yuv420p", video]);
+    const menc = prores || ["-c:v", "libx264", "-preset", "slow", "-crf", resolution ? "14" : "12", "-pix_fmt", "yuv420p"];
+    runEncode(["-y", "-v", "error", "-i", raw, "-filter_complex", graph, "-map", "[out]", "-r", String(fps), ...menc, video]);
   }
 
   const mix = path.join(projectDir, "audio", "mix.wav");
@@ -120,11 +126,14 @@ export async function render(projectDir, { quality = "final", fps, shutter = 180
   const scale = Array.isArray(sb.output) ? `scale=${sb.output[0]}:${sb.output[1]}:flags=lanczos` : null;
   const vf = [scale, draft ? null : finishFilter(sb)].filter(Boolean).join(",") || null;
   if (vf) log(`finish: ${vf}`);
-  const venc = draft && !vf ? ["-c:v", "copy"] : [...(vf ? ["-vf", vf] : []), "-c:v", "libx264", "-crf", draft ? "20" : "16", "-preset", draft ? "veryfast" : "slow", "-pix_fmt", "yuv420p"];
+  const enc = [...(vf ? ["-vf", vf] : []), ...(draft ? h264Args(20, "veryfast") : h264Args(16, "slow"))];
+  const venc = draft && !vf ? ["-c:v", "copy"] : enc;
+  // a ProRes intermediate can never be stream-copied into the .mp4
+  const isMov = video.endsWith(".mov");
   if (fs.existsSync(mix)) {
-    run("ffmpeg", ["-y", "-v", "error", "-i", video, "-i", mix, "-map", "0:v", "-map", "1:a", ...venc, "-c:a", "aac", "-b:a", "256k", "-t", String(sb.duration), "-movflags", "+faststart", final]);
+    runEncode(["-y", "-v", "error", "-i", video, "-i", mix, "-map", "0:v", "-map", "1:a", ...venc, "-c:a", "aac", "-b:a", "256k", "-t", String(sb.duration), "-movflags", "+faststart", final]);
   } else {
-    run("ffmpeg", ["-y", "-v", "error", "-i", video, ...(vf ? venc : ["-c:v", "copy"]), "-t", String(sb.duration), "-movflags", "+faststart", final]);
+    runEncode(["-y", "-v", "error", "-i", video, ...(vf || isMov ? enc : ["-c:v", "copy"]), "-t", String(sb.duration), "-movflags", "+faststart", final]);
   }
   // the sounds-only cut next to it (no music): the film has to work without it, so listen to this one too
   const sfxOnly = path.join(projectDir, "audio", "sfx_only.wav");

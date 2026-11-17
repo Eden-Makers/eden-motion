@@ -5,7 +5,7 @@
 # the planned number of frames and the cuts land where the storyboard says. Frames are planned as
 # ceil(seconds * fps); render every clip 2 s longer than the cut, then trim here.
 #   FPS=60 SIZE=1920:1080 CRF=10 PRESET=medium CLIPDIR=clips
-# Output: H.264, yuv420p, bt709, no audio (lensfx.py and the mix come after). Prints the frame
+# Output: H.264 (VideoToolbox on a Mac), yuv420p, bt709, no audio (lensfx.py and the mix come after). Prints the frame
 # count of the result and fails when it differs from the sum of the plan.
 set -e
 OUT="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"; shift
@@ -20,8 +20,19 @@ for spec in "$@"; do
 done
 FC+="${CAT}concat=n=$i:v=1:a=0[o]"
 FCF="$(mktemp -t em-assemble).txt"; echo "$FC" > "$FCF"
-ffmpeg -v error -y "${ARGS[@]}" -/filter_complex "$FCF" -map "[o]" -c:v libx264 -crf "${CRF:-10}" -preset "${PRESET:-medium}" -pix_fmt yuv420p \
-  -colorspace bt709 -color_primaries bt709 -color_trc bt709 -r "$FPS" "$OUT"
+# Encoder: Apple media engine (h264_videotoolbox) on a Mac, libx264 elsewhere or with VIDEO_HW_ENCODE=0.
+# CRF maps to -q:v as in src/lib/encode.mjs (crf 10 -> q 95). A failed hardware encode retries in libx264.
+CRF="${CRF:-10}"; PRESET="${PRESET:-medium}"
+SW=(-c:v libx264 -crf "$CRF" -preset "$PRESET" -pix_fmt yuv420p)
+ENC=("${SW[@]}")
+if [ "$(uname)" = Darwin ] && [ "${VIDEO_HW_ENCODE:-1}" != 0 ] && ffmpeg -hide_banner -encoders 2>/dev/null | grep -q h264_videotoolbox; then
+  Q=$(( 75 - (CRF - 18) * 5 / 2 )); [ $Q -gt 95 ] && Q=95; [ $Q -lt 40 ] && Q=40
+  ENC=(-c:v h264_videotoolbox -q:v "$Q" -pix_fmt yuv420p)
+fi
+TAGS=(-colorspace bt709 -color_primaries bt709 -color_trc bt709 -r "$FPS")
+ffmpeg -v error -y "${ARGS[@]}" -/filter_complex "$FCF" -map "[o]" "${ENC[@]}" "${TAGS[@]}" "$OUT" \
+  || { [ "${ENC[1]}" = h264_videotoolbox ] && echo "VideoToolbox failed, retrying with libx264" >&2 \
+       && ffmpeg -v error -y "${ARGS[@]}" -/filter_complex "$FCF" -map "[o]" "${SW[@]}" "${TAGS[@]}" "$OUT"; }
 rm -f "$FCF"
 GOT="$(ffprobe -v error -count_frames -select_streams v -show_entries stream=nb_read_frames -of csv=p=0 "$OUT")"
 echo "$GOT frames (planned $SUM) -> $OUT"

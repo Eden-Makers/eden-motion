@@ -27,6 +27,7 @@ Verified against Blender 5.2.2 LTS (Apple M1 Pro, Metal). Key 5.x API facts enco
 import math
 import os
 import subprocess
+import sys
 import time
 
 import bpy
@@ -1283,12 +1284,39 @@ def render_animation(out_dir, prefix="f_"):
     print(f"[mglib] animation {scene.frame_start}-{scene.frame_end} in {time.time() - t:.1f}s")
 
 
+_FFMPEG = "/opt/homebrew/bin/ffmpeg" if os.path.exists("/opt/homebrew/bin/ffmpeg") else "ffmpeg"
+_VT = None
+
+
+def _h264_args(crf, preset):
+    """Apple media engine (h264_videotoolbox) on a Mac, libx264 elsewhere or with VIDEO_HW_ENCODE=0.
+    Same mapping as tools/hwenc.py (kept inline: this file runs inside Blender's Python)."""
+    global _VT
+    if _VT is None:
+        _VT = False
+        if sys.platform == "darwin" and os.environ.get("VIDEO_HW_ENCODE", "1") != "0":
+            try:
+                out = subprocess.run([_FFMPEG, "-hide_banner", "-encoders"], capture_output=True, text=True, timeout=10).stdout
+                _VT = "h264_videotoolbox" in out
+            except Exception:
+                pass
+    if _VT:
+        q = max(40, min(95, round(75 - 2.5 * (crf - 18))))
+        return ["-c:v", "h264_videotoolbox", "-q:v", str(q), "-pix_fmt", "yuv420p"]
+    return ["-c:v", "libx264", "-preset", preset, "-crf", str(crf), "-pix_fmt", "yuv420p"]
+
+
 def encode_mp4(frames_dir, out_mp4, fps=24, prefix="f_", start=1, crf=16):
-    """PNG sequence -> H.264 mp4 (yuv420p, web-safe) with Homebrew ffmpeg."""
-    cmd = ["/opt/homebrew/bin/ffmpeg", "-y", "-framerate", str(fps), "-start_number", str(start),
-           "-i", os.path.join(frames_dir, f"{prefix}%04d.png"), "-c:v", "libx264", "-pix_fmt",
-           "yuv420p", "-crf", str(crf), "-preset", "slow", "-movflags", "+faststart", out_mp4]
-    subprocess.run(cmd, check=True)
+    """PNG sequence -> H.264 mp4 (yuv420p, web-safe). Media engine on a Mac, libx264 fallback."""
+    head = [_FFMPEG, "-y", "-framerate", str(fps), "-start_number", str(start),
+            "-i", os.path.join(frames_dir, f"{prefix}%04d.png")]
+    tail = ["-movflags", "+faststart", out_mp4]
+    r = subprocess.run(head + _h264_args(crf, "slow") + tail)
+    if r.returncode != 0 and _VT:
+        print("[mglib] VideoToolbox encode failed, retrying with libx264")
+        r = subprocess.run(head + ["-c:v", "libx264", "-preset", "slow", "-crf", str(crf), "-pix_fmt", "yuv420p"] + tail)
+    if r.returncode != 0:
+        raise subprocess.CalledProcessError(r.returncode, head)
     return out_mp4
 
 

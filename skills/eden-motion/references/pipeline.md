@@ -44,6 +44,24 @@ projects/<slug>/
 - `--hi 8` halves the fast-window cost (16 sub-frames) if time is short.
 - Audio is never rendered by the browser: `audio/mix.wav` is muxed by ffmpeg.
 
+## Encoding (hardware on a Mac, libx264 elsewhere)
+- Every H.264 encode goes through `src/lib/encode.mjs` (Node) or `tools/hwenc.py` (Python tools;
+  `blender/lib/mglib.py` and `tools/assemble.sh` carry the same rule inline). On a Mac with
+  `h264_videotoolbox` in `ffmpeg -encoders` it encodes on the Apple media engine, with the CRF mapped to
+  `-q:v` (`q = 75 - 2.5 * (crf - 18)`, clamped 40..95: crf 16 -> 80, 18 -> 75, 20 -> 70). Same VMAF as
+  libx264, 3-9x faster. Linux, Windows or ffmpeg without VideoToolbox: libx264 with the original CRF
+  and preset. A failed hardware encode retries once in libx264 (not for encoders fed by a pipe:
+  `retime.py`, `lensfx.py`; rerun those with `VIDEO_HW_ENCODE=0`).
+- `VIDEO_HW_ENCODE=0` forces libx264 everywhere (debugging, bit-exact comparisons, dither work).
+- `render` on a Mac: HyperFrames gets `--gpu` (it probes the encoder and falls back by itself), the
+  motion-blurred intermediate is ProRes 422 HQ (`renders/video-mb.mov`, `prores_videotoolbox`) and the
+  final MP4 is encoded once. `--workers` stays HyperFrames' `auto` unless you pass it.
+- Stays libx264 on purpose: all-intra reference cuts (`ref`, `-g 1`) and the frame-coded clip in
+  `tools/synccheck.mjs` (exact seeks, reproducible), capped `lensfx.py` masters and phone previews
+  (`-maxrate` needs x264's VBV), `--codec hevc10` (libx265 main10 two-pass), alpha plates (VP9 `yuva420p`
+  in `blender`, ProRes 4444).
+- Many encodes at once: the media engine runs about 2-4 sessions, so batch 2-3 in parallel, not 12.
+
 ## 60 fps and shutter samples for custom clips
 - `storyboard.fps: 60` renders as it does at 30: the capture runs at 2x the output rate (120 fps), the
   adaptive supersampling and the 180 degree shutter follow (`render` on a 3 s test at 1080p60: 180 frames,

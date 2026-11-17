@@ -134,7 +134,8 @@ whole film only (grain, vignette and lens never go into single clips):
 - Masters are never bitrate capped (a 16 / 60 Mbit/s cap was visible in the grain and gradients and
   the client called the finals "heavily compressed"). Deliver `--codec hevc10` (libx265 main10, two
   passes, 160 Mbit/s, tag hvc1, bt709) or `--codec prores` (422 HQ). `--also WxH:path` writes H.264
-  phone previews, capped at 16 / 30 / 60 Mbit/s unless `--also-uncapped`.
+  phone previews, capped at 16 / 30 / 60 Mbit/s unless `--also-uncapped`. The uncapped H.264 master and
+  uncapped previews encode on the media engine on a Mac (`VIDEO_HW_ENCODE=0` forces libx264).
 
 ## 6. Music-led edit
 

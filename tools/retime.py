@@ -16,10 +16,15 @@ works in a single generation from the source.
 """
 import argparse
 import json
+import os
 import subprocess
+import sys
 
 import cv2
 import numpy as np
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from hwenc import h264_args  # noqa: E402
 
 ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
 ap.add_argument("src")
@@ -39,7 +44,7 @@ trim = (f",trim=start={a.start}" + (f":end={a.end}" if a.end else "") + ",setpts
 dec = subprocess.Popen(["ffmpeg", "-v", "error", "-i", a.src, "-an", "-vf", f"setpts=(PTS-STARTPTS)/{a.R},fps={a.fps}{trim}",
                         "-f", "rawvideo", "-pix_fmt", "bgr24", "-"], stdout=subprocess.PIPE, bufsize=FB * 2)
 enc = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "bgr24", "-s", f"{W}x{H}", "-r", str(a.fps),
-                        "-i", "-", "-vf", "format=yuv420p", "-c:v", "libx264", "-preset", "slow", "-crf", str(a.crf),
+                        "-i", "-", "-vf", "format=yuv420p"] + h264_args(a.crf, "slow") + [
                         "-profile:v", "high", "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709",
                         "-movflags", "+faststart", a.out], stdin=subprocess.PIPE)
 

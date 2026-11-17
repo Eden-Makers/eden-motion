@@ -192,6 +192,10 @@ Read `references/product-ui-film.md` first. Short version:
   the fast moves in `fx.json`, plus halation and fine grain (0.008 at 1.95 px, relative to 1080p).
   Masters have no bitrate cap: deliver `--codec hevc10` (H.265 main10, two passes, 160 Mbit/s, hvc1)
   or `--codec prores`. Only `--also` phone previews stay capped.
+- Encoding: on a Mac every H.264 encode runs on the media engine (VideoToolbox) and HyperFrames renders
+  with `--gpu`; elsewhere it is libx264 at the same CRF. `VIDEO_HW_ENCODE=0` forces libx264. New ffmpeg
+  calls use `h264Args(crf, preset)` from `src/lib/encode.mjs` or `h264_args` from `tools/hwenc.py`,
+  never a hard-coded `-c:v libx264` (details: references/pipeline.md, "Encoding").
 - Every film also gets a 9:16 version that keeps the composition: native portrait renders for the
   twin, `mglib.vertical_reframe` for Blender, eased crop keyframes with no slivers at rest for captures.
 - Long multi-agent runs: most of the cost is re-reading context (section 10 of the reference). Fresh

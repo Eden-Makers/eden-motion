@@ -22,7 +22,10 @@ Looks (--look, every value can still be overridden by its own flag):
 Grain, vignette and lens go on the whole film only, never into single clips.
 
 Codecs (--codec):
-  h264     default. CRF 16 (--crf), yuv420p, no bitrate cap on the master.
+  h264     default. CRF 16 (--crf), yuv420p, no bitrate cap on the master. On a Mac the uncapped master and
+           uncapped previews encode on the media engine (h264_videotoolbox, CRF mapped to -q:v, see hwenc.py);
+           capped ones stay libx264. VIDEO_HW_ENCODE=0 forces libx264 (frames stream through a pipe, so a
+           failed hardware encode is not retried: rerun with that set).
   hevc10   delivery master: libx265 main10, two passes at --bitrate (default 160 Mbit/s), tag hvc1.
            A ProRes 422 HQ mezzanine is written next to OUT first and removed after (--keep-mezz keeps it).
   prores   ProRes 422 HQ (10 bit) .mov with PCM audio.
@@ -41,6 +44,9 @@ import sys
 
 import cv2
 import numpy as np
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from hwenc import h264_args  # noqa: E402
 
 LOOKS = {
     "lens": dict(barrel_base=0.03, edge_ca=0.006, swirl=0.035, edge_soft=2.5, grain=0.008, grain_px=1.95),
@@ -197,6 +203,13 @@ def preview_caps(h):
 
 TAGS = ["-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709"]
 H264 = ["-c:v", "libx264", "-preset", "slow", "-profile:v", "high", "-pix_fmt", "yuv420p"] + TAGS + ["-movflags", "+faststart"]
+
+
+def h264(crf, capped):
+    """Uncapped H.264 goes to the media engine on a Mac (hwenc); a maxrate cap needs libx264's VBV."""
+    if capped:
+        return H264 + ["-crf", str(crf)]
+    return h264_args(crf, "slow") + ["-profile:v", "high"] + TAGS + ["-movflags", "+faststart"]
 PRORES = ["-c:v", "prores_ks", "-profile:v", "3", "-vendor", "apl0", "-pix_fmt", "yuv422p10le"] + TAGS
 AAC = ["-c:a", "aac", "-b:a", "320k"]
 PCM = ["-c:a", "pcm_s24le"]
@@ -225,7 +238,7 @@ if not a.png:
     if a.codec == "h264":
         cap = ["-maxrate", f"{a.maxrate:g}M", "-bufsize", f"{a.maxrate * 2:g}M"] if a.maxrate else []
         ai, am = mux(AAC)
-        writers.append(subprocess.Popen(head + ai + am + H264 + ["-crf", str(a.crf)] + cap + [a.out], stdin=subprocess.PIPE))
+        writers.append(subprocess.Popen(head + ai + am + h264(a.crf, bool(cap)) + cap + [a.out], stdin=subprocess.PIPE))
     else:
         # ProRes is the master itself, or the 10 bit mezzanine the two-pass HEVC encode reads twice
         stem = os.path.splitext(os.path.basename(a.out))[0]
@@ -236,8 +249,8 @@ if not a.png:
         size, path = spec.split(":", 1)
         h = int(size.split("x")[1])
         ai, am = mux(AAC)
-        writers.append(subprocess.Popen(head + ai + am + ["-vf", f"scale={size.replace('x', ':')}:flags=lanczos"] + H264
-                                        + ["-crf", str(a.crf + 1)] + ([] if a.also_uncapped else preview_caps(h)) + [path],
+        writers.append(subprocess.Popen(head + ai + am + ["-vf", f"scale={size.replace('x', ':')}:flags=lanczos"]
+                                        + h264(a.crf + 1, not a.also_uncapped) + ([] if a.also_uncapped else preview_caps(h)) + [path],
                                         stdin=subprocess.PIPE))
 
 fb = W * H * 3 * 2

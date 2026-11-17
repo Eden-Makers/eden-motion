@@ -29,4 +29,5 @@ Then run the director loop: read script.json and storyboard.json, fix, re-render
 - `EM.boot()` is synchronous; never await in scene builds.
 - Register new scenes in `src/lib/catalog.mjs` so the storyboard model can use them, and document props in the file header.
 - Test a scene: add it to a storyboard in `projects/_test*`, `node bin/eden-motion.mjs build <proj>`, then `npx -y hyperframes@0.9.15 snapshot --at <t,...>` inside `comp/` and look at the PNGs.
+- ffmpeg H.264 encodes use `h264Args()` (`src/lib/encode.mjs`) or `h264_args()` (`tools/hwenc.py`): VideoToolbox on a Mac, libx264 elsewhere, `VIDEO_HW_ENCODE=0` forces libx264.
 - No em dashes or en dashes in any text or comment.
