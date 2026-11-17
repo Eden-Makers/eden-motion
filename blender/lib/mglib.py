@@ -27,6 +27,7 @@ Verified against Blender 5.2.2 LTS (Apple M1 Pro, Metal). Key 5.x API facts enco
 import math
 import os
 import subprocess
+import sys
 import time
 
 import bpy
@@ -1283,12 +1284,49 @@ def render_animation(out_dir, prefix="f_"):
     print(f"[mglib] animation {scene.frame_start}-{scene.frame_end} in {time.time() - t:.1f}s")
 
 
-def encode_mp4(frames_dir, out_mp4, fps=24, prefix="f_", start=1, crf=16):
-    """PNG sequence -> H.264 mp4 (yuv420p, web-safe) with Homebrew ffmpeg."""
-    cmd = ["/opt/homebrew/bin/ffmpeg", "-y", "-framerate", str(fps), "-start_number", str(start),
-           "-i", os.path.join(frames_dir, f"{prefix}%04d.png"), "-c:v", "libx264", "-pix_fmt",
-           "yuv420p", "-crf", str(crf), "-preset", "slow", "-movflags", "+faststart", out_mp4]
-    subprocess.run(cmd, check=True)
+_FFMPEG = "/opt/homebrew/bin/ffmpeg" if os.path.exists("/opt/homebrew/bin/ffmpeg") else "ffmpeg"
+_VT = None
+# house profiles (same as tools/hwenc.py, kept inline: this file runs inside Blender's Python)
+_PROFILES = {"social": ("hevc10", "40M"), "deliver": ("hevc10", "160M"), "compat": ("h264", "40M")}
+
+
+def _sw_args(br, gop=250):
+    return ["-c:v", "libx264", "-preset", "medium", "-b:v", br, "-maxrate", br, "-bufsize", f"{int(br[:-1]) * 2}M",
+            "-g", str(gop), "-pix_fmt", "yuv420p"]
+
+
+def _video_args(profile, gop=250):
+    """HEVC 10-bit / H.264 on the Apple media engine on a Mac, libx264 at the same bitrate elsewhere
+    or with VIDEO_HW_ENCODE=0."""
+    global _VT
+    if _VT is None:
+        _VT = False
+        if sys.platform == "darwin" and os.environ.get("VIDEO_HW_ENCODE", "1") != "0":
+            try:
+                out = subprocess.run([_FFMPEG, "-hide_banner", "-encoders"], capture_output=True, text=True, timeout=10).stdout
+                _VT = "hevc_videotoolbox" in out and "h264_videotoolbox" in out
+            except Exception:
+                pass
+    codec, br = _PROFILES[profile]
+    if not _VT:
+        return _sw_args(br, gop)
+    if codec == "hevc10":
+        return ["-c:v", "hevc_videotoolbox", "-b:v", br, "-g", str(gop), "-profile:v", "main10", "-pix_fmt", "p010le", "-tag:v", "hvc1"]
+    return ["-c:v", "h264_videotoolbox", "-b:v", br, "-g", str(gop), "-profile:v", "high", "-pix_fmt", "yuv420p"]
+
+
+def encode_mp4(frames_dir, out_mp4, fps=24, prefix="f_", start=1, crf=None, profile="deliver"):
+    """PNG sequence -> mp4 with a house profile: deliver (HEVC 10-bit 160 Mbit/s, default: the plate is
+    re-encoded later), social (HEVC 10-bit 40M) or compat (H.264 40M). crf is ignored (kept for old calls)."""
+    head = [_FFMPEG, "-y", "-framerate", str(fps), "-start_number", str(start),
+            "-i", os.path.join(frames_dir, f"{prefix}%04d.png")]
+    tail = ["-movflags", "+faststart", out_mp4]
+    r = subprocess.run(head + _video_args(profile) + tail)
+    if r.returncode != 0 and _VT:
+        print("[encode] VideoToolbox failed, retrying with libx264")
+        r = subprocess.run(head + _sw_args(_PROFILES[profile][1]) + tail)
+    if r.returncode != 0:
+        raise subprocess.CalledProcessError(r.returncode, head)
     return out_mp4
 
 

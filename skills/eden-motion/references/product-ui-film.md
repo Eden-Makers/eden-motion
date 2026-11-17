@@ -120,7 +120,7 @@ From a 45 s launch film with live-action Seedance plates (speed ramps, 60 fps, 4
 
 ## 5. Post that sells the motion
 
-`tools/lensfx.py IN OUT --fx fx.json --codec hevc10` (deterministic, any resolution and fps), on the
+`tools/lensfx.py IN OUT --fx fx.json --codec deliver` (deterministic, any resolution and fps), on the
 whole film only (grain, vignette and lens never go into single clips):
 - A permanent lens character, `--look lens` (default): barrel 0.03, lateral CA growing to the edges
   0.006, swirl 0.035 rad, soft edges 2.5 px. It reads like real glass, not like a filter. `--look
@@ -132,9 +132,10 @@ whole film only (grain, vignette and lens never go into single clips):
 - Fine grain: strength 0.008, particle 1.95 px relative to 1080p (`--grain`, `--grain-px`), so 4K
   reads optically the same.
 - Masters are never bitrate capped (a 16 / 60 Mbit/s cap was visible in the grain and gradients and
-  the client called the finals "heavily compressed"). Deliver `--codec hevc10` (libx265 main10, two
-  passes, 160 Mbit/s, tag hvc1, bt709) or `--codec prores` (422 HQ). `--also WxH:path` writes H.264
-  phone previews, capped at 16 / 30 / 60 Mbit/s unless `--also-uncapped`.
+  the client called the finals "heavily compressed"). Deliver `--codec deliver` (default: HEVC Main10,
+  160 Mbit/s, tag hvc1, bt709; one pass on the media engine on a Mac, libx265 two-pass elsewhere) or
+  `--codec prores` (422 HQ). `--also WxH:path` writes previews with the `social` profile (HEVC Main10
+  40 Mbit/s). `VIDEO_HW_ENCODE=0` forces the software path.
 
 ## 6. Music-led edit
 

@@ -44,6 +44,38 @@ projects/<slug>/
 - `--hi 8` halves the fast-window cost (16 sub-frames) if time is short.
 - Audio is never rendered by the browser: `audio/mix.wav` is muxed by ffmpeg.
 
+## Encoding (house profiles, hardware on a Mac)
+- House standard: HEVC 10-bit, bitrate set by where the video goes, never a starved ~5 Mbps file for
+  anything a person watches. Three profiles, in `src/lib/encode.mjs` (`videoArgs(profile)`) and
+  `tools/hwenc.py` (`video_args(profile)`); `blender/lib/mglib.py` and `tools/assemble.sh` carry the same
+  rule inline:
+
+  | profile | codec | bitrate | used for |
+  |---|---|---|---|
+  | `social` | HEVC Main10 | 40 Mbit/s | drafts, review links, previews, socials, 9:16 Reels versions, compare copies, generated clips |
+  | `deliver` | HEVC Main10 | 160 Mbit/s | the final brand film, lensfx masters, plates that get re-encoded later |
+  | `compat` | H.264 High | 40 Mbit/s | only where H.264 is required (X, WhatsApp, inputs that reject HEVC) |
+
+- On a Mac (`hevc_videotoolbox` and `h264_videotoolbox` in `ffmpeg -encoders`) every profile encodes on the
+  Apple media engine: `-b:v`, `-g 250` (VT's default GOP is 12 frames, 13-25% bigger), `-profile:v main10
+  -pix_fmt p010le -tag:v hvc1` for HEVC. HEVC 10-bit costs no render time there. Off a Mac and with
+  `VIDEO_HW_ENCODE=0`: libx264 8-bit at the same bitrate (`-maxrate` = bitrate, `-bufsize` 2x). A failed
+  hardware encode retries once in software (not for encoders fed by a pipe: `retime.py`, `lensfx.py`;
+  rerun those with `VIDEO_HW_ENCODE=0`). VideoToolbox ignores `-crf`/`-preset`: never pass them to it.
+- `render`: HyperFrames has no local HEVC output, so it renders the capture on a Mac with `--gpu`
+  (`--workers` stays `auto`); a draft asks it for `--video-bitrate 40M`. The motion-blurred intermediate is
+  ProRes 422 HQ (`renders/video-mb.mov`, `prores_videotoolbox`; near-lossless libx264 off a Mac), then one
+  encode with the profile: `final.mp4` = `deliver`, `draft.mp4` = `social`, a vertical (9:16) film =
+  `social`. Pick another with `render --profile social|deliver|compat`, `storyboard.profile` or
+  `EM_VIDEO_PROFILE`.
+- `tools/lensfx.py --codec deliver` (default; `hevc10` is the old name) writes the master in one pass on
+  the media engine; off a Mac it keeps the 10-bit libx265 two-pass encode through a ProRes mezzanine.
+  `--also` previews use `social`. `--codec h264` is the legacy libx264 CRF master.
+- Exempt on purpose (machine-only or special): all-intra reference cuts (`ref`, `-g 1`) and the
+  frame-coded clip in `tools/synccheck.mjs` (exact seeks, reproducible), alpha plates (VP9 `yuva420p` in
+  `blender`, ProRes 4444), ProRes in `cadence.py`.
+- Many encodes at once: the media engine runs about 2-4 sessions, so batch 2-3 in parallel, not 12.
+
 ## 60 fps and shutter samples for custom clips
 - `storyboard.fps: 60` renders as it does at 30: the capture runs at 2x the output rate (120 fps), the
   adaptive supersampling and the 180 degree shutter follow (`render` on a 3 s test at 1080p60: 180 frames,
@@ -102,7 +134,7 @@ ducks music under VO with a sidechain compressor and normalises to -14 LUFS.
 | Tilted UI text jagged even at 3840 px | Chrome rasterizes CSS 3D layers at low resolution. z moves as 2D scale about the vanishing point; real perspective in Blender from flat 8K plates (`references/product-ui-film.md`). |
 | First frame of a heavy UI scene renders black | capture worker warm-up race; render that composition with `--workers 1`. |
 | A zero renders slashed | `tabular-nums` selects the font's `zero.tf`; use a fixed-width box per digit instead. |
-| 4K encode at 140+ Mb/s | per-pixel grain. Fine grain is sized relative to 1080p (`--grain-px`), and the master is delivered as H.265 main10 at 160 Mbit/s (`tools/lensfx.py --codec hevc10`). A `maxrate` cap on the master (16 / 60 Mbit/s) showed in the grain and the gradients: caps only on phone previews. |
+| 4K encode at 140+ Mb/s | per-pixel grain. Fine grain is sized relative to 1080p (`--grain-px`), and the master is delivered as H.265 main10 at 160 Mbit/s (`tools/lensfx.py`, default `--codec deliver`). A `maxrate` cap on the master (16 / 60 Mbit/s) showed in the grain and the gradients: previews use the 40 Mbit/s `social` profile. |
 | Retimed device capture hitches | the recorder skipped beats; slow the app clock 6-10x while recording and fill repeats with optical-flow midframes (`tools/retime.py`), never a crossfade. |
 | A loop over `$NAMES` runs once | zsh does not word-split; run shell loops with `bash -c`. |
 | A contact sheet seems to show a clipped element | the sheet's label box covers the frame corner; label in a strip above each tile, check the raw frame. |

@@ -15,6 +15,7 @@ import { build } from "./build.mjs";
 import { readDomJson } from "../lib/browser.mjs";
 import { log, run, runLive, readJSON, probeDuration } from "../lib/util.mjs";
 import { HF } from "../lib/hf.mjs";
+import { videoArgs, pickProfile, hasVideoToolbox, hfGpuArgs, proresIntermediateArgs, runEncode } from "../lib/encode.mjs";
 
 
 
@@ -57,7 +58,7 @@ function segmentGraph(map, fps, shutter, phase = "center", R = 60) {
   return `${parts.join(";")};${labels.join("")}concat=n=${labels.length}:v=1:a=0[out]`;
 }
 
-export async function render(projectDir, { quality = "final", fps, shutter = 180, shutterPhase, slow, workers, out, uniform, hi = 16, resolution } = {}) {
+export async function render(projectDir, { quality = "final", fps, shutter = 180, shutterPhase, slow, workers, out, uniform, hi = 16, resolution, profile } = {}) {
   const sb = readJSON(path.join(projectDir, "storyboard.json"));
   fps = fps || sb.fps || 30;
   const phase = shutterPhase || sb.shutterPhase || "center";
@@ -92,7 +93,10 @@ export async function render(projectDir, { quality = "final", fps, shutter = 180
 
   const raw = path.join(renders, draft ? "raw-draft.mp4" : "raw-slow.mp4");
   const args = ["render", "--fps", String(draft ? fps : R), "--quality", draft ? "draft" : "high", "-o", raw];
-  if (workers) args.push("--workers", String(workers));
+  // a draft is watched: never HyperFrames' starved draft bitrate (off a Mac this file is the draft itself)
+  if (draft) args.push("--video-bitrate", "40M");
+  args.push(...hfGpuArgs()); // Mac: encode the capture on the media engine (HyperFrames falls back itself)
+  if (workers) args.push("--workers", String(workers)); // else HyperFrames' default: --workers auto
   if (resolution && !draft) args.push("--resolution", resolution === "4k" ? "landscape-4k" : resolution); // supersampled 4K via deviceScaleFactor
   log(`hyperframes render (${draft ? "draft" : adaptive ? "adaptive supersampling" : `uniform slow x${S}`})`);
   const t0 = Date.now();
@@ -102,7 +106,10 @@ export async function render(projectDir, { quality = "final", fps, shutter = 180
 
   let video = raw;
   if (!draft) {
-    video = path.join(renders, "video-mb.mp4");
+    // the motion-blurred picture is an intermediate (re-encoded below with the finish and the mix):
+    // ProRes 422 HQ on the media engine on a Mac, near-lossless libx264 elsewhere (software intermediate)
+    const prores = proresIntermediateArgs();
+    video = path.join(renders, prores ? "video-mb.mov" : "video-mb.mp4");
     let graph;
     if (adaptive) graph = segmentGraph(map, fps, shutter, phase, R);
     else {
@@ -111,7 +118,8 @@ export async function render(projectDir, { quality = "final", fps, shutter = 180
       graph = `[0:v]tmix=frames=${K}:weights='${Array(K).fill(1).join(" ")}',select='eq(mod(n\\,${N})\\,${phase === "forward" ? K - 1 : Math.floor(K / 2)})',setpts=N/${fps}/TB[out]`;
     }
     fs.writeFileSync(path.join(renders, "mb.graph.txt"), graph);
-    run("ffmpeg", ["-y", "-v", "error", "-i", raw, "-filter_complex", graph, "-map", "[out]", "-r", String(fps), "-c:v", "libx264", "-preset", "slow", "-crf", resolution ? "14" : "12", "-pix_fmt", "yuv420p", video]);
+    const menc = prores || ["-c:v", "libx264", "-preset", "slow", "-crf", resolution ? "14" : "12", "-pix_fmt", "yuv420p"];
+    runEncode(["-y", "-v", "error", "-i", raw, "-filter_complex", graph, "-map", "[out]", "-r", String(fps), ...menc, video]);
   }
 
   const mix = path.join(projectDir, "audio", "mix.wav");
@@ -120,11 +128,20 @@ export async function render(projectDir, { quality = "final", fps, shutter = 180
   const scale = Array.isArray(sb.output) ? `scale=${sb.output[0]}:${sb.output[1]}:flags=lanczos` : null;
   const vf = [scale, draft ? null : finishFilter(sb)].filter(Boolean).join(",") || null;
   if (vf) log(`finish: ${vf}`);
-  const venc = draft && !vf ? ["-c:v", "copy"] : [...(vf ? ["-vf", vf] : []), "-c:v", "libx264", "-crf", draft ? "20" : "16", "-preset", draft ? "veryfast" : "slow", "-pix_fmt", "yuv420p"];
+  // one final encode with the house profile: draft = social (HEVC 10-bit 40M), final = deliver (HEVC
+  // 10-bit 160M) or social for a vertical Reels film; --profile / storyboard.profile / EM_VIDEO_PROFILE override
+  const W = Array.isArray(sb.output) ? sb.output[0] : sb.width || 1920, H = Array.isArray(sb.output) ? sb.output[1] : sb.height || 1080;
+  const prof = pickProfile({ flag: profile, sb, vertical: H > W, fallback: draft ? "social" : undefined });
+  log(`encode: ${prof} (${videoArgs(prof).slice(1, 4).join(" ")})`);
+  const enc = [...(vf ? ["-vf", vf] : []), ...videoArgs(prof)];
+  // off a Mac the 40M HyperFrames draft already is the social fallback (libx264 40M): copy it
+  const venc = draft && !vf && !hasVideoToolbox() && prof === "social" ? ["-c:v", "copy"] : enc;
+  // a ProRes intermediate can never be stream-copied into the .mp4
+  const isMov = video.endsWith(".mov");
   if (fs.existsSync(mix)) {
-    run("ffmpeg", ["-y", "-v", "error", "-i", video, "-i", mix, "-map", "0:v", "-map", "1:a", ...venc, "-c:a", "aac", "-b:a", "256k", "-t", String(sb.duration), "-movflags", "+faststart", final]);
+    runEncode(["-y", "-v", "error", "-i", video, "-i", mix, "-map", "0:v", "-map", "1:a", ...venc, "-c:a", "aac", "-b:a", "256k", "-t", String(sb.duration), "-movflags", "+faststart", final]);
   } else {
-    run("ffmpeg", ["-y", "-v", "error", "-i", video, ...(vf ? venc : ["-c:v", "copy"]), "-t", String(sb.duration), "-movflags", "+faststart", final]);
+    runEncode(["-y", "-v", "error", "-i", video, ...(isMov ? enc : venc), "-t", String(sb.duration), "-movflags", "+faststart", final]);
   }
   // the sounds-only cut next to it (no music): the film has to work without it, so listen to this one too
   const sfxOnly = path.join(projectDir, "audio", "sfx_only.wav");

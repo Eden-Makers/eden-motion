@@ -146,7 +146,7 @@ for fc in anim_utils.action_get_channelbag_for_slot(ad.action, ad.action_slot).f
 **Render + encode**
 ```python
 mg.render_animation("/abs/out/seq")                  # PNG sequence f_0001.png ...
-mg.encode_mp4("/abs/out/seq", "/abs/out/shot.mp4", fps=24)  # libx264 yuv420p crf 16
+mg.encode_mp4("/abs/out/seq", "/abs/out/shot.mp4", fps=24)  # HEVC 10-bit 160 Mbit/s (profile="deliver"; VideoToolbox on a Mac, libx264 elsewhere)
 ```
 
 ---
