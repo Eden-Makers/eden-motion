@@ -107,3 +107,11 @@ html[data-theme="saas-light"] .em-vignette, html[data-theme="glow"] .em-vignette
 [data-flat] .em-scene-bg { background: var(--bg); }
 .tone-paper .em-scene-bloom, .tone-stage .em-scene-bloom { display: none; }
 .tone-paper .em-scene-bg, .tone-stage .em-scene-bg { background: var(--bg); }
+
+/* v0.6 WebGL + borderless surface tokens (floor #0f0f0f, ceiling #fafafa, never pure black/white). */
+.em-gl { display: block; position: relative; image-rendering: auto; }
+.em-gl-bg { position: absolute; left: 0; top: 0; }
+.em-surface-flat { background: #fafafa; color: #141417; border: 0; box-shadow: 0 24px 64px -18px rgba(0, 0, 0, 0.14); }
+html[data-theme="saas-dark"] .em-surface-flat, html[data-theme="cinematic"] .em-surface-flat, .tone-dark .em-surface-flat, .tone-black .em-surface-flat {
+  background: #141417; color: #f2f2f4; box-shadow: 0 40px 100px -24px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+}

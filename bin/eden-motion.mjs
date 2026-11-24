@@ -33,7 +33,8 @@ const HELP = `eden-motion - company name in, finished motion-graphics brand film
 USAGE
   eden-motion new "<Company>" [--url https://...] [--duration 60] [--lang en] [--theme saas-light|saas-dark|glow|cinematic]
                   [--voice brian|george|sarah|alice|matilda|daniel|<id>] [--structure problem-solution|launch|manifesto]
-                  [--notes "client notes"] [--video (allow Seedance 2.0 AI clips)] [--style burnwe|launch|higgsfield|relate]
+                  [--notes "client notes"] [--video (allow Seedance 2.0 AI clips)] [--style burnwe|launch|higgsfield|relate|ovyon]
+                  [--template launch|feature-drop|changelog|product-tour|pitch (20-30 s, 10-11 beat blueprint)]
                   [--cut-grid 1.0 (metronome cuts every N s; relate default 1.0)] [--fps 24|30]
                   [--dir <projects root>]
   eden-motion run <project> [--from <step>] [--to <step>] [--draft]   full pipeline (research -> qc)
@@ -43,16 +44,27 @@ STEPS (in order)
   research     find site, capture it, extract brand.json + logo/fonts/screenshots
   script       write script.json (narration lines + shot ideas)
   vo           ElevenLabs voiceover with word timings -> vo.json, audio/vo.mp3
+  treatment    pre-storyboard creative gate: 3 distinct treatments with hybrid tech mix & 4-of-6 novelty check
+               [--n 3] [--pick <1|2|3> locks chosen treatment into treatment.json for storyboard]
   ref          <slug> <url|file>...  analyse reference film(s) -> research/ref-style.md (storyboard copies its style)
-               [--at 0:04-0:08[,0:12-0:15]: also cut those moments, every frame on a sheet, and read them frame by frame]
-  storyboard   map lines to scenes/props/transitions -> storyboard.json  [--variants 3: product/type/metaphor-led]
+               [--at 0:04-0:08[,0:12-0:15]: cut those moments, compute activity curve -> research/moment-spec-<tag>.json]
+               [--no-ai: code measurements & frame sheet only]
+  clone-ui     <slug> <url|file.html>  capture live website/app widget with virtual clock + easing curve fit
+               -> research/clone-<name>/spec.{json,md} + deterministic custom-scenes/<name>.js starter
+               [--selector CSS] [--target CSS] [--trigger load|scroll|hover|leave|click|move|drag|none]
+               [--duration MS] [--fps N] [--gl] [--track "CSS,CSS"] [--name SLUG] [--fidelity motion|pixel|mixed]
+               [--clock virtual|real] [--viewport WxH] [--pad PX] [--clip x,y,w,h] [--scroll-to PX|CSS] [--overwrite]
+  storyboard   map lines to scenes/props/transitions -> storyboard.json
+               [--variants 3: product/type/metaphor-led] [--style burnwe|launch|higgsfield|relate|ovyon]
+               [--template launch|feature-drop|changelog|product-tour|pitch]
   stills       one settled frame per scene + Gemini art-director review, BEFORE rendering motion [--variants]
   pick         <slug> <n>  make storyboard.v<n>.json the storyboard
   note         <slug> "slow every zoom to 0.7x; hard cut into s5; push in on the button"  director notes
   assets       generate images for "gen:" props (Nano Banana Pro 2K)
   blender      render "blender:<template>?k=v" props headless into transparent webm plates [--preview] [--force]
                templates: chrome-object (object=block|screw|screws3|ring|rodblock), card-stack (action=collapse|flyoff|fan),
-               layers-3d (images=a.png,b.mp4 layout=stack|row|fan|floor move=dolly|orbit|tilt|float fstop=2.8 focus=i)
+               layers-3d (images=a.png,b.mp4 layout=stack|tower|row|fan|floor|carousel|wall|fisheye-wall|exploded
+               move=dolly|orbit|tilt|float|explode|assemble loop=0|1 fstop=2.2 lens=50|20 focus=i)
   audio        VO + music + ambience + layered SFX -> audio/stems/<layer>.wav + audio/mix.wav
                layers: vo, music, ambience, sfx_transitions, sfx_ui, sfx_foley, sfx_accents
                [--sfx-source local|house|openverse (house = "sfx search" over the studio library; openverse = fresh
@@ -67,7 +79,7 @@ STEPS (in order)
                [--ambience "rain on window"] [--no-openverse] [--no-music]
                [--stingers (accent thumps + logo sting composed in code in the music's key; needs uv)]
                no ElevenLabs music? a bed is composed in code as a fallback (audio/music-code.wav)
-  new flags    --format 16:9|4:5|1:1|9:16  --no-images (type, UI, diagrams and Blender plates only)
+  new flags    --format 16:9|4:5|1:1|9:16  --no-images (type, UI, diagrams, WebGL shaders and Blender plates only)
   sync         snap cuts within 120 ms of a music beat onto the beat (frame grid), then re-mix [--tol 0.12]
   remix        <slug> --music -3 --sfx +2 --ambience off --sfx-foley -4   rebalance stems -> mix.wav (no regeneration)
                [--sfx-bus off|default|"<ffmpeg filter>"]; also rewrites audio/sfx_only.wav
@@ -83,15 +95,19 @@ STEPS (in order)
                [--against ref.mp4] scores the reference with the same rubric and prints the delta
   measure      frame-accurate checks of the composition, no render needed: reading time per text block,
                text clipped by the frame or outside the safe margin, small text, ease tails that freeze
-               (< 0.5 px/frame), glyph judder and letterform drift under scale -> renders/measure.json [--no-ink]
+               (< 0.5 px/frame), element easing curve check (accidental linear arrivals/overshoot), glyph judder
+               and letterform drift under scale -> renders/measure.json [--no-ink] [--no-curves]
                [--video renders/final.mp4: measure the ink windows on the real render too]
   study        <style> <films|urls|folder|list.txt>   measure reference films into styles/<style>/profile.json
                (shot lengths, rhythm, metronome grid, flashes, events per second, holds, polarity flips,
                cuts on the beat, look); <style> --against <slug|video> scores a film against it per axis
   compare      <slug> <ref.mp4> side by side + frame pairs + SSIM vs a reference film [--file]
-               [--at 0:04-0:08 [--our-at 3.2]: that moment of the reference over ours, frame by frame (reference row
-               above, ours below) with a per-frame SSIM; --our-at is where it starts in our film, default the same time]
+               [--at 0:04-0:08 [--our-at 3.2]: frame-by-frame ref | clone | red diff sheet + timing/pixel metrics]
+               [--fidelity motion|pixel|mixed] [--blur N] [--region x,y,w,h] [--no-auto-align] [--offset K]
+               [--fps N] [--threshold T] [--motion-threshold T]
   review       HTML review sheet (frames per shot, VO, props, prompts, QC) [--deliver <drive folder>]
+               [--videohub: write renders/review/videohub.json with timecode markers, thumbnails, stems]
+               [--import-notes <file.json>: map VideoHub/CRM timestamped comments to scene IDs -> imported-notes.md]
   build        only build comp/index.html from storyboard.json
   setup        first-run wizard: installs deps + skill links, asks for missing keys (masked, saved to .env),
                verifies them live, runs a 20 s smoke render [--yes non-interactive]
@@ -112,6 +128,12 @@ function parseArgs(argv) {
     } else out._.push(a);
   }
   return out;
+}
+
+function parseViewport(spec) {
+  if (!spec || typeof spec !== "string") return undefined;
+  const m = spec.match(/^(\d+)\s*[xX,]\s*(\d+)$/);
+  return m ? { width: +m[1], height: +m[2] } : undefined;
 }
 
 function projectsRoot(args) {
@@ -139,10 +161,43 @@ async function step(name, dir, args) {
     case "vo":
       await (await import("../src/steps/vo.mjs")).vo(dir, { voice: args.voice });
       break;
+    case "treatment": {
+      const m = await import("../src/steps/treatment.mjs");
+      if (args.pick != null && args.pick !== true) m.pickTreatment(dir, args.pick);
+      else await m.treatment(dir, { n: args.n ? +args.n : 3, projectsDir: args.dir });
+      break;
+    }
+    case "clone-ui": {
+      const url = args._[2];
+      if (!url) throw new Error("usage: eden-motion clone-ui <slug> <url|file.html> [options]");
+      const track = typeof args.track === "string" ? args.track.split(",").map((s) => s.trim()).filter(Boolean) : [];
+      await (await import("../src/steps/clone-ui.mjs")).cloneUi(dir, url, {
+        selector: typeof args.selector === "string" ? args.selector : undefined,
+        target: typeof args.target === "string" ? args.target : undefined,
+        trigger: typeof args.trigger === "string" ? args.trigger : undefined,
+        duration: args.duration ? +args.duration : undefined,
+        fps: args.fps ? +args.fps : undefined,
+        gl: !!args.gl,
+        track,
+        name: typeof args.name === "string" ? args.name : undefined,
+        fidelity: typeof args.fidelity === "string" ? args.fidelity : undefined,
+        viewport: parseViewport(args.viewport),
+        clock: typeof args.clock === "string" ? args.clock : undefined,
+        pad: args.pad != null && args.pad !== true ? +args.pad : undefined,
+        clip: typeof args.clip === "string" ? args.clip : undefined,
+        scrollTo: typeof args["scroll-to"] === "string" ? args["scroll-to"] : undefined,
+        overwrite: !!args.overwrite,
+      });
+      break;
+    }
     case "storyboard": {
       const m = await import("../src/steps/storyboard.mjs");
-      if (args.variants && +args.variants > 1) await m.storyboardVariants(dir, { n: +args.variants });
-      else await m.storyboard(dir);
+      const sbOpts = {
+        style: typeof args.style === "string" ? args.style : null,
+        template: typeof args.template === "string" ? args.template : null,
+      };
+      if (args.variants && +args.variants > 1) await m.storyboardVariants(dir, { n: +args.variants, ...sbOpts });
+      else await m.storyboard(dir, sbOpts);
       break;
     }
     case "stills": {
@@ -160,7 +215,10 @@ async function step(name, dir, args) {
       break;
     }
     case "ref":
-      await (await import("../src/steps/ref.mjs")).ref(dir, args._.slice(2), { at: typeof args.at === "string" ? args.at : undefined });
+      await (await import("../src/steps/ref.mjs")).ref(dir, args._.slice(2), {
+        at: typeof args.at === "string" ? args.at : undefined,
+        noAi: !!args["no-ai"],
+      });
       break;
     case "note":
       await (await import("../src/steps/note.mjs")).note(dir, args._.slice(2).join(" "));
@@ -172,7 +230,19 @@ async function step(name, dir, args) {
       await (await import("../src/steps/blender.mjs")).blender(dir, { preview: !!args.preview, force: !!args.force });
       break;
     case "compare":
-      await (await import("../src/steps/compare.mjs")).compare(dir, args._[2], { file: args.file, at: typeof args.at === "string" ? args.at : undefined, ourAt: typeof args["our-at"] === "string" ? args["our-at"] : undefined });
+      await (await import("../src/steps/compare.mjs")).compare(dir, args._[2], {
+        file: args.file,
+        at: typeof args.at === "string" ? args.at : undefined,
+        ourAt: typeof args["our-at"] === "string" ? args["our-at"] : undefined,
+        fidelity: typeof args.fidelity === "string" ? args.fidelity : undefined,
+        blur: args.blur != null && args.blur !== true ? +args.blur : undefined,
+        region: typeof args.region === "string" ? args.region : undefined,
+        autoAlign: args["no-auto-align"] ? false : undefined,
+        offset: args.offset != null && args.offset !== true ? +args.offset : undefined,
+        fps: args.fps != null && args.fps !== true ? +args.fps : undefined,
+        threshold: args.threshold != null && args.threshold !== true ? +args.threshold : undefined,
+        motionThreshold: args["motion-threshold"] != null && args["motion-threshold"] !== true ? +args["motion-threshold"] : undefined,
+      });
       break;
     case "audio":
       await (await import("../src/steps/audio.mjs")).audio(dir, { noMusic: !!args["no-music"], sfxSource: args["sfx-source"], ambience: args.ambience, openverse: !args["no-openverse"], stingers: args.stingers ? true : undefined, judgeSfx: args["judge-sfx"] ? true : undefined, sfxBus: args["sfx-bus"], generateSfx: !args["no-gen-sfx"] });
@@ -201,10 +271,19 @@ async function step(name, dir, args) {
       else await (await import("../src/steps/critique.mjs")).critique(dir, { file: args.file, noAi: !!args["no-ai"] });
       break;
     case "measure":
-      await (await import("../src/steps/measure.mjs")).measure(dir, { fps: args.fps ? +args.fps : undefined, ink: !args["no-ink"], video: args.video ? path.resolve(dir, args.video) : null });
+      await (await import("../src/steps/measure.mjs")).measure(dir, {
+        fps: args.fps ? +args.fps : undefined,
+        ink: !args["no-ink"],
+        curves: !args["no-curves"],
+        video: args.video ? path.resolve(dir, args.video) : null,
+      });
       break;
     case "review":
-      await (await import("../src/steps/review.mjs")).review(dir, { deliver: args.deliver || process.env.EDEN_MOTION_DELIVER });
+      await (await import("../src/steps/review.mjs")).review(dir, {
+        deliver: args.deliver || process.env.EDEN_MOTION_DELIVER,
+        videohub: !!args.videohub,
+        importNotes: typeof args["import-notes"] === "string" ? args["import-notes"] : null,
+      });
       break;
     case "preview": {
       const comp = await (await import("../src/steps/build.mjs")).build(dir, { slow: 1 });
@@ -252,6 +331,7 @@ async function main() {
       notes: args.notes || null,
       video: !!args.video,
       style: args.style || null,
+      template: args.template || null,
       format: args.format || null,
       noImages: !!args["no-images"],
       cutGrid: args["cut-grid"] ? +args["cut-grid"] : null,
