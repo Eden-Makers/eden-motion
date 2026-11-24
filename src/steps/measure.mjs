@@ -18,6 +18,7 @@ import { pathToFileURL } from "node:url";
 import { build } from "./build.mjs";
 import { withPage } from "../lib/browser.mjs";
 import { safeZone } from "../lib/safezone.mjs";
+import { fitSeries } from "../lib/reanimate/easing.mjs";
 import { log, warn, readJSON, writeJSON } from "../lib/util.mjs";
 
 export const LIMITS = {
@@ -131,10 +132,67 @@ function spoken(text, t0, t1, vo) {
   return toks.every((tk) => said.has(tk));
 }
 
-function analyse(frames, { fps, W, H, vo = [], k = 1 }) {
+// Verify a moving element's easing curve: catches accidental linear slides on arrivals and
+// unwanted overshoot/spring bounces outside ui-morph scenes.
+export function checkMoveCurve(series, { sceneType = null, axis = "y", text = "", t = 0 } = {}) {
+  const fit = fitSeries(series);
+  if (!fit.bestFit && !fit.isSpring) return null;
+  const travel = Math.abs(fit.change);
+  if (travel < 20 || fit.visibleDurationMs < 100) return null;
+  if (
+    fit.bestFit?.name === "linear" &&
+    fit.bestFit.rmse < 0.04 &&
+    travel >= 40 &&
+    fit.visibleDurationMs >= 150 &&
+    fit.visibleDurationMs <= 2000
+  ) {
+    return {
+      t: +t.toFixed(2),
+      text,
+      axis,
+      travel: +travel.toFixed(0),
+      easing: "linear",
+      rmse: fit.bestFit.rmse,
+      overshootPct: fit.overshootPct,
+      sceneType,
+      issue: "accidental linear slide on arrival (use land or power3.out)",
+      severity: "warn",
+    };
+  }
+  if ((fit.overshootPct > 2.5 || fit.isSpring) && sceneType !== "ui-morph") {
+    return {
+      t: +t.toFixed(2),
+      text,
+      axis,
+      travel: +travel.toFixed(0),
+      easing: fit.bestFit?.name || "spring",
+      rmse: fit.bestFit?.rmse ?? null,
+      overshootPct: fit.overshootPct,
+      sceneType,
+      issue: `unwanted overshoot (${fit.overshootPct}%) outside ui-morph`,
+      severity: "warn",
+    };
+  }
+  return null;
+}
+
+function sceneWindows(sb) {
+  const list = Array.isArray(sb?.scenes) ? sb.scenes : [];
+  let cursor = 0;
+  return list.map((s) => {
+    const start = typeof s.start === "number" ? s.start : cursor;
+    const dur = typeof s.duration === "number" ? s.duration : typeof s.dur === "number" ? s.dur : 0;
+    const end = typeof s.end === "number" ? s.end : start + dur;
+    cursor = end;
+    return { id: s.id || null, type: s.type || null, start, end };
+  });
+}
+
+function analyse(frames, { fps, W, H, vo = [], k = 1, scenes = [], checkCurves = false }) {
   const tr = tracks(frames);
-  const reads = [], frame = [], small = [], tails = [];
+  const reads = [], frame = [], small = [], tails = [], curves = [];
   const short = Math.min(W, H) / 1080;
+  const sceneAt = (sec) => scenes.find((s) => sec >= s.start - 0.05 && sec <= s.end + 0.05) || null;
   for (const [, seq] of tr) {
     // reads: time each final text is legible (dimmed counts, blurred or masked does not). A
     // typewriter's growing prefixes count toward the line they become: people read while it types.
@@ -209,6 +267,16 @@ function analyse(frames, { fps, W, H, vo = [], k = 1 }) {
         }
         const crawl = ds.filter((d) => d < LIMITS.crawlPx).length;
         if (streak >= LIMITS.tailWarn) tails.push({ t: +(mv.k0 / fps).toFixed(2), text: mv.text, travel: +travel.toFixed(0), frames: ds.length, crawl, tail: streak, px: ds.slice(-streak - 4).map((d) => +d.toFixed(2)), severity: streak >= LIMITS.tailFail ? "fail" : "warn" });
+        if (checkCurves && mv.pts && mv.pts.length >= 6) {
+          const dx = Math.abs(mv.pts[mv.pts.length - 1][1] - mv.pts[0][1]);
+          const dy = Math.abs(mv.pts[mv.pts.length - 1][2] - mv.pts[0][2]);
+          const axis = dy >= dx ? "y" : "x";
+          const series = mv.pts.map(([tMs, x, y]) => [tMs, axis === "y" ? y : x]);
+          const tSec = mv.k0 / fps;
+          const sc = sceneAt(tSec);
+          const issue = checkMoveCurve(series, { sceneType: sc?.type || null, axis, text: mv.text, t: tSec });
+          if (issue) curves.push(issue);
+        }
       }
       mv = null;
     };
@@ -219,13 +287,14 @@ function analyse(frames, { fps, W, H, vo = [], k = 1 }) {
       // in delivered pixels: a 4:5 stage of 1728 px ships at 1080 (k = 0.625)
       const d = Math.max(Math.abs(B.l - A.l), Math.abs(B.t - A.t), Math.abs(B.r - A.r), Math.abs(B.b - A.b)) * B.s * k;
       if (d >= 0.05) {
-        if (!mv) mv = { k0: a.k, d: [], text: b.text.slice(0, 40) };
+        if (!mv) mv = { k0: a.k, d: [], pts: [[(a.k / fps) * 1000, A.l * k, A.t * k]], text: b.text.slice(0, 40) };
         mv.d.push(d);
+        mv.pts.push([(b.k / fps) * 1000, B.l * k, B.t * k]);
       } else close(true);
     }
     close(false);
   }
-  return { reads, frame, small, tails };
+  return { reads, frame, small, tails, curves };
 }
 
 // Long sharp holds of text under the slow camera scale: the windows the ink check screenshots.
@@ -349,7 +418,7 @@ async function inkCheck(page, windows, { fps, W, H, tmp, video, k = 1 }) {
 }
 
 // ---- entry ---------------------------------------------------------------------------------------
-export async function measureComp(projectDir, { fps, ink = true, video = null } = {}) {
+export async function measureComp(projectDir, { fps, ink = true, video = null, curves = true } = {}) {
   const sb = readJSON(path.join(projectDir, "storyboard.json"));
   fps = fps || sb.fps || 30;
   const W = +sb.width || 1920, H = +sb.height || 1080;
@@ -357,6 +426,7 @@ export async function measureComp(projectDir, { fps, ink = true, video = null } 
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "em-measure-"));
   const n = Math.round(sb.duration * fps);
   const t0 = Date.now();
+  const scenes = sceneWindows(sb);
   const result = await withPage(async (page) => {
     await page.goto(pathToFileURL(path.join(comp, "index.html")).href, { waitUntil: "load", timeout: 60000 });
     await page.waitForFunction(() => window.EM_READY === true, { timeout: 30000 });
@@ -369,7 +439,7 @@ export async function measureComp(projectDir, { fps, ink = true, video = null } 
       const [d0, d1] = process.env.EM_MEASURE_DEBUG.split(",").map(Number);
       frames.forEach((bs, k) => k / fps >= d0 && k / fps <= d1 && console.log((k / fps).toFixed(3), bs.map((b) => `"${b.text}" op ${b.op.toFixed(2)} full ${b.full.toFixed(2)} blur ${b.blur} [${b.l.toFixed(0)},${b.t.toFixed(0)},${b.r.toFixed(0)},${b.b.toFixed(0)}]`).join(" | ")));
     }
-    const a = analyse(frames, { fps, W, H, vo: (sb.vo && sb.vo.words) || [], k: Array.isArray(sb.output) ? sb.output[0] / W : 1 });
+    const a = analyse(frames, { fps, W, H, vo: (sb.vo && sb.vo.words) || [], k: Array.isArray(sb.output) ? sb.output[0] / W : 1, scenes, checkCurves: !!curves });
     a.sceneErrors = await page.evaluate(() => JSON.parse(document.getElementById("em-errors")?.textContent || "[]"));
     a.ink = ink ? await inkCheck(page, holdWindows(frames, { fps, W, H }), { fps, W, H, tmp, video, k: Array.isArray(sb.output) ? sb.output[0] / W : 1 }) : [];
     return a;
@@ -406,6 +476,7 @@ export async function measureComp(projectDir, { fps, ink = true, video = null } 
     frame: { fail: sev(result.frame).length, warn: result.frame.length - sev(result.frame).length },
     small: result.small.length,
     tails: { fail: sev(result.tails).length, warn: result.tails.length - sev(result.tails).length },
+    curves: { fail: sev(result.curves).length, warn: result.curves.length - sev(result.curves).length },
     ink: result.ink.length ? { windows: result.ink.length, judderY: Math.max(...result.ink.map((r) => r.judderY)), judderX: Math.max(...result.ink.map((r) => r.judderX)), shape: Math.max(...result.ink.map((r) => r.shape)), fail: sev(result.ink).length } : null,
   };
   return { summary, fails, missingTypes, videoFails, zone, ...result };
@@ -416,7 +487,8 @@ export async function measure(projectDir, opts = {}) {
   fs.mkdirSync(path.join(projectDir, "renders"), { recursive: true });
   writeJSON(path.join(projectDir, "renders", "measure.json"), m);
   const s = m.summary;
-  log(`measure: ${s.frames} frames in ${s.seconds}s · reads ${s.reads.fail} fail/${s.reads.warn} warn · frame ${s.frame.fail}/${s.frame.warn} · small text ${s.small} · tails ${s.tails.fail}/${s.tails.warn} · ink ${s.ink ? `judder y ${s.ink.judderY}px x ${s.ink.judderX}px, shape ${(s.ink.shape * 100).toFixed(2)}%` : "-"}`);
+  log(`measure: ${s.frames} frames in ${s.seconds}s | reads ${s.reads.fail} fail/${s.reads.warn} warn | frame ${s.frame.fail}/${s.frame.warn} | small text ${s.small} | tails ${s.tails.fail}/${s.tails.warn} | curves ${s.curves.warn} warn | ink ${s.ink ? `judder y ${s.ink.judderY}px x ${s.ink.judderX}px, shape ${(s.ink.shape * 100).toFixed(2)}%` : "-"}`);
   m.fails.forEach((f) => warn(f));
+  if (m.curves?.length) m.curves.slice(0, 5).forEach((c) => warn(`curve ${c.t}s "${c.text}": ${c.issue}`));
   return m;
 }

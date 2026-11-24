@@ -4,9 +4,11 @@
 // yt-dlp source) or a local file; appends measured style notes to research/ref-style.md, which
 // the storyboard step injects into its prompt.
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { analyzeMedia, uploadFile, generateText, MODELS } from "../lib/gemini.mjs";
 import { log, warn, run, parseRanges, rangeTag } from "../lib/util.mjs";
+import { extractVideoFrames, computeActivity } from "../lib/reanimate/compare.mjs";
 
 function fetchRef(src, dir, n) {
   if (fs.existsSync(src)) return path.resolve(src);
@@ -35,8 +37,11 @@ export function metronome(times) {
 // A moment of a reference (--at 0:04-0:08): the exact seconds cut out, every frame of them on a sheet,
 // and a frame-by-frame reading of that span. A time code in a note is a copy instruction, so the
 // moment is studied at full frame rate, not at the every-4th-frame the whole-film pass sees.
-export async function refMoments(file, n, at, dir, { noAi = false } = {}) {
-  const fps = (() => { const [x, y] = run("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=r_frame_rate", "-of", "csv=p=0", file]).stdout.trim().split("/"); return +x / (+y || 1); })();
+export async function refMoments(file, n, at, dir, { noAi = false, keepFrames = false } = {}) {
+  const fps = (() => {
+    const [x, y] = run("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=r_frame_rate", "-of", "csv=p=0", file]).stdout.trim().split("/");
+    return +x / (+y || 1);
+  })();
   const notes = [];
   for (const r of parseRanges(at)) {
     const tag = rangeTag(r);
@@ -46,17 +51,55 @@ export async function refMoments(file, n, at, dir, { noAi = false } = {}) {
     const cols = 8, rows = Math.ceil(frames / cols);
     const sheet = path.join(dir, `ref-${n}-${tag}-frames.jpg`);
     run("ffmpeg", ["-v", "error", "-y", "-i", cutFile, "-vf", `scale=320:-1,tile=${cols}x${rows}`, "-frames:v", "1", "-q:v", "3", sheet]);
-    log(`moment ${r.a}-${r.b} s: ${frames} frames at ${fps.toFixed(2)} fps -> ${path.basename(sheet)}`);
+
+    // Extract full-fps frames and compute motion activity curve & windows in code (independent of Gemini)
+    const framesDir = keepFrames ? path.join(dir, `moment-${tag}-frames`) : fs.mkdtempSync(path.join(os.tmpdir(), "em-ref-"));
+    let spec = null;
+    const specFile = path.join(dir, `moment-spec-${tag}.json`);
+    try {
+      const { files } = extractVideoFrames(cutFile, framesDir, { start: 0, duration: r.b - r.a, fps, width: 480, height: 270 });
+      if (files.length) {
+        const act = computeActivity(files, { fps });
+        spec = {
+          tag,
+          source: path.resolve(file),
+          cutFile: path.basename(cutFile),
+          sheet: path.basename(sheet),
+          range: r,
+          fps: +fps.toFixed(3),
+          frames: act.frames,
+          start: act.window.startS,
+          end: act.window.endS,
+          peak: act.window.peakS,
+          duration: act.window.durationS,
+          motion: { ...act.window, windows: act.windows },
+          activityCurve: act.activity,
+        };
+        fs.writeFileSync(specFile, JSON.stringify(spec, null, 2) + "\n");
+      }
+    } catch (e) {
+      warn("moment activity spec failed: " + e.message.slice(0, 160));
+    } finally {
+      if (!keepFrames) fs.rmSync(framesDir, { recursive: true, force: true });
+    }
+
+    log(
+      `moment ${r.a}-${r.b} s: ${spec ? spec.frames : frames} frames at ${fps.toFixed(2)} fps -> ${path.basename(sheet)}` +
+        (spec ? `, ${path.basename(specFile)} (active ${spec.start.toFixed(2)}-${spec.end.toFixed(2)}s, peak ${spec.peak.toFixed(2)}s, ${spec.motion.windows.length} burst${spec.motion.windows.length === 1 ? "" : "s"})` : "")
+    );
     if (noAi) continue;
     try {
       const parts = [await uploadFile(cutFile), await uploadFile(sheet)];
+      const measuredHint = spec
+        ? `\nMeasured activity windows (code-derived, independent of vision): active ${spec.start.toFixed(2)}-${spec.end.toFixed(2)}s, peak at ${spec.peak.toFixed(2)}s (frame ${spec.motion.peak}), bursts: ${spec.motion.windows.map((w) => `${w.startS}-${w.endS}s (peak ${w.peakS}s)`).join(", ") || "continuous"}.`
+        : "";
       const txt = await generateText(
-        `This is a ${(r.b - r.a).toFixed(2)} s moment cut from a reference film (${frames} frames at ${fps.toFixed(2)} fps), as a video and as a sheet of EVERY frame (left to right, top to bottom, ${cols} per row; frame 0 is the first tile).
+        `This is a ${(r.b - r.a).toFixed(2)} s moment cut from a reference film (${frames} frames at ${fps.toFixed(2)} fps), as a video and as a sheet of EVERY frame (left to right, top to bottom, ${cols} per row; frame 0 is the first tile).${measuredHint}
 Describe it frame by frame so a motion designer can copy it exactly. A table: frame range | time from the start of the cut (s) | what moves (element, from -> to, px or % of frame width, easing guess) | camera | blur | sound-worthy event.
 Then: the order of events, the exact length of every phase, which element is the focus at each moment, how the elements arrive and leave. Measure, do not summarize; say "unclear" instead of guessing. No em dashes or en dashes.`,
         { model: MODELS.vision, parts, temperature: 0.2 }
       );
-      notes.push(`\n## Moment ${r.a.toFixed(2)}-${r.b.toFixed(2)} s (${path.basename(cutFile)}, frames ${path.basename(sheet)})\n\n${txt.replace(/[—–]/g, "-")}\n`);
+      notes.push(`\n## Moment ${r.a.toFixed(2)}-${r.b.toFixed(2)} s (${path.basename(cutFile)}, frames ${path.basename(sheet)}, spec ${path.basename(specFile)})\n\n${txt.replace(/[\u2013\u2014]/g, "-")}\n`);
     } catch (e) {
       warn("moment analysis failed: " + e.message.slice(0, 160));
     }
@@ -64,7 +107,7 @@ Then: the order of events, the exact length of every phase, which element is the
   return notes.join("");
 }
 
-export async function ref(projectDir, sources = [], { at } = {}) {
+export async function ref(projectDir, sources = [], { at, noAi = false } = {}) {
   if (!sources.length) throw new Error("usage: eden-motion ref <slug> <url-or-file> [more...]");
   const dir = path.join(projectDir, "research");
   fs.mkdirSync(dir, { recursive: true });
@@ -77,9 +120,11 @@ export async function ref(projectDir, sources = [], { at } = {}) {
     const cutTimes = (run("ffmpeg", ["-i", file, "-vf", "select='gt(scene,0.25)',showinfo", "-f", "null", "-"], { allowFail: true }).stderr.match(/pts_time:[\d.]+/g) || []).map((x) => +x.split(":")[1]);
     const cuts = cutTimes.length;
     const grid = metronome(cutTimes);
-    const notes = await analyzeMedia(
-      file,
-      `You are reverse-engineering this reference film so a motion designer can match its STYLE (not its content) in an HTML/GSAP engine. Measured facts: duration ${dur.toFixed(1)} s, ${cuts} hard cuts (average shot ${(dur / Math.max(1, cuts + 1)).toFixed(2)} s)${grid ? `, cuts lock to a ${grid.toFixed(3)} s grid (metronome edit)` : ""}. Cut times: ${cutTimes.slice(0, 40).map((t) => t.toFixed(2)).join(", ")}.
+    const notes = noAi
+      ? ""
+      : await analyzeMedia(
+          file,
+          `You are reverse-engineering this reference film so a motion designer can match its STYLE (not its content) in an HTML/GSAP engine. Measured facts: duration ${dur.toFixed(1)} s, ${cuts} hard cuts (average shot ${(dur / Math.max(1, cuts + 1)).toFixed(2)} s)${grid ? `, cuts lock to a ${grid.toFixed(3)} s grid (metronome edit)` : ""}. Cut times: ${cutTimes.slice(0, 40).map((t) => t.toFixed(2)).join(", ")}.
 Write compact markdown with concrete numbers, no fluff:
 ## Pacing (shot lengths, where it speeds up and slows down, how long holds are)
 ## Typography (font style, weight, size relative to frame, how words appear: typed/masked/word swap/blur, accent usage)
@@ -90,10 +135,10 @@ Write compact markdown with concrete numbers, no fluff:
 ## Sound (music genre/BPM guess, SFX grammar, sync)
 ## Rules to copy (8-12 imperative rules a storyboard must follow to feel like this film)
 No em dashes or en dashes.`
-    );
+        );
     const measured = `Measured: ${dur.toFixed(1)} s, ${cuts} cuts at ${cutTimes.map((t) => t.toFixed(2)).join(", ")}${grid ? `\nMETRONOME: cuts lock to a ${grid.toFixed(3)} s grid. Use brief.cutGrid = ${grid.toFixed(3)} (or --style relate).` : ""}`;
-    const moments = at ? await refMoments(file, n, at, dir) : "";
-    const block = `\n\n# Reference ${n}: ${src}\n\n${measured}\n\n${notes.replace(/[—–]/g, "-")}\n${moments}`;
+    const moments = at ? await refMoments(file, n, at, dir, { noAi }) : "";
+    const block = `\n\n# Reference ${n}: ${src}\n\n${measured}\n\n${notes.replace(/[\u2013\u2014]/g, "-")}\n${moments}`;
     fs.appendFileSync(notesFile, block);
     log(`reference ${n} analysed (${dur.toFixed(0)} s, ${cuts} cuts) -> research/ref-style.md`);
   }

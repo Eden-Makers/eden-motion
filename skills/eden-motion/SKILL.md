@@ -1,6 +1,6 @@
 ---
 name: eden-motion
-description: Company name in, finished motion-graphics brand film out (Burnwe / Lovable / Google launch-film quality). Researches the brand from its website, writes the script, records an ElevenLabs voiceover with word timings, storyboards 15-20 shots from a library of premium scenes (hot-tail kinetic type, product UI with camera and cursor, prompt box, orbit, stat counters, card chaos, flow lines, glass media frames, logo resolve), generates images with Nano Banana Pro and AI clips via Higgsfield (Seedance 2.0 / Kling 3 / Veo 3.1), offers burnwe / launch / higgsfield / relate visual styles, renders 3D plates headless in Blender (chrome hardware, acrylic card stacks, product CG), mixes layered stems (VO, music, ambience, transition / UI / foley / accent SFX) on exact frames with free CC0 / CC-BY sounds from Openverse picked by a code score, renders with HyperFrames and true shutter motion blur, then self-reviews with Gemini and iterates. Also rebuilds a reference film 1:1 (compare + calibrated critique). Also films a real app or device: HTML twin of the UI instead of screen recordings, CG device shots in Blender, b-roll close-ups, lens finish keyed to fast moves, and 9:16 Reels versions that keep the composition. Use for "make a motion graphics video for <company>", "explainer video", "SaaS promo", "launch video", "brand film from a website", "motion design like Burnwe/Lovable/Google/Relate", "crypto / fintech promo", "app promo / product b-roll / UI close-ups", "vertical version for Reels", "napodob tohle video 1:1", "udělej motion graphic video", "explainer pro firmu", "b-roll aplikace".
+description: Company name in, finished motion-graphics brand film out (Burnwe / Lovable / Raycast / Framer / OvyonLabs launch-film quality). Researches the brand from its website, writes the script, records an ElevenLabs voiceover with word timings, runs a 3-option creative treatment gate with hybrid tech budgeting, clones live web UI widgets under a deterministic virtual clock, storyboards shots from a 50-scene library (flat macro UI, CLI/MCP terminals, streaming AI answers, telemetry tickers, WebGL2 globes and foil cards, hot-tail kinetic type, diagrams, logo resolves), drives 4 deterministic WebGL2 shader worlds, offers 5 styles (burnwe / launch / higgsfield / relate / ovyon with 11-section style bibles) and 5 short-form templates (launch / feature-drop / changelog / product-tour / pitch), renders 3D plates headless in Blender (chrome hardware, acrylic stacks, layers-3d incl. carousel/wall/fisheye-wall/exploded + seamless loop), mixes layered stems on exact frames, renders with HyperFrames and true shutter motion blur, then verifies with Reanimate frame-diff/easing checks, Gemini QC, VideoHub export, and timestamped note import. Use for "make a motion graphics video for <company>", "explainer video", "SaaS promo", "launch video", "brand film from a website", "clone this website UI animation", "motion design like Burnwe/Lovable/Raycast/Relate/Ovyon", "crypto / fintech promo", "app promo / product b-roll / UI close-ups", "vertical version for Reels", "napodob tohle video 1:1", "udělej motion graphic video", "explainer pro firmu", "b-roll aplikace".
 ---
 
 # eden-motion
@@ -30,11 +30,13 @@ false or a recommended item is missing, onboard the person before anything else:
 node bin/eden-motion.mjs new "<Company>" [--url https://site] [--duration 60] [--lang en] \
   [--theme saas-light|saas-dark|glow|cinematic] [--voice brian|george|sarah|alice|matilda|daniel] \
   [--structure problem-solution|launch|manifesto] [--notes "client notes"] [--dir <projects root>] \
-  [--style burnwe|launch|relate|higgsfield] [--format 16:9|4:5|1:1|9:16] [--no-images]
+  [--style burnwe|launch|relate|higgsfield|ovyon] [--template launch|feature-drop|changelog|product-tour|pitch] \
+  [--format 16:9|4:5|1:1|9:16] [--no-images]
 ```
 Runs: research -> script -> vo -> storyboard -> assets -> blender -> audio -> sync -> render (final, motion blur, finish) -> qc.
+`--template` applies a structured 20-30 s (10-11 beat) short-form blueprint (`launch`, `feature-drop`, `changelog`, `product-tour`, `pitch`).
 `--format 4:5` lays the film out on a 1728x2160 stage and delivers 1080x1350 (1:1 likewise).
-`--no-images` keeps generated stills out (type, UI, diagrams, Blender plates only).
+`--no-images` keeps generated stills out (type, UI, diagrams, WebGL shaders, and Blender plates only).
 Project lands in `projects/<slug>/` (or `--dir`). Output: `renders/final.mp4`, `renders/qc.json`, `renders/contact-sheet.jpg`.
 
 **Autopilot is the first draft, not the deliverable.** Always run the director loop (section 3).
@@ -45,7 +47,10 @@ node bin/eden-motion.mjs new "<Company>" --no-run      # creates brief.json only
 node bin/eden-motion.mjs research <slug>               # brand.json, assets/logo.svg, fonts, ui-*.jpg
 node bin/eden-motion.mjs script <slug>                 # script.json  <- READ AND IMPROVE IT
 node bin/eden-motion.mjs vo <slug>                     # audio/vo.mp3, vo.json (word timings)
-node bin/eden-motion.mjs storyboard <slug>             # storyboard.json  <- READ AND IMPROVE IT
+node bin/eden-motion.mjs treatment <slug>              # 3 distinct treatments + hybrid tech mix -> treatment.{json,md}
+node bin/eden-motion.mjs treatment <slug> --pick 2     # lock chosen treatment before storyboarding
+node bin/eden-motion.mjs clone-ui <slug> <url>         # capture live UI widget + curve fit -> custom-scenes/<name>.js
+node bin/eden-motion.mjs storyboard <slug>             # storyboard.json (injects style.md + treatment.json) <- READ AND IMPROVE IT
 node bin/eden-motion.mjs assets <slug>                 # resolves "gen:<prompt>" images (Nano Banana Pro 2K)
 node bin/eden-motion.mjs audio <slug>                  # VO + music + ambience + layered SFX -> audio/stems/*.wav + audio/mix.wav
 node bin/eden-motion.mjs sync <slug>                   # cuts within 120 ms of a music beat move onto it, then re-mix
@@ -64,19 +69,21 @@ If you change script text, re-run `vo` (timings change) then `storyboard`.
 Everyone has the same model; the context decides the look.
 ```bash
 eden-motion ref <slug> https://whatships.com/...  ./their-favourite.mp4   # 1-2 reference films to MATCH
-eden-motion storyboard <slug> --variants 3     # product-led / type-led / metaphor-led
+eden-motion treatment <slug>                   # 3 structurally distinct treatments + hybrid tech mix + 4-of-6 novelty check
+eden-motion treatment <slug> --pick 2          # lock treatment before storyboarding (injected automatically into storyboard)
+eden-motion clone-ui <slug> https://app.site --selector ".hero-card" --trigger hover --duration 3000 --fps 25
+eden-motion storyboard <slug> --variants 3 [--style ovyon] [--template launch]
 eden-motion stills <slug> --variants           # one settled frame per scene per variant + art-director review
 eden-motion pick <slug> 2                      # choose a direction instead of fixing the first idea
 eden-motion note <slug> "slow every zoom to 0.7x; hard cut into s5; push in on the button in s9"
 ```
-- Name a reference instead of describing a style. Without one the model falls back to its default look
-  (centred text, gradient background, everything fading in).
-- Real brand context: `research` pulls logo, fonts, colours and vetted product screenshots; add client
-  notes with `--notes`. Real UI components beat invented ones (21st.dev MCP when authorised, or the
-  captured screenshots).
+- Treatment gate first: `treatment <slug>` scans your recent `projects/*/storyboard.json` and enforces a 4-of-6 novelty checklist so consecutive films never repeat the same opening, tech mix, polarity, or hero shot.
+- Route shots with `references/hybrid-tech-matrix.md`: 2D HTML/GSAP for type, flat `macro-ui`, `terminal`, `answer-stream`, `micro-ticker`, and `clone-ui` live twins; WebGL2/Three.js (`shader-silk`, `shader-mesh`, `shader-grid`, `shader-dither`, `webgl-globe`, `shader-card`) for deterministic GPU worlds; Blender `clip-3d` for optical DOF and real 3D; footage only for real humans/world emotion.
+- Real brand context: `research` pulls logo, fonts, colours and vetted product screenshots; `clone-ui` captures live web widgets under a deterministic virtual clock (fitting real easing curves + WebGL uniforms) and generates a deterministic `custom-scenes/<name>.js` starter.
 - Stills before motion: fixing a storyboard on stills takes seconds, fixing a render takes minutes.
 - Notes like a director, in camera words. `note` maps them to exact fields (`cameraSpeed`,
   `transitionSpeed`, per-scene `camera`, `transition`, props) and asks back instead of guessing on vague notes.
+  For client review cycles, export `review <slug> --videohub` and import timestamped VideoHub/CRM comments via `review <slug> --import-notes comments.json` (maps every timestamp directly to its scene ID and prints the exact `eden-motion note` string).
 
 ## 3. Director loop (this is where quality comes from)
 1. **Script pass.** Read `script.json`. Kill buzzwords, make every line concrete and speakable, one clause per line, 7-11 words mostly, product named by 38% of runtime, exactly one real number, last lines = tagline then "Brand. CTA.". Check `brand.json` facts; never invent numbers.
@@ -120,20 +127,15 @@ Write `projects/<slug>/custom-scenes/<name>.js` following `runtime/SCENE_API.md`
 built-ins, auto-loaded by `build`). Use it in storyboard.json with `"type": "<name>"`. If it is reusable,
 promote it into `runtime/scenes/` and add it to `src/lib/catalog.mjs`.
 
-## 5. Styles and AI footage
-- `--style burnwe` (default SaaS explainer), `--style launch` (Google/Lovable launch film), `--style higgsfield`
-  (white grid canvas, magenta + lime accents, fast zoom-throughs with parallax, pixel reveals, AI footage as
-  proof in grid cells; see `research/analysis/higgsfield.md`; flash frames and punch-ins only with
-  `brief.flashFrames`). The style steers storyboard scene and transition choice.
+## 5. Styles, Hybrid Tech, and AI footage
+- 5 house styles, each backed by a measured `styles/<style>/profile.json` and 11-section `styles/<style>/style.md` bible (injected automatically into `storyboard`):
+  - `--style burnwe` (default SaaS explainer), `--style launch` (dark Raycast/Lovable launch film), `--style higgsfield` (white grid canvas, magenta + lime accents, fast zoom-throughs, macro UI click-to-drop, AI footage as proof; flash frames/punch-ins only with `brief.flashFrames`).
+  - `--style relate` (Relate Studio editorial: metronome hard cuts on `--cut-grid 1.0`, polarity flip paper/black, flat worlds, forward-shutter blur, chrome/acrylic Blender plates).
+  - `--style ovyon` (OvyonLabs high-cut editorial: median `0.53 s`, `~13 cuts/10 s`, technical `shader-grid` overlays, tinted B&W + grain + 1 sharp accent, `~35%` dark share with `~31%` polarity flips, `micro-ticker`, flat `macro-ui`).
+- Deterministic WebGL2 / Three.js (`runtime/webgl.js`): set `storyboard.background` to `shader-silk`, `shader-mesh`, `shader-grid`, or `shader-dither`; use `webgl-globe` and `shader-card` for fast GPU hero beats without Blender render time. See `references/hybrid-tech-matrix.md`.
 - Whatever the style: transitions are zooms, speed ramps, blur and parallax; a whip at most once per film
   (storyboard turns later whips into zoom-throughs, critique fails more than two). House rules on top of
-  `references/style-dna.md`.
-- `--style relate` (Relate Studio crypto/fintech editorial, `research/analysis/relate.md`): metronome hard cuts
-  on a fixed grid (`--cut-grid 1.0` = one cut every 24 frames at 24 fps; several shots share one VO line),
-  polarity flip paper/black every shot, flat worlds (no bloom, no exposure ramp), forward-shutter motion blur,
-  Relate scene pack (ghost-counter, editorial-headline, dash-field, glass-letters, rank-list, clip-3d, logo-bars).
-  Elements that the originals change per frame (counters, word stacks, swaps) are quantised to the film fps so
-  the true-shutter blur keeps them crisp.
+  `references/style-dna.md` and `research/analysis/universal-craft-invariants.md`.
 - 3D plates: any prop `src: "blender:<template>?k=v"` is rendered headless by `eden-motion blender <slug>` into
   a transparent VP9 webm in `assets/3d/` (cached by params). Templates: `chrome-object` (object=block|screw|screws3|ring|rodblock,
   spin, gain; Cycles Metal in a near emissive studio dome), `card-stack` (action=collapse|flyoff|fan, colors; EEVEE).
@@ -160,12 +162,15 @@ the pre-rendered assets into Blender and film them with a real camera:
 ```
 then `eden-motion blender <slug>`. Inputs: UI screenshots, Nano Banana stills, PNG/MOV-with-alpha
 layers you rendered from HyperFrames, or plain video (plays as a moving texture). Layouts: `stack`
-(one behind another), `row` (curved side by side), `fan`, `floor` (lying on a table). Moves: `dolly`
-(push in + rack focus from the first layer to `focus`), `orbit`, `tilt` (swing from flat into 3D),
-`float`. The rig is tabletop scale so f-stops behave like a real lens: `fstop=2.8` default, `1.4`
-leaves only a sliver of the focus layer sharp. Assets render unlit, so UI colours stay exact.
-Typical uses: a product UI flythrough with focus pulls, a wall of stills the camera orbits, a
-screenshot that swings from flat into a 3D hero angle. Render cost ~1.5 s per 1080p frame (EEVEE).
+(one behind another), `tower` (vertical stack for portrait), `row` (curved side by side), `fan`,
+`floor` (lying on a table), `carousel` (360-degree 3D orbiting ring with optical bokeh), `wall`
+(multi-row staggered masonry wall with Z-depth parallax), `fisheye-wall` (curved concave wraparound
+wall on wide `lens=18..24` mm for macro-to-wide reveals), and `exploded` (aligned UI component layers
+separating/assembling along depth at 3/4 angle). Moves: `dolly`, `orbit`, `tilt`, `float`, `explode`,
+`assemble`. Add `&loop=1` for mathematically seamless periodic loops (frame `F+1` matches frame `1`,
+SSIM > 0.9999). The rig is tabletop scale so f-stops behave like a real lens: `fstop=2.2..2.8`
+default, `1.4` leaves only a sliver of the focus layer sharp. Assets render unlit, so UI colours stay
+exact. Render cost ~1.5 s per 1080p frame (EEVEE).
 
 ## 4c. Product UI films (a real app or device is the hero)
 
@@ -278,15 +283,16 @@ straight into DaVinci as separate tracks) and then sums them into `audio/mix.wav
 ## 5b. Rebuild a reference film 1:1 (or match a client's favourite)
 Read `references/relate-and-1to1.md` first. Short loop:
 1. `eden-motion ref <slug> <ref.mp4>`: measured cut list, metronome detection, style notes. A time code in a
-   note is a copy instruction: `ref ... --at 0:04-0:08` cuts that moment, puts every frame on a sheet and reads
-   it frame by frame (what moves, when, how fast) into `research/ref-style.md`.
+   note is a copy instruction: `ref ... --at 0:04-0:08` cuts that moment at full fps, computes the activity
+   curve and motion windows in code (`research/moment-spec-<tag>.json`), and reads every frame into `research/ref-style.md`.
+   For live web widgets, use `eden-motion clone-ui <slug> <url> --selector ... --trigger ...` instead.
 2. Per-second strips: `ffmpeg -i ref.mp4 -vf "fps=6,scale=320:-1" f_%04d.jpg` then tile 6x4; LOOK at every second.
 3. Write storyboard.json by hand on the measured cut frames (no VO needed), 3D shots as `blender:` props.
 4. `eden-motion blender <slug> --preview` while iterating, then without `--preview`.
-5. `render --draft`, `npx hyperframes snapshot --at t1,t2 --against ref.mp4` inside `comp/` (pairs render | reference).
-6. `render`, `compare <slug> ref.mp4` (side by side + pairs + SSIM; `--at 0:04-0:08 [--our-at 3.2]` puts that
-   moment of the reference over ours frame by frame with a per-frame SSIM), `critique <slug> --against ref.mp4`
-   (same rubric on both; within 1 point on every axis = on par). SSIM is harsh on thin detail and DOF: read pairs.jpg.
+5. `render --draft`, `npx hyperframes snapshot --at t1,t2 --against ref.mp4` inside `comp/` (pairs render | reference), and `eden-motion measure <slug>` (checks reading times, framing, ease tails, and element easing curves via Reanimate `easing.mjs`).
+6. `render`, `compare <slug> ref.mp4 --at 0:04-0:08 [--our-at 3.2] [--fidelity motion|pixel|mixed] [--blur 3] [--region x,y,w,h]`
+   (auto-aligns offset, outputs 3-row `REF | CLONE | DIFF` `moment-<tag>-diff.jpg` + timing/pixel/SSIM verdict in `moment-<tag>.json`),
+   `critique <slug> --against ref.mp4` (same rubric on both; within 1 point on every axis = on par). Read the diff sheet with eyes.
 
 ## 5c. Learn a style from many films (`study`)
 One reference shows what one film did. Ten show what the style is. `study` measures every film with
@@ -315,14 +321,15 @@ node bin/eden-motion.mjs study <style> --against film.mp4     # or any video
   instead of whips and hard cuts into the UI, never a black or flat colour frame, one accent colour,
   sync to VO words, a sound on every event.
 - Token budget: one chat per phase with a handoff file, subagents report only at the end, QC with one small grid instead of many frames (`tools/token_usage.py` to check).
-- Deliver: `review <slug> --deliver <folder>` copies `renders/final.mp4` + the HTML review sheet to your delivery folder. Never send a film to a client before a human has approved it.
+- Deliver: `review <slug> --deliver <folder> [--videohub]` copies `renders/final.mp4` + the HTML review sheet (+ `videohub.json` timecode markers, thumbnails, and stem paths) to your delivery folder. Import timestamped feedback via `review <slug> --import-notes comments.json`. Never send a film to a client before a human has approved it.
 
 ## References
+- `references/hybrid-tech-matrix.md` - 4-engine hybrid routing matrix (2D HTML/GSAP vs WebGL2/Three.js vs Blender 3D vs Footage), Blender `layers-3d` 9-layout guide, and `clone-ui` workflow.
 - `references/style-dna.md` - measured rules from the reference films (pacing, easing, type, sound).
-- `references/scene-catalog.md` - every scene type, props, when to use.
+- `references/scene-catalog.md` - all 50 scene types, 7 backgrounds (incl. 4 WebGL2 shaders), 16 transitions, props, and when to use.
 - `references/director-brief.md` - the long-brief template (logline, refs, keys, beat sheet, gates, critique loop, deliverables) and the parallel-chapter subagent pattern.
 - `references/pipeline.md` - file formats (brief, brand, script, vo, storyboard), rendering and motion blur internals, troubleshooting.
 - `references/relate-and-1to1.md` - Relate grammar, the 1:1 rebuild loop, Blender 5.2 headless + HyperFrames gotchas.
 - `references/product-ui-film.md` - app and device films: HTML twin of the UI, Blender device CG, slowed-clock capture with optical-flow retime, lens finish keyed to moves, music-led edit, 9:16 reframing rules, the review loop.
 - `references/scene-text.md` - text standing in a live-action scene: track, solve, smooth in shot time, composite with occlusion (`tools/scenetext/`).
-- Repo research: `research/analysis/{burnwe,launch-films,higgsfield,relate,tooling-and-workflows}.md` (full forensic breakdowns, 90+ techniques with parameters, Higgsfield preset map), `research/relate/*.md` (26 per-film shot lists), `research/blender/{PLAYBOOK,tutorials}.md` (12 Blender tutorials distilled).
+- Repo research & style bibles: `styles/{burnwe,launch,relate,higgsfield,ovyon}/{profile.json,style.md}`, `research/analysis/{universal-craft-invariants,higgsfield-mcp-closeup,burnwe,launch-films,higgsfield,relate,tooling-and-workflows}.md`, `research/relate/*.md`, `research/blender/{PLAYBOOK,tutorials}.md`.

@@ -111,11 +111,123 @@ function copyDir(src, dst) {
   }
 }
 
+// Optional local Three.js: used only when `three` is installed next to the repo (node_modules/three) or a
+// classic-script build sits in .cache/vendor/three.min.js. Never fetched from the network. EM.three()
+// falls back to a 2D painter when window.THREE is missing, so films still render without it.
+function vendorThree(dest) {
+  const nm = path.join(REPO, "node_modules", "three", "build");
+  const cached = path.join(CACHE, "vendor", "three.min.js");
+  const prebuilt = [path.join(nm, "three.min.js"), cached].find((f) => fs.existsSync(f) && fs.statSync(f).size > 50000);
+  if (prebuilt) {
+    fs.copyFileSync(prebuilt, dest);
+    return true;
+  }
+  const mod = path.join(nm, "three.module.js");
+  const core = path.join(nm, "three.core.js");
+  if (fs.existsSync(mod)) {
+    // r160+ is ESM-only (three.module.js + three.core.js). Wrap each file in its own IIFE so internal
+    // Rollup helpers never collide, and assign window.THREE synchronously for http:// and file://.
+    const exportMap = (list) =>
+      list
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((e) => {
+          const m = e.match(/^(\w+)\s+as\s+(\w+)$/);
+          return m ? `${m[2]}:${m[1]}` : `${e}:${e}`;
+        })
+        .join(",");
+    const coreJs = fs.existsSync(core)
+      ? fs.readFileSync(core, "utf8").replace(/export\s*\{([\s\S]*?)\};?\s*$/, (_, l) => `return {${exportMap(l)}};\n`)
+      : "return {};";
+    const reexports = [];
+    const modJs = fs
+      .readFileSync(mod, "utf8")
+      .replace(/^\s*import\s*\{([\s\S]*?)\}\s*from\s*['"]\.\/three\.core\.js['"];\s*/gm, (_, l) => {
+        const binds = l
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .map((e) => {
+            const m = e.match(/^(\w+)\s+as\s+(\w+)$/);
+            return m ? `${m[1]}:${m[2]}` : e;
+          })
+          .join(",");
+        return `var {${binds}} = __CORE;\n`;
+      })
+      .replace(/^\s*export\s*\{([\s\S]*?)\}\s*from\s*['"]\.\/three\.core\.js['"];\s*/gm, (_, l) => {
+        l.split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .forEach((e) => {
+            const m = e.match(/^(\w+)\s+as\s+(\w+)$/);
+            reexports.push(m ? `${m[2]}:__CORE.${m[1]}` : `${e}:__CORE.${e}`);
+          });
+        return "";
+      })
+      .replace(/export\s*\{([\s\S]*?)\};?\s*$/, (_, l) => `return Object.assign({${reexports.join(",")}},{${exportMap(l)}});\n`);
+    const bundle = `(function(){\nvar __CORE=(function(){\n${coreJs}\n})();\nwindow.THREE=(function(){\n${modJs}\n})();\n})();\n`;
+    fs.mkdirSync(path.dirname(cached), { recursive: true });
+    fs.writeFileSync(cached, bundle);
+    fs.writeFileSync(dest, bundle);
+    return true;
+  }
+  return false;
+}
+
+// Real screenshots need their aspect at build time (the browser has not decoded them when scenes lay out).
+// Reads PNG / JPEG / WebP headers; scenes find it in props.srcSize / props.screenshotSize = [w, h].
+function imageSize(file) {
+  try {
+    const fd = fs.openSync(file, "r");
+    const b = Buffer.alloc(65536);
+    const n = fs.readSync(fd, b, 0, b.length, 0);
+    fs.closeSync(fd);
+    if (b.toString("latin1", 1, 4) === "PNG") return [b.readUInt32BE(16), b.readUInt32BE(20)];
+    if (b.toString("latin1", 0, 4) === "RIFF" && b.toString("latin1", 8, 12) === "WEBP") {
+      const k = b.toString("latin1", 12, 16);
+      if (k === "VP8X") return [1 + b.readUIntLE(24, 3), 1 + b.readUIntLE(27, 3)];
+      if (k === "VP8 ") return [b.readUInt16LE(26) & 0x3fff, b.readUInt16LE(28) & 0x3fff];
+      if (k === "VP8L") {
+        const v = b.readUInt32LE(21);
+        return [1 + (v & 0x3fff), 1 + ((v >> 14) & 0x3fff)];
+      }
+    }
+    if (b[0] === 0xff && b[1] === 0xd8) {
+      let i = 2;
+      while (i < n - 9) {
+        if (b[i] !== 0xff) { i++; continue; }
+        const m = b[i + 1];
+        if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc) return [b.readUInt16BE(i + 7), b.readUInt16BE(i + 5)];
+        i += 2 + b.readUInt16BE(i + 2);
+      }
+    }
+  } catch {}
+  return null;
+}
+
+function annotateImageSizes(sb, projectDir) {
+  const walk = (o) => {
+    if (Array.isArray(o)) return o.forEach(walk);
+    if (!o || typeof o !== "object") return;
+    for (const key of ["src", "screenshot", "image", "media"]) {
+      const v = o[key];
+      if (typeof v === "string" && /\.(png|jpe?g|webp)$/i.test(v) && !/^(https?:|data:)/.test(v) && !o[key + "Size"]) {
+        const sz = imageSize(path.join(projectDir, v));
+        if (sz) o[key + "Size"] = sz;
+      }
+    }
+    Object.values(o).forEach(walk);
+  };
+  walk(sb.scenes);
+}
+
 export async function build(projectDir, { slow = 1, out = "comp", mb = null, storyboard = null } = {}) {
   const sb = storyboard || readJSON(path.join(projectDir, "storyboard.json"));
   const brand = readJSON(path.join(projectDir, "brand.json"), {});
   const comp = path.join(projectDir, out);
   fs.mkdirSync(comp, { recursive: true });
+  annotateImageSizes(sb, projectDir);
 
   // runtime + project assets
   copyDir(RUNTIME, path.join(comp, "runtime"));
@@ -123,6 +235,7 @@ export async function build(projectDir, { slow = 1, out = "comp", mb = null, sto
   if (fs.existsSync(assetsSrc)) copyDir(assetsSrc, path.join(comp, "assets"));
   await buildIcons(sb, path.join(comp, "runtime", "icons.js"));
   await vendorGsap(path.join(comp, "runtime", "gsap.min.js"));
+  const hasThree = vendorThree(path.join(comp, "runtime", "three.min.js"));
 
   // Fonts: the brand's own captured woff2 files win; otherwise the closest Google family.
   const fonts = brand.fonts || {};
@@ -134,7 +247,9 @@ export async function build(projectDir, { slow = 1, out = "comp", mb = null, sto
   const localCss = local
     .map((f) => `@font-face { font-family: "${f.family}"; src: url("${f.file}") format("${/\.otf$/i.test(f.file) ? "opentype" : /\.ttf$/i.test(f.file) ? "truetype" : "woff2"}"); font-weight: ${f.weight}; font-style: normal; font-display: block; }`)
     .join("\n");
-  const google = [display, body, "Inter Tight", "Inter"].filter((f) => !hasLocal(f));
+  // terminal-style scenes set code in a vendored mono face (cached after the first build)
+  const needsMono = JSON.stringify(sb.scenes).match(/"type":\s*"(terminal|micro-ticker|answer-stream|macro-ui)"/);
+  const google = [display, body, "Inter Tight", "Inter", needsMono && "JetBrains Mono"].filter((f) => f && !hasLocal(f));
   const fontCss = localCss + "\n" + (await vendorFonts([...new Set(google)], path.join(comp, "fonts")));
   fs.writeFileSync(path.join(comp, "fonts.css"), fontCss);
 
@@ -208,6 +323,7 @@ html[data-theme] { ${themeOverrides.join(" ")} }
 <script src="runtime/engine.js"></script>
 <script src="runtime/fx.js"></script>
 <script src="runtime/transitions.js"></script>
+${hasThree ? '<script src="runtime/three.min.js"></script>\n' : ""}<script src="runtime/webgl.js"></script>
 <script src="runtime/backgrounds.js"></script>
 ${sceneFiles.map((f) => `<script src="runtime/scenes/${f}"></script>`).join("\n")}
 ${customFiles.map((f) => `<script src="custom-scenes/${f}"></script>`).join("\n")}
